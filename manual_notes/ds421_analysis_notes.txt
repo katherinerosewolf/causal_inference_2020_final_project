@@ -1,0 +1,1 @@
+School campus GIS data from http://www.californiaschoolcampusdatabase.org/ downloaded August 5, 2019.
