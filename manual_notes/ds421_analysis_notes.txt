@@ -2,6 +2,11 @@ School campus GIS data from http://www.californiaschoolcampusdatabase.org/ downl
 
 
 goals for presentation
+
 ~school map
 ~monitor map
 ~point source map
+~summary statistics schools
+~monitor summary statistics?
+~point source summary statistics?
+~slide scrambling monitors
