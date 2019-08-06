@@ -1,1 +1,7 @@
 School campus GIS data from http://www.californiaschoolcampusdatabase.org/ downloaded August 5, 2019.
+
+
+goals for presentation
+~school map
+~monitor map
+~point source map
