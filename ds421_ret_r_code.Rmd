@@ -39,7 +39,7 @@ download.file(
     
 )
 
-# read school addresses into 
+# read school addresses into tibble
 public_school_directory <-
     read_delim(file =
                  file.path(
@@ -112,10 +112,91 @@ map(
 )
 
 # read them all into r from tab-delimited files
+school_enrollment_2009_10_working <- 
+  read_delim(
+    file = 
+      file.path(
+        "raw_data", 
+        "school_enrollment_2009_10_raw.rdata"
+        ),
+    delim = "\t"
+    )
 
+school_enrollment_2009_10_working <- 
+  read_delim(
+    file = 
+      file.path(
+        "raw_data", 
+        "school_enrollment_2009_10_raw.rdata"
+        ),
+    delim = "\t"
+    )
 
+school_enrollment_tab_reader <- 
+  function(start_year_numeric){
+    
+    end_year_chr <- 
+      as.character(start_year_numeric + 1) %>% 
+      substr(3, 4)  # get only the last two digits
+    
+    start_year_chr <- 
+      as.character(start_year_numeric)
+    
+    file_name <- 
+      str_c("school_enrollment_", 
+            start_year_chr, 
+            "_", 
+            end_year_chr, 
+            "_raw.txt")
+      
+    variable_name <- 
+      str_c("school_enrollment_", 
+            start_year_chr, 
+            "_", 
+            end_year_chr, 
+            "_working")
+    
+    read_tibble <- 
+      read_delim(
+        file = 
+          file.path(
+            "raw_data", 
+            file_name),
+        delim = "\t"
+        )
+    
+    assign(variable_name, read_tibble)
+    
+    save(
+      read_tibble, 
+      file = 
+        file.path(
+          "intermediate_data", 
+          str_c(
+            variable_name, 
+            ".rdata"
+          )
+        )
+    )
+    
+    return(read_tibble)
+  }
 
+# test function on all files
+test <- 
+  school_enrollment_tab_reader(2009)
 
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_enrollment_2009_10_working.rdata"
+    )
+)
+  
+
+  
+  
 
 ```
 
@@ -133,6 +214,10 @@ school_primary_short_enrollment_raw_downloader <-
     start_year_chr <- 
       as.character(start_year_numeric) %>%   # convert start year to numeric
       substr(3, 4)  # get only the last two digits
+    
+    start_year_chr_long <- 
+      as.character(start_year_numeric)
+    
     url_file <- 
       str_c(
         "http://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=", 
@@ -146,7 +231,7 @@ school_primary_short_enrollment_raw_downloader <-
         file.path(
           "raw_data", 
           str_c("school_primary_short_enrollment_", 
-                start_year_chr,
+                start_year_chr_long,
                 "_", 
                 end_year_chr, 
                 "_raw.txt")
@@ -168,7 +253,9 @@ map(
   .x = start_years
 )
 
-# read them all into r from tab-delimited files
+# function to read tab-delimited files
+tab_reader <- 
+  function()
 
 
 ```
