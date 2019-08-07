@@ -290,5 +290,53 @@ map(
 
 ```{r download raw 2017 facility emissions data}
 
+# download raw emissions csv file
+download.file(
+  url = "https://www.arb.ca.gov/app/emsinv/facinfo/faccrit_output.csv?&dbyr=2017&ab_=&dis_=&co_=&fname_=&city_=&sort=FacilityNameA&fzip_=&fsic_=&facid_=&all_fac=&chapis_only=&CERR=&dd=", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "facility_emissions_2017.csv"
+    )
+  )
+
+facility_emissions_2017 <- 
+  read_csv(file = 
+             file.path(
+               "raw_data",
+               "facility_emissions_2017.csv"
+               ), 
+           col_types = 
+             cols(CO = col_double(),
+                  AB = col_character(),
+                  FACID = col_double(),
+                  DIS = col_character(),
+                  FNAME = col_character(),
+                  FSTREET = col_character(),
+                  FCITY = col_character(),
+                  FZIP = col_character(),
+                  FSIC = col_double(),
+                  COID = col_character(),
+                  DISN = col_character(),
+                  CHAPIS = col_character(),
+                  CERR_CODE = col_character(),
+                  TOGT = col_double(),
+                  ROGT = col_double(),
+                  COT = col_double(),
+                  NOXT = col_double(),
+                  SOXT = col_double(),
+                  PMT = col_double(),
+                  PM10T = col_double()))
+
+# note: cannot read mapping file manually
+facility_emissions_2017_mapping <- 
+  read_csv(
+    file = 
+      file.path(
+        "raw_data",
+        "EmissionsByFacility.csv"
+        )
+    )
+
 ```
 
