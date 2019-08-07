@@ -111,6 +111,10 @@ map(
   .x = start_years
 )
 
+# read them all into r from tab-delimited files
+
+
+
 
 
 ```
@@ -163,6 +167,9 @@ map(
   .f = school_primary_short_enrollment_raw_downloader, 
   .x = start_years
 )
+
+# read them all into r from tab-delimited files
+
 
 ```
 
