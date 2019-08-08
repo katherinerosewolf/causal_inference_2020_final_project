@@ -335,8 +335,23 @@ facility_emissions_2017_mapping <-
       file.path(
         "raw_data",
         "EmissionsByFacility.csv"
-        )
+        ), 
+    col_types = "cccccccccccccccccccccccccccccccccccccc"
     )
+
+save(facility_emissions_2017_mapping, 
+     file = 
+       file.path(
+         "intermediate_data", 
+         "facility_emissions_2017_mapping.rdata"
+       )
+     )
+
+colnames(facility_emissions_2017_mapping)
+
+facility_emissions_2017_mapping <- 
+  facility_emissions_2017_mapping %>% 
+   
 
 ```
 
