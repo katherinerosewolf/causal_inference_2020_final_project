@@ -174,8 +174,7 @@ map(
 ```
 
 
-    
-```{r read school primary short enrollment data files}
+```{r read school primary short enrollment data files, eval=FALSE, include=FALSE}
 
 # make school primary short data file downloader function
 school_primary_short_enrollment_raw_downloader <-
@@ -288,7 +287,7 @@ map(
 ```
 
 
-```{r download raw 2017 facility emissions data}
+```{r download raw 2017 facility emissions data, eval=FALSE, include=FALSE}
 
 # download raw emissions csv file
 download.file(
@@ -349,9 +348,174 @@ save(facility_emissions_2017_mapping,
 
 colnames(facility_emissions_2017_mapping)
 
-facility_emissions_2017_mapping <- 
+facility_emissions_2017_pm25 <- 
   facility_emissions_2017_mapping %>% 
+  filter(!is.na(PM2.5))
+
+nrow(facility_emissions_2017_pm25)
+
+# facility_emissions_2017_mapping <- 
+#   facility_emissions_2017_mapping %>% 
    
+
+```
+
+
+```{r monitor data}
+
+monitor_urls <- 
+  list()
+
+monitor_urls$daily_pm25_monitors_2018 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2018&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+  
+monitor_urls$hourly_pm25_monitors_2018 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2018&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+
+monitor_urls$daily_pm25_monitors_2017 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2017&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+  
+monitor_urls$hourly_pm25_monitors_2017 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2017&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+
+monitor_urls$daily_pm25_monitors_2016 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2016&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+  
+monitor_urls$hourly_pm25_monitors_2016 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2016&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+  
+monitor_urls$daily_pm25_monitors_2015 <- 
+    "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2015&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+  
+monitor_urls$hourly_pm25_monitors_2015 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2015&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+
+# make function to download files
+carb_pm25_monitor_raw_downloader <-
+  function(monitor_url, 
+           object_name){
+    download.file(
+      url = monitor_url, 
+      destfile = 
+        file.path(
+          "raw_data", 
+          str_c(object_name,
+                "_raw.txt")
+        )
+    )
+  }
+
+# download files from the internet!
+map2(
+  .x = monitor_urls, 
+  .y = names(monitor_urls),
+  .f = carb_pm25_monitor_raw_downloader
+)
+
+# make function to read monitor files into r from csv
+monitor_csv_to_tibble_reader <- 
+  function(object_name){
+    
+    monitor_tibble <- 
+      read_csv(
+        file = 
+          file.path(
+            "raw_data", 
+            str_c(
+              object_name,
+              "_raw.txt")
+            )
+      )
+    
+    assign(object_name, 
+           monitor_tibble)
+    
+    save(
+      list = object_name, 
+      file = 
+        file.path(
+          "intermediate_data", 
+          str_c(
+            object_name, 
+            ".rdata"
+          )
+        )
+    )
+    
+    return(monitor_tibble)
+  }
+
+monitor_tibbles <- 
+  map(
+    .f = monitor_csv_to_tibble_reader, 
+    .x = names(monitor_urls)
+  )
+
+# name the resulting tibbles
+names(monitor_tibbles) <- 
+  names(monitor_urls)
+
+# focus on 2017
+daily_pm25_monitors_2017 <- 
+  monitor_tibbles$daily_pm25_monitors_2017
+hourly_pm25_monitors_2017 <- 
+  monitor_tibbles$hourly_pm25_monitors_2017
+
+# get number of rows with text signaling the end of the data
+data_end_daily_2017 <- 
+  which(
+    grepl(
+      "Quality Flag Definition", 
+      daily_pm25_monitors_2017$basin
+    )
+  ) - 1
+
+data_end_hourly_2017 <- 
+  which(
+    grepl(
+      "Quality Flag Definition", 
+      hourly_pm25_monitors_2017$basin
+    )
+  ) - 1
+
+# remove those rows
+daily_pm25_monitors_2017_working <- 
+  daily_pm25_monitors_2017 %>% 
+  slice(1:data_end_daily_2017)
+
+hourly_pm25_monitors_2017_working <- 
+  hourly_pm25_monitors_2017 %>% 
+  slice(1:data_end_hourly_2017)
+
+# find monitors in common
+intersect(daily_pm25_monitors_2017_working$aqs_id, 
+          hourly_pm25_monitors_2017_working$aqs_id)
+
+# fix the monitors for putting together hourlies and dailies
+daily_pm25_monitors_2017_working <-
+  daily_pm25_monitors_2017_working %>% 
+  mutate(observations = pm25daily2017obs, 
+         frequency = "daily") %>% 
+  select(-pm25daily2017obs)
+
+hourly_pm25_monitors_2017_working <- 
+  hourly_pm25_monitors_2017_working %>% 
+  mutate(observations = pm25hourly2017obs, 
+         frequency = "hourly") %>% 
+  select(-pm25hourly2017obs)
+
+colnames(daily_pm25_monitors_2017_working) ==
+  colnames(hourly_pm25_monitors_2017_working)
+
+pm_25_monitors_overall <- 
+  daily_pm25_monitors_2017_working %>% 
+  bind_rows(hourly_pm25_monitors_2017_working)
+
+```
+
+```{r latitude and longitude}
+
+
 
 ```
 
