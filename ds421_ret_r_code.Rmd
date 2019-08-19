@@ -29,6 +29,32 @@ if(!dir.exists("intermediate_data")) {
 ```
 
 
+```{r download modeled air pollution data}
+
+# download air pollution file .nc edition
+download.file(
+  url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201601_201612-RH35.nc", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "GWRwSPEC_PM25_NA_201601_201612-RH35.nc"
+    )
+  )
+
+# download air pollution file .asc edition
+download.file(
+  url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip"
+    )
+  )
+
+```
+
+
+
 ```{r download, read, and save school addresses}
 
 # download school addresses
