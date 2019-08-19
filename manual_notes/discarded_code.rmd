@@ -1,0 +1,210 @@
+---
+title: "Untitled"
+author: "Katherine Rose Wolf"
+date: "August 19, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r read school primary short enrollment data files, eval=FALSE, include=FALSE}
+
+# make school primary short data file downloader function
+school_primary_short_enrollment_raw_downloader <-
+  function(start_year_numeric){
+    end_year_chr <- 
+      as.character(start_year_numeric + 1) %>%  # add 1 to the start year
+      substr(3, 4)  # get only the last two digits
+    
+    start_year_chr <- 
+      as.character(start_year_numeric) %>%   # convert start year to numeric
+      substr(3, 4)  # get only the last two digits
+    
+    start_year_chr_long <- 
+      as.character(start_year_numeric)
+    
+    url_file <- 
+      str_c(
+        "http://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=", 
+        start_year_chr, 
+        end_year_chr, 
+        "&cCat=ShortTermEnrl&cPage=filesenrps.asp"
+        )
+            download.file(
+      url = url_file, 
+      destfile = 
+        file.path(
+          "raw_data", 
+          str_c("school_primary_short_enrollment_", 
+                start_year_chr_long,
+                "_", 
+                end_year_chr, 
+                "_raw.txt")
+        )
+    )
+  }
+
+# make vector of starting years 2009-2018
+start_years <- 
+  seq(
+    from = 2009,
+    to = 2018, 
+    by = 1
+  )
+
+# download all the school files at once
+map(
+  .f = school_primary_short_enrollment_raw_downloader, 
+  .x = start_years
+)
+
+# make function to read them all into r from tab-delimited files
+school_primary_short_enrollment_tab_reader <- 
+  function(start_year_numeric){
+    
+    end_year_chr <- 
+      as.character(start_year_numeric + 1) %>% 
+      substr(3, 4)  # get only the last two digits
+    
+    start_year_chr <- 
+      as.character(start_year_numeric)
+    
+    file_name <- 
+      str_c("school_primary_short_enrollment_", 
+            start_year_chr, 
+            "_", 
+            end_year_chr, 
+            "_raw.txt")
+      
+    variable_name <- 
+      str_c("school_primary_short_enrollment_", 
+            start_year_chr, 
+            "_", 
+            end_year_chr, 
+            "_working")
+    
+    read_tibble <- 
+      read_delim(
+        file = 
+          file.path(
+            "raw_data", 
+            file_name),
+        delim = "\t"
+        )
+    
+    assign(variable_name, 
+           read_tibble)
+    
+    save(
+      list = variable_name, 
+      file = 
+        file.path(
+          "intermediate_data", 
+          str_c(
+            variable_name, 
+            ".rdata"
+          )
+        )
+    )
+    
+    # return(read_tibble)
+  }
+
+# use function on all files
+map(
+  .f = school_primary_short_enrollment_tab_reader, 
+  .x = start_years
+)
+
+
+```
+
+
+```{r download raw 2017 facility emissions data, eval=FALSE, include=FALSE}
+
+# download raw emissions csv file
+download.file(
+  url = "https://www.arb.ca.gov/app/emsinv/facinfo/faccrit_output.csv?&dbyr=2017&ab_=&dis_=&co_=&fname_=&city_=&sort=FacilityNameA&fzip_=&fsic_=&facid_=&all_fac=&chapis_only=&CERR=&dd=", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "facility_emissions_2017.csv"
+    )
+  )
+
+facility_emissions_2017 <- 
+  read_csv(file = 
+             file.path(
+               "raw_data",
+               "facility_emissions_2017.csv"
+               ), 
+           col_types = 
+             cols(CO = col_double(),
+                  AB = col_character(),
+                  FACID = col_double(),
+                  DIS = col_character(),
+                  FNAME = col_character(),
+                  FSTREET = col_character(),
+                  FCITY = col_character(),
+                  FZIP = col_character(),
+                  FSIC = col_double(),
+                  COID = col_character(),
+                  DISN = col_character(),
+                  CHAPIS = col_character(),
+                  CERR_CODE = col_character(),
+                  TOGT = col_double(),
+                  ROGT = col_double(),
+                  COT = col_double(),
+                  NOXT = col_double(),
+                  SOXT = col_double(),
+                  PMT = col_double(),
+                  PM10T = col_double()))
+
+# note: cannot read mapping file manually
+facility_emissions_2017_mapping <- 
+  read_csv(
+    file = 
+      file.path(
+        "raw_data",
+        "EmissionsByFacility.csv"
+        ), 
+    col_types = "cccccccccccccccccccccccccccccccccccccc"
+    )
+
+save(facility_emissions_2017_mapping, 
+     file = 
+       file.path(
+         "intermediate_data", 
+         "facility_emissions_2017_mapping.rdata"
+       )
+     )
+
+colnames(facility_emissions_2017_mapping)
+
+facility_emissions_2017_pm25 <- 
+  facility_emissions_2017_mapping %>% 
+  filter(!is.na(PM2.5))
+
+nrow(facility_emissions_2017_pm25)
+
+# facility_emissions_2017_mapping <- 
+#   facility_emissions_2017_mapping %>% 
+   
+
+```
+
+
+```{r raster data}
+
+# plot(asc_air_data)
+# crs(asc_air_data)
+# 
+# getValues(asc_air_data, 
+#           row = 1, 
+#           nrows = 1)
+
+```
+

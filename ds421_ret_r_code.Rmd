@@ -5,10 +5,13 @@ date: "August 4, 2019"
 output: html_document
 ---
 
-```{r load libraries}
+```{r setup load libraries}
 
 library(tidyverse)
 library(praise)
+library(raster)
+library(tigris)
+library(sf)
 
 praise()  # self-esteem boost
 
@@ -28,8 +31,13 @@ if(!dir.exists("intermediate_data")) {
 
 ```
 
+# raw data downloads
 
-```{r download modeled air pollution data}
+## modeled pm2.5
+
+```{r download modeled air pollution data, eval=FALSE, include=FALSE}
+
+# download file from 
 
 # download air pollution file .nc edition
 download.file(
@@ -53,9 +61,33 @@ download.file(
 
 ```
 
+## geographic shapefile
 
+```{r load united states state shapefiles}
 
-```{r download, read, and save school addresses}
+# download the raw california shapefile
+state_shapefiles <- 
+  states(
+          cb = FALSE, 
+          year = 2016, 
+          class = 'sf'
+        )
+
+# save raw file to disk
+save(
+  state_shapefiles, 
+  file = 
+    file.path(
+      "raw_data", 
+      "state_shapefiles.rdata"
+    )
+)
+
+```
+
+## school addresses
+
+```{r download school addresses}
 
 # download school addresses
 download.file(
@@ -66,29 +98,239 @@ download.file(
       "public_school_directory.rdata"
     )
   )
+```
 
-# read school addresses into tibble
-public_school_directory <-
-  read_delim(file =
-               file.path(
-                 "raw_data",
-                 "public_school_directory.rdata"
-                 ),
-             delim = "\t"
-             )
+## monitors
 
-# save school addresses
+```{r download carb monitor data for 2015 to 2018}
+
+monitor_urls <- 
+  list()
+
+monitor_urls$daily_pm25_monitors_2018 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2018&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+  
+monitor_urls$hourly_pm25_monitors_2018 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2018&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+
+monitor_urls$daily_pm25_monitors_2017 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2017&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+  
+monitor_urls$hourly_pm25_monitors_2017 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2017&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+
+monitor_urls$daily_pm25_monitors_2016 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2016&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+  
+monitor_urls$hourly_pm25_monitors_2016 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2016&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+  
+monitor_urls$daily_pm25_monitors_2015 <- 
+    "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2015&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+  
+monitor_urls$hourly_pm25_monitors_2015 <- 
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2015&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+
+# make function to download files and save them in raw data
+carb_pm25_monitor_raw_downloader <-
+  function(monitor_url, 
+           object_name){
+    download.file(
+      url = monitor_url, 
+      destfile = 
+        file.path(
+          "raw_data", 
+          str_c(object_name,
+                "_raw.txt")
+        ), 
+      cacheOK = F, 
+      method = 'curl', 
+      extra= '-L',
+      mode = 'wb'
+    )
+  }
+
+carb_pm25_monitor_raw_downloader(
+  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2016&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15=", 
+  "thingie"
+)
+
+# download files from the internet
+map2(
+  .x = monitor_urls, 
+  .y = names(monitor_urls),
+  .f = carb_pm25_monitor_raw_downloader
+)
+
+```
+
+```{r download epa monitor data for 2016}
+
+# download federal reference method (parameter code 88101) data
+download.file(
+  url = 
+    "https://aqs.epa.gov/aqsweb/airdata/daily_88101_2016.zip", 
+  destfile = 
+    file.path("raw_data", 
+              "daily_88101_2016.zip"), 
+  cacheOK = F, 
+  method = 'curl', 
+  extra= '-L',
+  mode = 'wb'
+  )
+
+# download non-federal-reference-method (parameter code 88502) data
+download.file(
+  url = 
+    "https://aqs.epa.gov/aqsweb/airdata/daily_88502_2016.zip", 
+  destfile = 
+    file.path("raw_data", 
+              "daily_88502_2016.zip"), 
+  cacheOK = F, 
+  method = 'curl', 
+  extra= '-L',
+  mode = 'wb'
+  )
+
+# download speciation data
+download.file(
+  url = 
+    "https://aqs.epa.gov/aqsweb/airdata/daily_SPEC_2016.zip", 
+  destfile = 
+    file.path("raw_data", 
+              "daily_SPEC_2016.zip"), 
+  cacheOK = F, 
+  method = 'curl', 
+  extra= '-L',
+  mode = 'wb'
+)
+
+```
+
+
+# data preparation
+
+## pm2.5 data
+
+```{r read modeled air pollution data into r}
+
+# unzip the air pollution data file
+unzip(
+  zipfile = 
+    file.path(
+      "raw_data", 
+      "GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip"
+    ), 
+  exdir = 
+    file.path(
+      "intermediate_data"
+    )
+  )
+
+# create the working raster
+asc_air_data <- 
+  raster(
+    file.path(
+      "intermediate_data", 
+      "GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc"
+    )
+  )
+
+# save air data raster
 save(
-  public_school_directory, 
+  asc_air_data, 
   file = 
     file.path(
       "intermediate_data", 
-      "public_school_directory.rdata"
+      "asc_air_data.rdata"
     )
 )
 
 ```
 
+## california shapefile
+
+```{r pull just california shapefile}
+
+# load us shapefiles
+load(
+  file = 
+    file.path(
+      "raw_data", 
+      "state_shapefiles.rdata"
+    )
+)
+
+# load asc air data
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "asc_air_data.rdata"
+    )
+)
+
+# isolate california shapefile
+california_shapefile <- 
+  state_shapefiles %>% 
+  filter(STUSPS == "CA") %>%  # get just california
+  st_transform(crs = proj4string(asc_air_data))  # convert to pm2.5 coordinates
+
+save(
+  california_shapefile, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "california_shapefile.rdata"
+    )
+)
+
+```
+
+
+## california shapefile and pm2.5
+
+```{r clip air pollution data to shapefile}
+
+# load california shapefile
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "california_shapefile.rdata"
+    )
+)
+
+# convert ca shapefile to raster-package-understandable
+# SpatialPolygonsDataFrame
+california_sp <- 
+  as(california_shapefile, 
+     'Spatial')
+
+# load asc air data
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "asc_air_data.rdata"
+    )
+)
+
+# crop air data
+air_cropped <- 
+  raster::crop(
+    asc_air_data, 
+    california_sp) %>%  # crop air data to the bounding box
+  raster::mask(
+    california_sp
+  )
+
+plot(air_cropped)
+
+```
+
+
+## schools
 
 ```{r download school enrollment data}
 
@@ -138,6 +380,44 @@ map(
   .f = school_enrollment_raw_downloader, 
   .x = start_years
 )
+
+```
+
+
+### addresses
+
+```{r read and save school addresses}
+
+# read school addresses into tibble
+public_school_directory <-
+  read_delim(file =
+               file.path(
+                 "raw_data",
+                 "public_school_directory.rdata"
+                 ),
+             delim = "\t"
+             )
+
+# save school addresses
+save(
+  public_school_directory, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "public_school_directory.rdata"
+    )
+)
+
+```
+
+
+```{r download school lat-long data}
+
+```
+
+
+
+```{r read school enrollment data}
 
 # make function to read them all into r from tab-delimited files
 school_enrollment_tab_reader <- 
@@ -200,243 +480,9 @@ map(
 ```
 
 
-```{r read school primary short enrollment data files, eval=FALSE, include=FALSE}
+## monitor data
 
-# make school primary short data file downloader function
-school_primary_short_enrollment_raw_downloader <-
-  function(start_year_numeric){
-    end_year_chr <- 
-      as.character(start_year_numeric + 1) %>%  # add 1 to the start year
-      substr(3, 4)  # get only the last two digits
-    
-    start_year_chr <- 
-      as.character(start_year_numeric) %>%   # convert start year to numeric
-      substr(3, 4)  # get only the last two digits
-    
-    start_year_chr_long <- 
-      as.character(start_year_numeric)
-    
-    url_file <- 
-      str_c(
-        "http://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=", 
-        start_year_chr, 
-        end_year_chr, 
-        "&cCat=ShortTermEnrl&cPage=filesenrps.asp"
-        )
-            download.file(
-      url = url_file, 
-      destfile = 
-        file.path(
-          "raw_data", 
-          str_c("school_primary_short_enrollment_", 
-                start_year_chr_long,
-                "_", 
-                end_year_chr, 
-                "_raw.txt")
-        )
-    )
-  }
-
-# make vector of starting years 2009-2018
-start_years <- 
-  seq(
-    from = 2009,
-    to = 2018, 
-    by = 1
-  )
-
-# download all the school files at once
-map(
-  .f = school_primary_short_enrollment_raw_downloader, 
-  .x = start_years
-)
-
-# make function to read them all into r from tab-delimited files
-school_primary_short_enrollment_tab_reader <- 
-  function(start_year_numeric){
-    
-    end_year_chr <- 
-      as.character(start_year_numeric + 1) %>% 
-      substr(3, 4)  # get only the last two digits
-    
-    start_year_chr <- 
-      as.character(start_year_numeric)
-    
-    file_name <- 
-      str_c("school_primary_short_enrollment_", 
-            start_year_chr, 
-            "_", 
-            end_year_chr, 
-            "_raw.txt")
-      
-    variable_name <- 
-      str_c("school_primary_short_enrollment_", 
-            start_year_chr, 
-            "_", 
-            end_year_chr, 
-            "_working")
-    
-    read_tibble <- 
-      read_delim(
-        file = 
-          file.path(
-            "raw_data", 
-            file_name),
-        delim = "\t"
-        )
-    
-    assign(variable_name, 
-           read_tibble)
-    
-    save(
-      list = variable_name, 
-      file = 
-        file.path(
-          "intermediate_data", 
-          str_c(
-            variable_name, 
-            ".rdata"
-          )
-        )
-    )
-    
-    # return(read_tibble)
-  }
-
-# use function on all files
-map(
-  .f = school_primary_short_enrollment_tab_reader, 
-  .x = start_years
-)
-
-
-```
-
-
-```{r download raw 2017 facility emissions data, eval=FALSE, include=FALSE}
-
-# download raw emissions csv file
-download.file(
-  url = "https://www.arb.ca.gov/app/emsinv/facinfo/faccrit_output.csv?&dbyr=2017&ab_=&dis_=&co_=&fname_=&city_=&sort=FacilityNameA&fzip_=&fsic_=&facid_=&all_fac=&chapis_only=&CERR=&dd=", 
-  destfile = 
-    file.path(
-      "raw_data", 
-      "facility_emissions_2017.csv"
-    )
-  )
-
-facility_emissions_2017 <- 
-  read_csv(file = 
-             file.path(
-               "raw_data",
-               "facility_emissions_2017.csv"
-               ), 
-           col_types = 
-             cols(CO = col_double(),
-                  AB = col_character(),
-                  FACID = col_double(),
-                  DIS = col_character(),
-                  FNAME = col_character(),
-                  FSTREET = col_character(),
-                  FCITY = col_character(),
-                  FZIP = col_character(),
-                  FSIC = col_double(),
-                  COID = col_character(),
-                  DISN = col_character(),
-                  CHAPIS = col_character(),
-                  CERR_CODE = col_character(),
-                  TOGT = col_double(),
-                  ROGT = col_double(),
-                  COT = col_double(),
-                  NOXT = col_double(),
-                  SOXT = col_double(),
-                  PMT = col_double(),
-                  PM10T = col_double()))
-
-# note: cannot read mapping file manually
-facility_emissions_2017_mapping <- 
-  read_csv(
-    file = 
-      file.path(
-        "raw_data",
-        "EmissionsByFacility.csv"
-        ), 
-    col_types = "cccccccccccccccccccccccccccccccccccccc"
-    )
-
-save(facility_emissions_2017_mapping, 
-     file = 
-       file.path(
-         "intermediate_data", 
-         "facility_emissions_2017_mapping.rdata"
-       )
-     )
-
-colnames(facility_emissions_2017_mapping)
-
-facility_emissions_2017_pm25 <- 
-  facility_emissions_2017_mapping %>% 
-  filter(!is.na(PM2.5))
-
-nrow(facility_emissions_2017_pm25)
-
-# facility_emissions_2017_mapping <- 
-#   facility_emissions_2017_mapping %>% 
-   
-
-```
-
-
-```{r monitor data}
-
-monitor_urls <- 
-  list()
-
-monitor_urls$daily_pm25_monitors_2018 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2018&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-  
-monitor_urls$hourly_pm25_monitors_2018 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2018&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-
-monitor_urls$daily_pm25_monitors_2017 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2017&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-  
-monitor_urls$hourly_pm25_monitors_2017 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2017&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-
-monitor_urls$daily_pm25_monitors_2016 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2016&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-  
-monitor_urls$hourly_pm25_monitors_2016 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2016&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-  
-monitor_urls$daily_pm25_monitors_2015 <- 
-    "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2015&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-  
-monitor_urls$hourly_pm25_monitors_2015 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2015&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-
-# make function to download files
-carb_pm25_monitor_raw_downloader <-
-  function(monitor_url, 
-           object_name){
-    download.file(
-      url = monitor_url, 
-      destfile = 
-        file.path(
-          "raw_data", 
-          str_c(object_name,
-                "_raw.txt")
-        )
-    )
-  }
-
-# download files from the internet!
-map2(
-  .x = monitor_urls, 
-  .y = names(monitor_urls),
-  .f = carb_pm25_monitor_raw_downloader
-)
+```{r monitor data from california air resources board}
 
 # make function to read monitor files into r from csv
 monitor_csv_to_tibble_reader <- 
@@ -481,63 +527,70 @@ monitor_tibbles <-
 names(monitor_tibbles) <- 
   names(monitor_urls)
 
-# focus on 2017
-daily_pm25_monitors_2017 <- 
-  monitor_tibbles$daily_pm25_monitors_2017
-hourly_pm25_monitors_2017 <- 
-  monitor_tibbles$hourly_pm25_monitors_2017
+# focus on 2016
+daily_pm25_monitors_2016 <- 
+  monitor_tibbles$daily_pm25_monitors_2016
+hourly_pm25_monitors_2016 <- 
+  monitor_tibbles$hourly_pm25_monitors_2016
 
 # get number of rows with text signaling the end of the data
-data_end_daily_2017 <- 
+data_end_daily_2016 <- 
   which(
     grepl(
       "Quality Flag Definition", 
-      daily_pm25_monitors_2017$basin
+      daily_pm25_monitors_2016$basin
     )
   ) - 1
 
-data_end_hourly_2017 <- 
+data_end_hourly_2016 <- 
   which(
     grepl(
       "Quality Flag Definition", 
-      hourly_pm25_monitors_2017$basin
+      hourly_pm25_monitors_2016$basin
     )
   ) - 1
 
 # remove those rows
-daily_pm25_monitors_2017_working <- 
-  daily_pm25_monitors_2017 %>% 
-  slice(1:data_end_daily_2017)
+daily_pm25_monitors_2016_working <- 
+  daily_pm25_monitors_2016 %>% 
+  slice(1:data_end_daily_2016)
 
-hourly_pm25_monitors_2017_working <- 
-  hourly_pm25_monitors_2017 %>% 
-  slice(1:data_end_hourly_2017)
+hourly_pm25_monitors_2016_working <- 
+  hourly_pm25_monitors_2016 %>% 
+  slice(1:data_end_hourly_2016)
 
 # find monitors in common
-intersect(daily_pm25_monitors_2017_working$aqs_id, 
-          hourly_pm25_monitors_2017_working$aqs_id)
+intersect(daily_pm25_monitors_2016_working$aqs_id, 
+          hourly_pm25_monitors_2016_working$aqs_id)
 
 # fix the monitors for putting together hourlies and dailies
-daily_pm25_monitors_2017_working <-
-  daily_pm25_monitors_2017_working %>% 
-  mutate(observations = pm25daily2017obs, 
+daily_pm25_monitors_2016_working <-
+  daily_pm25_monitors_2016_working %>% 
+  mutate(observations = pm25daily2016obs, 
          frequency = "daily") %>% 
-  select(-pm25daily2017obs)
+  dplyr::select(-pm25daily2016obs)
 
-hourly_pm25_monitors_2017_working <- 
-  hourly_pm25_monitors_2017_working %>% 
-  mutate(observations = pm25hourly2017obs, 
+hourly_pm25_monitors_2016_working <- 
+  hourly_pm25_monitors_2016_working %>% 
+  mutate(observations = pm25hourly2016obs, 
          frequency = "hourly") %>% 
-  select(-pm25hourly2017obs)
+  dplyr::select(-pm25hourly2016obs)
 
-colnames(daily_pm25_monitors_2017_working) ==
-  colnames(hourly_pm25_monitors_2017_working)
+colnames(daily_pm25_monitors_2016_working) ==
+  colnames(hourly_pm25_monitors_2016_working)
 
 pm_25_monitors_overall <- 
-  daily_pm25_monitors_2017_working %>% 
-  bind_rows(hourly_pm25_monitors_2017_working)
+  daily_pm25_monitors_2016_working %>% 
+  bind_rows(hourly_pm25_monitors_2016_working)
 
 ```
+
+```{r monitor data from epa}
+
+
+
+```
+
 
 ```{r latitude and longitude}
 
