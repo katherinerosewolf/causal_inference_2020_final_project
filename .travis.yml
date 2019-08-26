@@ -6,6 +6,15 @@ sudo: required
 cache: packages
 dist: trusty
 
+addons:
+  apt:
+    packages:
+      - libudunits2-dev
+      - libproj-dev 
+      - libgeos-dev
+      - libgdal-dev 
+      - libgsl-dev
+
 before_install:
   - git lfs pull
 
