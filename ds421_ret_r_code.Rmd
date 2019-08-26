@@ -29,6 +29,88 @@ if(!dir.exists("intermediate_data")) {
   dir.create("intermediate_data")
 }
 
+if(!dir.exists("functions")) {
+  dir.create("functions")
+}
+
+```
+
+
+```{r functions for general later use}
+
+# function to convert column names to snake case
+column_name_fixer <-
+  function(tibble) {
+  new_names <-
+    tibble %>%
+    colnames() %>%  # gets the column names from the tibble
+    tolower() %>%  # converts the column names to lowercase
+    {gsub(" ", "_", .)}  # replaces spaces with "_"
+  colnames(tibble) <-
+    new_names  # rename the columns in the original tibble
+  return(tibble)
+  }
+
+# create function that downloads files
+file_downloader <-
+  function(desired_filename_as_string, 
+           web_address_as_string, 
+           folder_as_string) {
+    
+    path <-  # specify the file path
+      file.path(
+        folder_as_string,
+        desired_filename_as_string) 
+    
+    if(!file.exists(path))  # checks if file exists already
+      download.file(url = web_address_as_string,  # if not, downloads/saves file
+                    destfile = path, 
+                    mode = "wb")
+  }
+
+# save functions for later use
+save(
+  column_name_fixer, 
+     file = 
+       file.path(
+         "functions", 
+         "column_name_fixer.rdata"
+       )
+)
+
+save(
+  file_downloader, 
+     file = 
+       file.path(
+         "functions", 
+         "file_downloader.rdata"
+       )
+)
+
+# remove the functions
+rm(
+  column_name_fixer, 
+  file_downloader, 
+  download_generated_data_auto
+)
+invisible(gc())
+
+```
+
+
+
+
+```{r create file structure}
+
+# create raw data file
+if(!dir.exists("raw_data")) {
+  dir.create("raw_data")
+}
+
+if(!dir.exists("intermediate_data")) {
+  dir.create("intermediate_data")
+}
+
 ```
 
 # raw data downloads
@@ -420,42 +502,9 @@ plot(air_cropped)
 
 
 
-### addresses
+### school data
 
-```{r read and save school addresses}
-
-# read school addresses into tibble
-public_school_directory <-
-  read_delim(file =
-               file.path(
-                 "raw_data",
-                 "public_school_directory.rdata"
-                 ),
-             delim = "\t"
-             )
-
-# save school addresses
-save(
-  public_school_directory, 
-  file = 
-    file.path(
-      "intermediate_data", 
-      "public_school_directory.rdata"
-    )
-)
-
-```
-
-
-```{r download school lat-long data}
-
-
-
-```
-
-
-
-```{r read school enrollment data}
+```{r read school enrollment data and save as .rdata files}
 
 # make function to read them all into r from tab-delimited files
 school_enrollment_tab_reader <- 
@@ -480,7 +529,7 @@ school_enrollment_tab_reader <-
             start_year_chr, 
             "_", 
             end_year_chr, 
-            "_working")
+            "_working_from_raw")
     
     read_tibble <- 
       read_delim(
@@ -516,6 +565,88 @@ map(
 )
   
 ```
+
+
+```{r make tibbles for 2015-2016 and 2016-2017}
+
+# load relevant files
+## 2015-16
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_enrollment_2015_16_working_from_raw.rdata"
+    )
+)
+
+# load relevant files
+## 2016-17
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_enrollment_2016_17_working_from_raw.rdata"
+    )
+)
+
+# load function to make variable names snake case
+load(
+  file = 
+    file.path(
+      "functions", 
+      "column_name_fixer.rdata"
+    )
+)
+
+# fix variable names
+school_enrollment_2015_16_working <- 
+  column_name_fixer(school_enrollment_2015_16_working_from_raw)
+
+school_enrollment_2016_17_working <- 
+  column_name_fixer(school_enrollment_2016_17_working_from_raw)
+
+```
+
+
+
+```{r read and save school addresses}
+
+# read school addresses into tibble
+public_school_directory <-
+  read_delim(file =
+               file.path(
+                 "raw_data",
+                 "public_school_directory.rdata"
+                 ),
+             delim = "\t"
+             )
+
+# save school addresses
+save(
+  public_school_directory, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "public_school_directory.rdata"
+    )
+)
+
+```
+
+
+```{r isolate school lat-long data}
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "public_school_directory.rdata"
+    )
+)
+
+```
+
+
 
 
 ## monitor data
