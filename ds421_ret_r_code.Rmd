@@ -35,7 +35,7 @@ if(!dir.exists("intermediate_data")) {
 
 ## modeled pm2.5
 
-```{r download modeled air pollution data, eval=FALSE, include=FALSE}
+```{r download modeled air pollution data}
 
 # download file from 
 
@@ -145,7 +145,7 @@ carb_pm25_monitor_raw_downloader <-
         ), 
       cacheOK = F, 
       method = 'curl', 
-      extra= '-L',
+      extra = '-L',
       mode = 'wb'
     )
   }
