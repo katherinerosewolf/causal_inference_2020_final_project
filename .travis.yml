@@ -9,8 +9,7 @@ dist: trusty
 before_install:
   - sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable --yes
   - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
-  - sudo rm -rf /var/lib/apt/lists/partial
-  - sudo apt-get update -o Acquire::CompressionTypes::Order::=gz
+  - sudo apt-get --yes --force-yes update -qq
   - sudo apt-get install --yes libudunits2-dev libproj-dev libgeos-dev libgdal-dev libgsl-dev
 
 script: 

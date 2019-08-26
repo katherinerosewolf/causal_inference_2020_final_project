@@ -608,7 +608,6 @@ school_enrollment_2016_17_working <-
 ```
 
 
-
 ```{r read and save school addresses}
 
 # read school addresses into tibble
