@@ -165,7 +165,11 @@ download.file(
     file.path(
       "raw_data", 
       "StaffCred15.txt"
-    )
+    ), 
+  cacheOK = F, 
+  method = 'curl', 
+  extra = '-L',
+  mode = 'wb'
   )
 
 # download teaching credential data 2016-17
@@ -175,9 +179,12 @@ download.file(
     file.path(
       "raw_data", 
       "StaffCred16.txt"
-    )
+    ), 
+  cacheOK = F, 
+  method = 'curl', 
+  extra = '-L',
+  mode = 'wb'
   )
-
 
 ```
 
