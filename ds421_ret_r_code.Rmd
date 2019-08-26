@@ -95,12 +95,38 @@ download.file(
   destfile = 
     file.path(
       "raw_data", 
-      "public_school_directory.rdata"
+      "public_school_directory.txt"
     )
   )
 ```
 
 ## teaching credentials
+
+```{r download teaching credential data}
+
+# download teaching credential data 2015-16
+download.file(
+  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred15.txt", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "StaffCred15.txt"
+    )
+  )
+
+# download teaching credential data 2016-17
+download.file(
+  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred16.txt", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "StaffCred16.txt"
+    )
+  )
+
+
+```
+
 
 
 ## monitors
