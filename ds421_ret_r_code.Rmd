@@ -85,6 +85,60 @@ save(
 
 ```
 
+
+## school enrollment
+
+```{r download school enrollment data}
+
+# school enrollment data by racial/ethnic designation, gender, and grade
+
+# make school enrollment raw downloader function
+school_enrollment_raw_downloader <-
+  function(start_year_numeric){
+    end_year_chr <- 
+      as.character(start_year_numeric + 1) %>%  # add 1 to the start year
+      substr(3, 4)  # get only the last two digits
+    
+    start_year_chr <- 
+      as.character(start_year_numeric)  # convert start year to numeric
+    
+    url_file <- 
+      str_c("http://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=", 
+            start_year_chr, 
+            "-", 
+            end_year_chr, 
+            "&cCat=Enrollment&cPage=filesenr.asp")
+    
+    download.file(
+      url = url_file, 
+      destfile = 
+        file.path(
+          "raw_data", 
+          str_c("school_enrollment_", 
+                start_year_chr,
+                "_", 
+                end_year_chr, 
+                "_raw.txt")
+        )
+    )
+  }
+
+# make vector of starting years 2009-2018
+start_years <- 
+  seq(
+    from = 2009,
+    to = 2018, 
+    by = 1
+  )
+
+# download all the school files at once
+map(
+  .f = school_enrollment_raw_downloader, 
+  .x = start_years
+)
+
+```
+
 ## school addresses
 
 ```{r download school addresses}
@@ -126,8 +180,6 @@ download.file(
 
 
 ```
-
-
 
 ## monitors
 
@@ -277,6 +329,7 @@ save(
 
 ```
 
+
 ## california shapefile
 
 ```{r pull just california shapefile}
@@ -358,59 +411,6 @@ plot(air_cropped)
 
 ```
 
-
-## schools
-
-```{r download school enrollment data}
-
-# school enrollment data by racial/ethnic designation, gender, and grade
-
-# make school enrollment raw downloader function
-school_enrollment_raw_downloader <-
-  function(start_year_numeric){
-    end_year_chr <- 
-      as.character(start_year_numeric + 1) %>%  # add 1 to the start year
-      substr(3, 4)  # get only the last two digits
-    
-    start_year_chr <- 
-      as.character(start_year_numeric)  # convert start year to numeric
-    
-    url_file <- 
-      str_c("http://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=", 
-            start_year_chr, 
-            "-", 
-            end_year_chr, 
-            "&cCat=Enrollment&cPage=filesenr.asp")
-    
-    download.file(
-      url = url_file, 
-      destfile = 
-        file.path(
-          "raw_data", 
-          str_c("school_enrollment_", 
-                start_year_chr,
-                "_", 
-                end_year_chr, 
-                "_raw.txt")
-        )
-    )
-  }
-
-# make vector of starting years 2009-2018
-start_years <- 
-  seq(
-    from = 2009,
-    to = 2018, 
-    by = 1
-  )
-
-# download all the school files at once
-map(
-  .f = school_enrollment_raw_downloader, 
-  .x = start_years
-)
-
-```
 
 
 ### addresses
@@ -513,7 +513,7 @@ map(
 
 ## monitor data
 
-```{r monitor data from california air resources board}
+```{r read monitor data from california air resources board}
 
 # make function to read monitor files into r from csv
 monitor_csv_to_tibble_reader <- 
