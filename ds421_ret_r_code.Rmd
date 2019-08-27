@@ -725,20 +725,6 @@ save(
 ```
 
 
-```{r isolate school lat-long data}
-
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "public_school_directory.rdata"
-    )
-)
-
-```
-
-
-
 
 ## monitor data
 
@@ -847,7 +833,61 @@ pm_25_monitors_overall <-
 
 ```{r monitor data from epa}
 
+# unzip epa air data files
+unzip(
+  zipfile = 
+    file.path("raw_data", 
+              "daily_88101_2016.zip"), 
+  exdir = 
+    file.path(
+      "intermediate_data"
+    )
+  )
 
+unzip(
+  zipfile = 
+    file.path("raw_data", 
+              "daily_88502_2016.zip"), 
+  exdir = 
+    file.path(
+      "intermediate_data"
+    )
+  )
+
+unzip(
+  zipfile = 
+    file.path("raw_data", 
+              "daily_SPEC_2016.zip"), 
+  exdir = 
+    file.path(
+      "intermediate_data"
+    )
+  )
+
+# load files
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "daily_88101_2016.csv"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "daily_88502_2016.csv"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "daily_SPEC_2016.csv"
+    )
+)
 
 ```
 
