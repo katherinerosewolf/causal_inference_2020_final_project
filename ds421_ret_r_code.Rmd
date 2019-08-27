@@ -14,6 +14,7 @@ library(sf)
 library(httr)
 library(tidyverse)
 
+# stop r from abbreviating doubles in school ids
 options("scipen" = 40)
 
 praise()  # self-esteem boost
@@ -237,18 +238,19 @@ download.file(
     file.path(
       "raw_data", 
       "StaffCred15.txt"
-    )
+    ), 
+  method = 'libcurl'
   )
 
 # download teaching credential data 2016-17
 download.file(
-  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred16.txt", 
-destfile =
-   file.path(
+  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred16.txt",
+  destfile =
+    file.path(
       "raw_data", 
       "StaffCred16.txt"
-    ), 
-   overwrite = TRUE
+    ),
+  method = 'libcurl'
   )
 
 ```
@@ -302,11 +304,11 @@ POST(terms, body = values_daily_2016)
 GET(download, query = values_daily_2016)
 
 # actually get the 2016 daily monitor list
-carb_2016_daily_monitors <- 
+carb_2016_daily_monitors_raw <- 
    GET(download, query = values_daily_2016)
 
 # write the 2016 daily monitor list to disk
-writeBin(content(carb_2016_daily_monitors, "raw"), 
+writeBin(content(carb_2016_daily_monitors_raw, "raw"), 
          file.path(
            "raw_data", 
            "carb_2016_daily_monitors_raw.txt"
@@ -317,11 +319,11 @@ POST(terms, body = values_hourly_2016)
 GET(download, query = values_hourly_2016)
 
 # actually get the 2016 hourly monitor list
-carb_2016_hourly_monitors <- 
+carb_2016_hourly_monitors_raw <- 
    GET(download, query = values_hourly_2016)
 
 # write the 2016 hourly monitor list to disk
-writeBin(content(carb_2016_hourly_monitors, "raw"), 
+writeBin(content(carb_2016_hourly_monitors_raw, "raw"), 
          file.path(
            "raw_data", 
            "carb_2016_hourly_monitors_raw.txt"
@@ -741,7 +743,7 @@ monitor_csv_to_tibble_reader <-
           "intermediate_data", 
           str_c(
             object_name, 
-            ".rdata"
+            "_working.rdata"
           )
         )
     )
@@ -751,9 +753,9 @@ monitor_csv_to_tibble_reader <-
 
 # read raw monitors
 carb_2016_daily_monitors_working <- 
-  monitor_csv_to_tibble_reader(carb_2016_daily_monitors_raw)
+  monitor_csv_to_tibble_reader("carb_2016_daily_monitors")
 carb_2016_hourly_monitors_working <- 
-  monitor_csv_to_tibble_reader(carb_2016_hourly_monitors_raw)
+  monitor_csv_to_tibble_reader("carb_2016_hourly_monitors")
 
 # get number of rows with text signaling the end of the data
 data_end_daily_2016 <- 
