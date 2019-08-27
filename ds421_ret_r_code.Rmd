@@ -255,61 +255,77 @@ destfile =
 
 ## monitors
 
-```{r download carb monitor data for 2015 to 2018}
+```{r download carb monitor data for 2016}
 
-monitor_urls <- 
-  list()
+# universal entries into query
+terms <- 
+  "https://www.arb.ca.gov/aqmis2/display.php"
+download <- 
+  "https://www.arb.ca.gov/aqmis2/display.php"
 
-monitor_urls$daily_pm25_monitors_2018 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2018&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-  
-monitor_urls$hourly_pm25_monitors_2018 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2018&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+# values for daily query
+values_daily_2016 <- 
+  list(
+    download = "y", 
+    param = "PM25", 
+    units = "001", 
+    year = "2016", 
+    county_name = "--COUNTY--", 
+    basin = "--AIR BASIN--", 
+    latitude = "--PART OF STATE--", 
+    report = "SITELIST", 
+    order = "basin,county_name,s.name", 
+    submit = "Retrieve Data", 
+    ptype = "aqd", 
+    std15 = ""
+  )
 
-monitor_urls$daily_pm25_monitors_2017 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2017&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-  
-monitor_urls$hourly_pm25_monitors_2017 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2017&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+# values for hourly query
+values_hourly_2016 <- 
+  list(
+    download = "y", 
+    param = "PM25HR", 
+    units = "001", 
+    year = "2016", 
+    county_name = "--COUNTY--", 
+    basin = "--AIR BASIN--", 
+    latitude = "--PART OF STATE--", 
+    report = "SITELIST", 
+    order = "basin,county_name,s.name", 
+    submit = "Retrieve Data", 
+    ptype = "aqd", 
+    std15 = ""
+  )
 
-monitor_urls$daily_pm25_monitors_2016 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2016&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-  
-monitor_urls$hourly_pm25_monitors_2016 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2016&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-  
-monitor_urls$daily_pm25_monitors_2015 <- 
-    "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2015&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
-  
-monitor_urls$hourly_pm25_monitors_2015 <- 
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25HR&units=001&year=2015&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15="
+# set cookies correctly for the daily 2016 monitors
+POST(terms, body = values_daily_2016)
+GET(download, query = values_daily_2016)
 
-# make function to download files and save them in raw data
-carb_pm25_monitor_raw_downloader <-
-  function(monitor_url, 
-           object_name){
-    GET(
-      url = monitor_url, 
-      write_disk(
-        file.path("raw_data", 
-                  str_c(object_name,
-                        "_raw.txt")), 
-        overwrite = TRUE
-        )
-      )
-  }
+# actually get the 2016 daily monitor list
+carb_2016_daily_monitors <- 
+   GET(download, query = values_daily_2016)
 
-carb_pm25_monitor_raw_downloader(
-  "https://www.arb.ca.gov/aqmis2/display.php?download=y&param=PM25&units=001&year=2016&county_name=--COUNTY--&basin=--AIR+BASIN--&latitude=--PART+OF+STATE--&report=SITELIST&order=basin%2Ccounty_name%2Cs.name&submit=Retrieve+Data&ptype=aqd&std15=", 
-  "thingie"
-)
+# write the 2016 daily monitor list to disk
+writeBin(content(carb_2016_daily_monitors, "raw"), 
+         file.path(
+           "raw_data", 
+           "carb_2016_daily_monitors.txt"
+         ))
 
-# download files from the internet
-map2(
-  .x = monitor_urls, 
-  .y = names(monitor_urls),
-  .f = carb_pm25_monitor_raw_downloader
-)
+# set cookies correctly for the hourly 2016 monitors
+POST(terms, body = values_hourly_2016)
+GET(download, query = values_hourly_2016)
+
+# actually get the 2016 hourly monitor list
+carb_2016_hourly_monitors <- 
+   GET(download, query = values_hourly_2016)
+
+# write the 2016 hourly monitor list to disk
+writeBin(content(carb_2016_hourly_monitors, "raw"), 
+         file.path(
+           "raw_data", 
+           "carb_2016_hourly_monitors.txt"
+         ))
 
 ```
 
