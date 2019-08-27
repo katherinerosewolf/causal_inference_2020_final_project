@@ -241,15 +241,16 @@ download.file(
     ), 
   method = 'libcurl'
   )
+Sys.sleep(time = 5)
 
 # download teaching credential data 2016-17
 download.file(
-  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred16.txt",
-  destfile =
+  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred16.txt", 
+  destfile = 
     file.path(
       "raw_data", 
       "StaffCred16.txt"
-    ),
+    ), 
   method = 'libcurl'
   )
 
@@ -260,8 +261,6 @@ download.file(
 ```{r download carb monitor data for 2016}
 
 # universal entries into query
-terms <- 
-  "https://www.arb.ca.gov/aqmis2/display.php"
 download <- 
   "https://www.arb.ca.gov/aqmis2/display.php"
 
@@ -300,12 +299,19 @@ values_hourly_2016 <-
   )
 
 # set cookies correctly for the daily 2016 monitors
-POST(terms, body = values_daily_2016)
-GET(download, query = values_daily_2016)
+POST(download, 
+     body = values_daily_2016)
+Sys.sleep(time = 2)
+GET(download, 
+    query = values_daily_2016)
+Sys.sleep(time = 2)
 
 # actually get the 2016 daily monitor list
 carb_2016_daily_monitors_raw <- 
-   GET(download, query = values_daily_2016)
+   GET(download,
+       query = values_daily_2016)
+content(carb_2016_daily_monitors_raw, "raw")
+Sys.sleep(time = 2)
 
 # write the 2016 daily monitor list to disk
 writeBin(content(carb_2016_daily_monitors_raw, "raw"), 
@@ -315,8 +321,10 @@ writeBin(content(carb_2016_daily_monitors_raw, "raw"),
          ))
 
 # set cookies correctly for the hourly 2016 monitors
-POST(terms, body = values_hourly_2016)
+POST(download, body = values_hourly_2016)
+Sys.sleep(time = 2)
 GET(download, query = values_hourly_2016)
+Sys.sleep(time = 2)
 
 # actually get the 2016 hourly monitor list
 carb_2016_hourly_monitors_raw <- 
@@ -721,7 +729,6 @@ save(
 # make function to read monitor files into r from csv
 monitor_csv_to_tibble_reader <- 
   function(object_name){
-    
     monitor_tibble <- 
       read_csv(
         file = 
