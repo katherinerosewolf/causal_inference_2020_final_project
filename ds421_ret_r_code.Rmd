@@ -7,11 +7,12 @@ output: html_document
 
 ```{r setup load libraries}
 
-library(tidyverse)
 library(praise)
 library(raster)
 library(tigris)
 library(sf)
+library(httr)
+library(tidyverse)
 
 options("scipen" = 40)
 
@@ -92,28 +93,12 @@ save(
 # remove the functions
 rm(
   column_name_fixer, 
-  file_downloader, 
-  download_generated_data_auto
+  file_downloader
 )
 invisible(gc())
 
 ```
 
-
-
-
-```{r create file structure}
-
-# create raw data file
-if(!dir.exists("raw_data")) {
-  dir.create("raw_data")
-}
-
-if(!dir.exists("intermediate_data")) {
-  dir.create("intermediate_data")
-}
-
-```
 
 # raw data downloads
 
@@ -169,7 +154,6 @@ save(
 
 ```
 
-
 ## school enrollment
 
 ```{r download school enrollment data}
@@ -193,9 +177,9 @@ school_enrollment_raw_downloader <-
             end_year_chr, 
             "&cCat=Enrollment&cPage=filesenr.asp")
     
-    download.file(
+    GET(
       url = url_file, 
-      destfile = 
+      write_disk = 
         file.path(
           "raw_data", 
           str_c("school_enrollment_", 
@@ -203,7 +187,8 @@ school_enrollment_raw_downloader <-
                 "_", 
                 end_year_chr, 
                 "_raw.txt")
-        )
+        ), 
+      overwrite = TRUE
     )
   }
 
@@ -228,14 +213,17 @@ map(
 ```{r download school addresses}
 
 # download school addresses
-download.file(
+GET(
   url = "https://www.cde.ca.gov/schooldirectory/report?rid=dl1&tp=txt", 
-  destfile = 
+  write_disk(
     file.path(
-      "raw_data", 
+      "raw_data",
       "public_school_directory.txt"
+    ),
+    overwrite = TRUE
     )
   )
+
 ```
 
 ## teaching credentials
@@ -249,25 +237,18 @@ download.file(
     file.path(
       "raw_data", 
       "StaffCred15.txt"
-    ), 
-  cacheOK = F, 
-  method = 'curl', 
-  extra = '-L',
-  mode = 'wb'
+    )
   )
 
 # download teaching credential data 2016-17
 download.file(
   url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred16.txt", 
-  destfile = 
-    file.path(
+destfile =
+   file.path(
       "raw_data", 
       "StaffCred16.txt"
     ), 
-  cacheOK = F, 
-  method = 'curl', 
-  extra = '-L',
-  mode = 'wb'
+   overwrite = TRUE
   )
 
 ```
@@ -307,19 +288,15 @@ monitor_urls$hourly_pm25_monitors_2015 <-
 carb_pm25_monitor_raw_downloader <-
   function(monitor_url, 
            object_name){
-    download.file(
+    GET(
       url = monitor_url, 
-      destfile = 
-        file.path(
-          "raw_data", 
-          str_c(object_name,
-                "_raw.txt")
-        ), 
-      cacheOK = F, 
-      method = 'curl', 
-      extra = '-L',
-      mode = 'wb'
-    )
+      write_disk(
+        file.path("raw_data", 
+                  str_c(object_name,
+                        "_raw.txt")), 
+        overwrite = TRUE
+        )
+      )
   }
 
 carb_pm25_monitor_raw_downloader(
@@ -336,45 +313,39 @@ map2(
 
 ```
 
+
 ```{r download epa monitor data for 2016}
 
 # download federal reference method (parameter code 88101) data
-download.file(
+GET(
   url = 
     "https://aqs.epa.gov/aqsweb/airdata/daily_88101_2016.zip", 
-  destfile = 
+  write_disk(
     file.path("raw_data", 
               "daily_88101_2016.zip"), 
-  cacheOK = F, 
-  method = 'curl', 
-  extra= '-L',
-  mode = 'wb'
+  overwrite = TRUE
   )
+)
 
 # download non-federal-reference-method (parameter code 88502) data
-download.file(
+GET(
   url = 
     "https://aqs.epa.gov/aqsweb/airdata/daily_88502_2016.zip", 
-  destfile = 
+  write_disk(
     file.path("raw_data", 
-              "daily_88502_2016.zip"), 
-  cacheOK = F, 
-  method = 'curl', 
-  extra= '-L',
-  mode = 'wb'
-  )
+              "daily_88502_2016.zip"),
+    overwrite = TRUE
+    )
+)
 
 # download speciation data
-download.file(
-  url = 
-    "https://aqs.epa.gov/aqsweb/airdata/daily_SPEC_2016.zip", 
-  destfile = 
+GET(
+  url = "https://aqs.epa.gov/aqsweb/airdata/daily_SPEC_2016.zip", 
+  write_disk(
     file.path("raw_data", 
-              "daily_SPEC_2016.zip"), 
-  cacheOK = F, 
-  method = 'curl', 
-  extra= '-L',
-  mode = 'wb'
+              "daily_SPEC_2016.zip"),
+    overwrite = TRUE
+    )
 )
 
 ```
@@ -501,7 +472,6 @@ air_cropped <-
 plot(air_cropped)
 
 ```
-
 
 
 ### school data
@@ -831,6 +801,7 @@ pm_25_monitors_overall <-
 
 ```
 
+
 ```{r monitor data from epa}
 
 # unzip epa air data files
@@ -897,4 +868,3 @@ load(
 
 
 ```
-
