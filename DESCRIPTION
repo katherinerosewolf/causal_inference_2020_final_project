@@ -1,3 +1,3 @@
 Package: compendium
 Version: 0.1.0
-Depends: knitr, tidyverse, praise, raster, tigris, sf
+Depends: knitr, praise, raster, tigris, sf, httr, tidyverse

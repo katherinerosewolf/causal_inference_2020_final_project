@@ -309,7 +309,7 @@ carb_2016_daily_monitors <-
 writeBin(content(carb_2016_daily_monitors, "raw"), 
          file.path(
            "raw_data", 
-           "carb_2016_daily_monitors.txt"
+           "carb_2016_daily_monitors_raw.txt"
          ))
 
 # set cookies correctly for the hourly 2016 monitors
@@ -324,7 +324,7 @@ carb_2016_hourly_monitors <-
 writeBin(content(carb_2016_hourly_monitors, "raw"), 
          file.path(
            "raw_data", 
-           "carb_2016_hourly_monitors.txt"
+           "carb_2016_hourly_monitors_raw.txt"
          ))
 
 ```
@@ -749,28 +749,18 @@ monitor_csv_to_tibble_reader <-
     return(monitor_tibble)
   }
 
-monitor_tibbles <- 
-  map(
-    .f = monitor_csv_to_tibble_reader, 
-    .x = names(monitor_urls)
-  )
-
-# name the resulting tibbles
-names(monitor_tibbles) <- 
-  names(monitor_urls)
-
-# focus on 2016
-daily_pm25_monitors_2016 <- 
-  monitor_tibbles$daily_pm25_monitors_2016
-hourly_pm25_monitors_2016 <- 
-  monitor_tibbles$hourly_pm25_monitors_2016
+# read raw monitors
+carb_2016_daily_monitors_working <- 
+  monitor_csv_to_tibble_reader(carb_2016_daily_monitors_raw)
+carb_2016_hourly_monitors_working <- 
+  monitor_csv_to_tibble_reader(carb_2016_hourly_monitors_raw)
 
 # get number of rows with text signaling the end of the data
 data_end_daily_2016 <- 
   which(
     grepl(
       "Quality Flag Definition", 
-      daily_pm25_monitors_2016$basin
+      carb_2016_daily_monitors_working$basin
     )
   ) - 1
 
@@ -778,42 +768,42 @@ data_end_hourly_2016 <-
   which(
     grepl(
       "Quality Flag Definition", 
-      hourly_pm25_monitors_2016$basin
+      carb_2016_hourly_monitors_working$basin
     )
   ) - 1
 
 # remove those rows
-daily_pm25_monitors_2016_working <- 
-  daily_pm25_monitors_2016 %>% 
+carb_2016_daily_monitors_working <- 
+  carb_2016_daily_monitors_working %>% 
   slice(1:data_end_daily_2016)
 
-hourly_pm25_monitors_2016_working <- 
-  hourly_pm25_monitors_2016 %>% 
+carb_2016_hourly_monitors_working <- 
+  carb_2016_hourly_monitors_working %>% 
   slice(1:data_end_hourly_2016)
 
 # find monitors in common
-intersect(daily_pm25_monitors_2016_working$aqs_id, 
-          hourly_pm25_monitors_2016_working$aqs_id)
+intersect(carb_2016_daily_monitors_working$aqs_id, 
+          carb_2016_hourly_monitors_working$aqs_id)
 
 # fix the monitors for putting together hourlies and dailies
-daily_pm25_monitors_2016_working <-
-  daily_pm25_monitors_2016_working %>% 
+carb_2016_daily_monitors_working <-
+  carb_2016_daily_monitors_working %>% 
   mutate(observations = pm25daily2016obs, 
          frequency = "daily") %>% 
   dplyr::select(-pm25daily2016obs)
 
-hourly_pm25_monitors_2016_working <- 
-  hourly_pm25_monitors_2016_working %>% 
+carb_2016_hourly_monitors_working <- 
+  carb_2016_hourly_monitors_working %>% 
   mutate(observations = pm25hourly2016obs, 
          frequency = "hourly") %>% 
   dplyr::select(-pm25hourly2016obs)
 
-colnames(daily_pm25_monitors_2016_working) ==
-  colnames(hourly_pm25_monitors_2016_working)
+colnames(carb_2016_daily_monitors_working) ==
+  colnames(carb_2016_hourly_monitors_working)
 
 pm_25_monitors_overall <- 
-  daily_pm25_monitors_2016_working %>% 
-  bind_rows(hourly_pm25_monitors_2016_working)
+  carb_2016_daily_monitors_working %>% 
+  bind_rows(carb_2016_hourly_monitors_working)
 
 ```
 
