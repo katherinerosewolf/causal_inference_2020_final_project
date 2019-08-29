@@ -91,12 +91,8 @@ save(
        )
 )
 
-# remove the functions
-rm(
-  column_name_fixer, 
-  file_downloader
-)
-invisible(gc())
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -107,27 +103,41 @@ invisible(gc())
 
 ```{r download modeled air pollution data}
 
-# download file from 
-
 # download air pollution file .nc edition
-download.file(
-  url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201601_201612-RH35.nc", 
-  destfile = 
-    file.path(
-      "raw_data", 
-      "GWRwSPEC_PM25_NA_201601_201612-RH35.nc"
+if(!file.exists(file.path("raw_data", 
+                          "GWRwSPEC_PM25_NA_201601_201612-RH35.nc"))) {
+
+  download.file(
+    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201601_201612-RH35.nc", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "GWRwSPEC_PM25_NA_201601_201612-RH35.nc"
+      )
     )
-  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+
+}
 
 # download air pollution file .asc edition
-download.file(
-  url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip", 
-  destfile = 
-    file.path(
-      "raw_data", 
-      "GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip"
+if(!file.exists(file.path("raw_data", 
+                          "GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip"))) {
+  
+  download.file(
+    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip"
+      )
     )
-  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+  
+}
 
 ```
 
@@ -135,23 +145,31 @@ download.file(
 
 ```{r load united states state shapefiles}
 
-# download the raw california shapefile
-state_shapefiles <- 
-  states(
-          cb = FALSE, 
-          year = 2016, 
-          class = 'sf'
-        )
-
-# save raw file to disk
-save(
-  state_shapefiles, 
-  file = 
-    file.path(
-      "raw_data", 
-      "state_shapefiles.rdata"
-    )
-)
+# download the united states border shapefiles
+if(!file.exists(file.path("raw_data", 
+                          "state_shapefiles.rdata"))) {
+  
+  # states() is a tigris function
+  state_shapefiles <- 
+    states(
+            cb = FALSE,  # downloads detailed outlines
+            year = 2016, 
+            class = 'sf'  # requests sf format to play nicely with sf package
+          )
+  
+  # save raw file to disk
+  save(
+    state_shapefiles, 
+    file = 
+      file.path(
+        "raw_data", 
+        "state_shapefiles.rdata"
+      )
+  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+}
 
 ```
 
@@ -161,51 +179,86 @@ save(
 
 # school enrollment data by racial/ethnic designation, gender, and grade
 
-# make school enrollment raw downloader function
-school_enrollment_raw_downloader <-
-  function(start_year_numeric){
-    end_year_chr <- 
-      as.character(start_year_numeric + 1) %>%  # add 1 to the start year
-      substr(3, 4)  # get only the last two digits
-    
-    start_year_chr <- 
-      as.character(start_year_numeric)  # convert start year to numeric
-    
-    url_file <- 
-      str_c("http://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=", 
-            start_year_chr, 
-            "-", 
-            end_year_chr, 
-            "&cCat=Enrollment&cPage=filesenr.asp")
-    
-    GET(
-      url = url_file, 
-      write_disk = 
-        file.path(
-          "raw_data", 
-          str_c("school_enrollment_", 
-                start_year_chr,
-                "_", 
-                end_year_chr, 
-                "_raw.txt")
-        ), 
-      overwrite = TRUE
+if(!file.exists(file.path("raw_data", 
+                          "school_enrollment_2009_10_raw.txt"))
+   ||
+   !file.exists(file.path("raw_data", 
+                          "school_enrollment_2010_11_raw.txt"))
+   ||
+   !file.exists(file.path("raw_data", 
+                          "school_enrollment_2011_12_raw.txt"))
+   ||
+   !file.exists(file.path("raw_data", 
+                          "school_enrollment_2012_13_raw.txt"))
+   ||
+   !file.exists(file.path("raw_data", 
+                          "school_enrollment_2013_14_raw.txt"))
+   ||
+   !file.exists(file.path("raw_data", 
+                          "school_enrollment_2014_15_raw.txt"))
+   ||
+   !file.exists(file.path("raw_data", 
+                          "school_enrollment_2015_16_raw.txt"))
+   ||
+   !file.exists(file.path("raw_data", 
+                          "school_enrollment_2016_17_raw.txt"))
+   ||
+   !file.exists(file.path("raw_data", 
+                          "school_enrollment_2017_18_raw.txt"))
+   ||
+   !file.exists(file.path("raw_data", 
+                          "school_enrollment_2018_19_raw.txt"))) {
+
+  # make school enrollment raw downloader function
+  school_enrollment_raw_downloader <-
+    function(start_year_numeric){
+      end_year_chr <- 
+        as.character(start_year_numeric + 1) %>%  # add 1 to the start year
+        substr(3, 4)  # get only the last two digits
+      
+      start_year_chr <- 
+        as.character(start_year_numeric)  # convert start year to numeric
+      
+      url_file <- 
+        str_c("http://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=", 
+              start_year_chr, 
+              "-", 
+              end_year_chr, 
+              "&cCat=Enrollment&cPage=filesenr.asp")
+      
+      GET(
+        url = url_file, 
+        write_disk = 
+          file.path(
+            "raw_data", 
+            str_c("school_enrollment_", 
+                  start_year_chr,
+                  "_", 
+                  end_year_chr, 
+                  "_raw.txt")
+          ), 
+        overwrite = TRUE
+      )
+    }
+  
+  # make vector of starting years 2009-2018
+  start_years <- 
+    seq(
+      from = 2009,
+      to = 2018, 
+      by = 1
     )
-  }
-
-# make vector of starting years 2009-2018
-start_years <- 
-  seq(
-    from = 2009,
-    to = 2018, 
-    by = 1
+  
+  # download all the school files at once
+  map(
+    .f = school_enrollment_raw_downloader, 
+    .x = start_years
   )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
 
-# download all the school files at once
-map(
-  .f = school_enrollment_raw_downloader, 
-  .x = start_years
-)
+}
 
 ```
 
@@ -214,16 +267,23 @@ map(
 ```{r download school addresses}
 
 # download school addresses
-GET(
-  url = "https://www.cde.ca.gov/schooldirectory/report?rid=dl1&tp=txt", 
-  write_disk(
-    file.path(
-      "raw_data",
-      "public_school_directory.txt"
-    ),
-    overwrite = TRUE
+
+if(!file.exists(file.path("raw_data", 
+                          "public_school_directory.txt"))) {
+  GET(
+    url = "https://www.cde.ca.gov/schooldirectory/report?rid=dl1&tp=txt", 
+    write_disk(
+      file.path(
+        "raw_data",
+        "public_school_directory.txt"
+      ),
+      overwrite = TRUE
+      )
     )
-  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+}
 
 ```
 
@@ -232,6 +292,9 @@ GET(
 ```{r download teaching credential data}
 
 # download teaching credential data 2015-16
+if(!file.exists(file.path("raw_data", 
+                          "StaffCred15.txt"))) {
+  
 download.file(
   url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred15.txt", 
   destfile = 
@@ -241,9 +304,14 @@ download.file(
     ), 
   method = 'libcurl'
   )
-Sys.sleep(time = 5)
+  
+Sys.sleep(time = 5)  # pause to try to avoid triggering anti-scraping blocker
+
+}
 
 # download teaching credential data 2016-17
+if(!file.exists(file.path("raw_data", 
+                          "StaffCred16.txt"))) {
 download.file(
   url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred16.txt", 
   destfile = 
@@ -253,6 +321,10 @@ download.file(
     ), 
   method = 'libcurl'
   )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+}
 
 ```
 
@@ -260,82 +332,101 @@ download.file(
 
 ```{r download carb monitor data for 2016}
 
-# universal entries into query
-download <- 
-  "https://www.arb.ca.gov/aqmis2/display.php"
+if(!file.exists(file.path("raw_data", 
+           "carb_2016_daily_monitors_raw.txt"))) {
+  
+  # universal entries into query
+  download <- 
+    "https://www.arb.ca.gov/aqmis2/display.php"
+  
+  # values for daily query
+  values_daily_2016 <- 
+    list(
+      download = "y", 
+      param = "PM25", 
+      units = "001", 
+      year = "2016", 
+      county_name = "--COUNTY--", 
+      basin = "--AIR BASIN--", 
+      latitude = "--PART OF STATE--", 
+      report = "SITELIST", 
+      order = "basin,county_name,s.name", 
+      submit = "Retrieve Data", 
+      ptype = "aqd", 
+      std15 = ""
+    )
+  
+  # set cookies correctly for the daily 2016 monitors
+  POST(download, 
+       body = values_daily_2016)
+  Sys.sleep(time = 2)
+  GET(download, 
+      query = values_daily_2016)
+  Sys.sleep(time = 2)
+  
+  # actually get the 2016 daily monitor list
+  carb_2016_daily_monitors_raw <- 
+     GET(download,
+         query = values_daily_2016)
+  content(carb_2016_daily_monitors_raw, "raw")
+  Sys.sleep(time = 2)
+  
+  # write the 2016 daily monitor list to disk
+  writeBin(content(carb_2016_daily_monitors_raw, "raw"), 
+           file.path(
+             "raw_data", 
+             "carb_2016_daily_monitors_raw.txt"
+           ))
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+  
+}
 
-# values for daily query
-values_daily_2016 <- 
-  list(
-    download = "y", 
-    param = "PM25", 
-    units = "001", 
-    year = "2016", 
-    county_name = "--COUNTY--", 
-    basin = "--AIR BASIN--", 
-    latitude = "--PART OF STATE--", 
-    report = "SITELIST", 
-    order = "basin,county_name,s.name", 
-    submit = "Retrieve Data", 
-    ptype = "aqd", 
-    std15 = ""
-  )
-
-# values for hourly query
-values_hourly_2016 <- 
-  list(
-    download = "y", 
-    param = "PM25HR", 
-    units = "001", 
-    year = "2016", 
-    county_name = "--COUNTY--", 
-    basin = "--AIR BASIN--", 
-    latitude = "--PART OF STATE--", 
-    report = "SITELIST", 
-    order = "basin,county_name,s.name", 
-    submit = "Retrieve Data", 
-    ptype = "aqd", 
-    std15 = ""
-  )
-
-# set cookies correctly for the daily 2016 monitors
-POST(download, 
-     body = values_daily_2016)
-Sys.sleep(time = 2)
-GET(download, 
-    query = values_daily_2016)
-Sys.sleep(time = 2)
-
-# actually get the 2016 daily monitor list
-carb_2016_daily_monitors_raw <- 
-   GET(download,
-       query = values_daily_2016)
-content(carb_2016_daily_monitors_raw, "raw")
-Sys.sleep(time = 2)
-
-# write the 2016 daily monitor list to disk
-writeBin(content(carb_2016_daily_monitors_raw, "raw"), 
-         file.path(
-           "raw_data", 
-           "carb_2016_daily_monitors_raw.txt"
-         ))
-
-# set cookies correctly for the hourly 2016 monitors
-POST(download, body = values_hourly_2016)
-Sys.sleep(time = 2)
-GET(download, query = values_hourly_2016)
-Sys.sleep(time = 2)
-
-# actually get the 2016 hourly monitor list
-carb_2016_hourly_monitors_raw <- 
-   GET(download, query = values_hourly_2016)
-
-# write the 2016 hourly monitor list to disk
-writeBin(content(carb_2016_hourly_monitors_raw, "raw"), 
-         file.path(
-           "raw_data", 
-           "carb_2016_hourly_monitors_raw.txt"
-         ))
+if(!file.exists(file.path("raw_data", 
+           "carb_2016_hourly_monitors_raw.txt"))) {
+  
+  # universal entries into query
+  download <- 
+    "https://www.arb.ca.gov/aqmis2/display.php"
+  
+  # values for hourly query
+  values_hourly_2016 <- 
+    list(
+      download = "y", 
+      param = "PM25HR", 
+      units = "001", 
+      year = "2016", 
+      county_name = "--COUNTY--", 
+      basin = "--AIR BASIN--", 
+      latitude = "--PART OF STATE--", 
+      report = "SITELIST", 
+      order = "basin,county_name,s.name", 
+      submit = "Retrieve Data", 
+      ptype = "aqd", 
+      std15 = ""
+    )
+  
+  # set cookies correctly for the hourly 2016 monitors
+  POST(download, body = values_hourly_2016)
+  Sys.sleep(time = 2)
+  GET(download, query = values_hourly_2016)
+  Sys.sleep(time = 2)
+  
+  # actually get the 2016 hourly monitor list
+  carb_2016_hourly_monitors_raw <- 
+     GET(download, query = values_hourly_2016)
+  
+  # write the 2016 hourly monitor list to disk
+  writeBin(content(carb_2016_hourly_monitors_raw, "raw"), 
+           file.path(
+             "raw_data", 
+             "carb_2016_hourly_monitors_raw.txt"
+           ))
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+}
 
 ```
 
@@ -343,36 +434,63 @@ writeBin(content(carb_2016_hourly_monitors_raw, "raw"),
 ```{r download epa monitor data for 2016}
 
 # download federal reference method (parameter code 88101) data
-GET(
-  url = 
-    "https://aqs.epa.gov/aqsweb/airdata/daily_88101_2016.zip", 
-  write_disk(
-    file.path("raw_data", 
-              "daily_88101_2016.zip"), 
-  overwrite = TRUE
+
+if(!file.exists(file.path("raw_data",
+                          "daily_88101_2016.zip"))) {
+  
+  GET(
+    url = 
+      "https://aqs.epa.gov/aqsweb/airdata/daily_88101_2016.zip", 
+    write_disk(
+      file.path("raw_data", 
+                "daily_88101_2016.zip"), 
+    overwrite = TRUE
+    )
   )
-)
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+  
+}
 
 # download non-federal-reference-method (parameter code 88502) data
-GET(
-  url = 
-    "https://aqs.epa.gov/aqsweb/airdata/daily_88502_2016.zip", 
-  write_disk(
-    file.path("raw_data", 
-              "daily_88502_2016.zip"),
-    overwrite = TRUE
-    )
-)
+
+if(!file.exists(file.path("raw_data",
+                          "daily_88502_2016.zip"))) {
+  
+  GET(
+    url = 
+      "https://aqs.epa.gov/aqsweb/airdata/daily_88502_2016.zip", 
+    write_disk(
+      file.path("raw_data", 
+                "daily_88502_2016.zip"),
+      overwrite = TRUE
+      )
+  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+  
+}
 
 # download speciation data
-GET(
-  url = "https://aqs.epa.gov/aqsweb/airdata/daily_SPEC_2016.zip", 
-  write_disk(
-    file.path("raw_data", 
-              "daily_SPEC_2016.zip"),
-    overwrite = TRUE
-    )
-)
+
+if(!file.exists(file.path("raw_data", 
+                          "daily_SPEC_2016.zip"))) {
+
+  GET(
+    url = "https://aqs.epa.gov/aqsweb/airdata/daily_SPEC_2016.zip", 
+    write_disk(
+      file.path("raw_data", 
+                "daily_SPEC_2016.zip"),
+      overwrite = TRUE
+      )
+  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+  
+}
 
 ```
 
@@ -415,6 +533,9 @@ save(
     )
 )
 
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
 ```
 
 
@@ -454,6 +575,9 @@ save(
       "california_shapefile.rdata"
     )
 )
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -495,7 +619,10 @@ air_cropped <-
     california_sp
   )
 
-plot(air_cropped)
+# plot(air_cropped)
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -554,7 +681,7 @@ school_enrollment_tab_reader <-
         )
     )
     
-    # return(read_tibble)
+    return(read_tibble)
   }
 
 # make vector of starting years 2009-2018
@@ -570,6 +697,9 @@ map(
   .f = school_enrollment_tab_reader, 
   .x = start_years
 )
+
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
   
 ```
 
@@ -596,6 +726,9 @@ save(
       "public_school_directory_working_from_raw.rdata"
     )
 )
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -718,6 +851,9 @@ save(
     )
 )
 
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
 ```
 
 
@@ -810,9 +946,18 @@ carb_2016_hourly_monitors_working <-
 colnames(carb_2016_daily_monitors_working) ==
   colnames(carb_2016_hourly_monitors_working)
 
-pm_25_monitors_overall <- 
+carb_pm_25_monitors_overall <- 
   carb_2016_daily_monitors_working %>% 
   bind_rows(carb_2016_hourly_monitors_working)
+
+save(
+  carb_pm_25_monitors_overall, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "carb_pm_25_monitors_overall.rdata"
+    )
+)
 
 ```
 
@@ -850,36 +995,75 @@ unzip(
     )
   )
 
-# load files
-load(
+# read files into r
+daily_88101_2016_working <- 
+  read_csv(
+    file = 
+      file.path(
+        "intermediate_data",
+        "daily_88101_2016.csv"
+      )
+    )
+
+save(
+  daily_88101_2016_working, 
   file = 
     file.path(
       "intermediate_data", 
-      "daily_88101_2016.csv"
+      "daily_88101_2016_working.rdata"
     )
 )
 
-load(
+daily_88502_2016_working <- 
+  read_csv(
+    file = 
+      file.path(
+        "intermediate_data",
+        "daily_88502_2016.csv"
+      )
+    )
+
+save(
+  daily_88502_2016_working, 
   file = 
     file.path(
       "intermediate_data", 
-      "daily_88502_2016.csv"
+      "daily_88502_2016_working.rdata"
     )
 )
 
-load(
-  file = 
-    file.path(
+daily_SPEC_2016_working <- 
+  read_csv(
+    file = file.path(
       "intermediate_data", 
       "daily_SPEC_2016.csv"
     )
 )
 
+save(
+  daily_SPEC_2016_working, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "daily_SPEC_2016_working.rdata"
+    )
+)
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
 ```
 
 
-```{r latitude and longitude}
+```{r isolate individual monitors}
 
 
 
 ```
+
+```{r final-ish datasets in folder for Stark}
+
+
+
+```
+
