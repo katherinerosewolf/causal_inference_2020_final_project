@@ -783,6 +783,15 @@ load(
     )
 )
 
+# load air data file
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "air_cropped.rdata"
+    )
+)
+
 # fix variable names
 school_enrollment_2015_16_working <- 
   column_name_fixer(school_enrollment_2015_16_working_from_raw)
@@ -811,40 +820,97 @@ school_cds_codes_2016_17 <-
   dplyr::select(cds_code, school) %>% 
   unique()
 
-# join school and latitude/longitude
+# join school and latitude/longitude, remove those without one (FIX)
 school_lat_long_2015_16 <- 
   school_cds_codes_2015_16 %>% 
-  left_join(school_lat_long, by = "cds_code")
+  left_join(school_lat_long, by = "cds_code") %>% 
+  filter(!is.na(latitude)) %>% 
+  filter(!is.na(longitude)) %>% 
+  filter(longitude != "No Data") %>% 
+  mutate(latitude = as.numeric(latitude), 
+         longitude = as.numeric(longitude))
   
 school_lat_long_2016_17 <- 
   school_cds_codes_2016_17 %>% 
-  left_join(school_lat_long, by = "cds_code")
+  left_join(school_lat_long, by = "cds_code") %>% 
+  filter(!is.na(latitude)) %>% 
+  filter(!is.na(longitude)) %>% 
+  filter(longitude != "No Data") %>% 
+  mutate(latitude = as.numeric(latitude), 
+         longitude = as.numeric(longitude))
 
-# two without lat/long
-## Gateway to College, San Francisco Unified, 50 Phelan Avenue Science Hall, Room 127, San Francisco, CA 94112-1821
-### manually found lat/long via Google Maps: 37.724958, -122.452911
-## Academy of Arts and Sciences: Los Angeles (9-12) 17500 Burbank Blvd. Encino, CA 91361-1718 
-### manually found lat/long via Google Maps: 34.172299, -118.514622
+# # two without lat/long
+# ## Gateway to College, San Francisco Unified, 50 Phelan Avenue Science Hall, Room 127, San Francisco, CA 94112-1821
+# ### manually found lat/long via Google Maps: 37.724958, -122.452911
+# ## Academy of Arts and Sciences: Los Angeles (9-12) 17500 Burbank Blvd. Encino, CA 91361-1718 
+# ### manually found lat/long via Google Maps: 34.172299, -118.514622
+# 
+# # fix outliers
+# ## 2015-16
+# ### Gateway to College, CDS code 38684780128876
+# school_lat_long_2015_16$latitude[school_lat_long_2015_16$cds_code == 38684780128876] <- 37.724958
+# school_lat_long_2015_16$longitude[school_lat_long_2015_16$cds_code == 38684780128876] <- -122.452911
+#   
+# school_lat_long_2016_17$latitude[school_lat_long_2015_16$cds_code == 38684780128876] <- 37.724958
+# school_lat_long_2016_17$longitude[school_lat_long_2015_16$cds_code == 38684780128876] <- -122.452911
+# 
+# ## 2016-17
+# ### Academy of Arts and Sciences: Los Angeles (9-12)
+# school_lat_long_2015_16$latitude[school_lat_long_2015_16$cds_code == 19753090130781] <- 34.172299
+# school_lat_long_2015_16$longitude[school_lat_long_2015_16$cds_code == 19753090130781] <- -118.514622
+# 
+# school_lat_long_2016_17$latitude[school_lat_long_2015_16$cds_code == 19753090130781] <- 34.172299
+# school_lat_long_2016_17$longitude[school_lat_long_2015_16$cds_code == 19753090130781] <- -118.514622
 
-# fix outliers
-## 2015-16
-### Gateway to College, CDS code 38684780128876
-school_lat_long_2015_16$latitude[school_lat_long_2015_16$cds_code == 38684780128876] <- 37.724958
-school_lat_long_2015_16$longitude[school_lat_long_2015_16$cds_code == 38684780128876] <- -122.452911
-  
-school_lat_long_2016_17$latitude[school_lat_long_2015_16$cds_code == 38684780128876] <- 37.724958
-school_lat_long_2016_17$longitude[school_lat_long_2015_16$cds_code == 38684780128876] <- -122.452911
+# make monitor locations into spatial point files
+school_lat_long_2015_16_sf <-
+  st_as_sf(
+    school_lat_long_2015_16,
+    coords =
+      c("longitude",
+        "latitude"),
+    crs = st_crs(air_cropped)
+  )
 
-## 2016-17
-### Academy of Arts and Sciences: Los Angeles (9-12)
-school_lat_long_2015_16$latitude[school_lat_long_2015_16$cds_code == 19753090130781] <- 34.172299
-school_lat_long_2015_16$longitude[school_lat_long_2015_16$cds_code == 19753090130781] <- -118.514622
-
-school_lat_long_2016_17$latitude[school_lat_long_2015_16$cds_code == 19753090130781] <- 34.172299
-school_lat_long_2016_17$longitude[school_lat_long_2015_16$cds_code == 19753090130781] <- -118.514622
+school_lat_long_2016_17_sf <-
+  st_as_sf(
+    school_lat_long_2016_17,
+    coords =
+      c("longitude",
+        "latitude"),
+    crs = st_crs(air_cropped)
+  )
 
 save(
-  school_lat_long_2015_16, 
+  school_lat_long_2015_16_sf,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_2015_16.rdata"
+    )
+)
+
+save(
+  school_lat_long_2016_17_sf,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_2016_17.rdata"
+    )
+)
+
+plot(school_lat_long_2015_16_sf)
+plot(school_lat_long_2016_17_sf)
+
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r spatially locate schools}
+
+load(
   file = 
     file.path(
       "intermediate_data", 
@@ -852,8 +918,7 @@ save(
     )
 )
 
-save(
-  school_lat_long_2016_17, 
+load( 
   file = 
     file.path(
       "intermediate_data", 
@@ -861,16 +926,21 @@ save(
     )
 )
 
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
-
 ```
-
 
 
 ## monitor data
 
 ```{r read monitor data from california air resources board}
+
+# load air data for reference
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "air_cropped.rdata"
+    )
+)
 
 # make function to read monitor files into r from csv
 monitor_csv_to_tibble_reader <- 
@@ -966,6 +1036,33 @@ save(
     file.path(
       "intermediate_data", 
       "carb_pm_25_monitors_overall.rdata"
+    )
+)
+
+# isolate monitors by latitude and longitude
+carb_pm_25_lat_long <- 
+  carb_pm_25_monitors_overall %>% 
+  select(aqs_id, site, latitude, longitude) %>% 
+  distinct()
+
+# make into sf (FIND DATUM)
+carb_pm25_sf <- 
+  carb_pm_25_lat_long %>% 
+  st_as_sf(
+    coords = 
+      c("longitude",
+        "latitude"),
+    crs = st_crs(air_cropped)
+  )
+
+plot(carb_pm25_sf)
+
+save(
+  carb_pm25_sf, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "carb_pm25_sf.rdata"
     )
 )
 
@@ -1268,11 +1365,127 @@ save(
     )
 )
 
+plot(cal_epa_monitors_sf)
+
 ```
 
-```{r final-ish datasets in folder for Stark}
+```{r compare epa and carb monitors}
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "carb_pm25_sf.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "cal_epa_monitors_sf.rdata"
+    )
+)
+
+cal_epa_monitors_sf <-
+  cal_epa_monitors_sf %>% 
+  mutate(aqs_id = 
+           gsub('-', '', monitor_id))
+
+cal_epa_monitors_no_geom <- 
+  cal_epa_monitors_sf %>% 
+  st_drop_geometry()
+
+carb_monitors_no_geom <- 
+  carb_pm25_sf %>% 
+  st_drop_geometry()
 
 
+carb_but_not_epa_monitors <- 
+  anti_join(
+  carb_monitors_no_geom, 
+  cal_epa_monitors_no_geom, 
+  by = "aqs_id")
+
+epa_but_not_carb_monitors <- 
+  anti_join(
+  cal_epa_monitors_no_geom, 
+  carb_monitors_no_geom, 
+  by = "aqs_id"
+)
+
+save(
+  carb_but_not_epa_monitors, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "carb_but_not_epa_monitors.rdata"
+    )
+)
+
+save(
+  carb_but_not_epa_monitors, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "epa_but_not_carb_monitors.rdata"
+    )
+)
+
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r plot in once place}
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "carb_pm25_sf.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "cal_epa_monitors_sf.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "air_cropped.rdata"
+    )
+)
+
+load(
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_2015_16.rdata"
+    )
+)
+
+load(
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_2016_17.rdata"
+    )
+)
+
+plot(air_cropped)
+plot(carb_pm25_sf)
+plot(cal_epa_monitors_sf)
+plot(school_lat_long_2015_16_sf)
+plot(school_lat_long_2016_17_sf)
 
 ```
 
