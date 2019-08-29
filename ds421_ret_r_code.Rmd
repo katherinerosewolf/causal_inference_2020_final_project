@@ -962,92 +962,115 @@ save(
 ```
 
 
-```{r monitor data from epa}
+```{r process monitor data from epa}
 
-# unzip epa air data files
-unzip(
-  zipfile = 
-    file.path("raw_data", 
-              "daily_88101_2016.zip"), 
-  exdir = 
-    file.path(
-      "intermediate_data"
-    )
-  )
+# daily frm (88101) files
+if(!file.exists(file.path("intermediate_data",
+                          "epa_daily_88101_2016_working.rdata"))) {
 
-unzip(
-  zipfile = 
-    file.path("raw_data", 
-              "daily_88502_2016.zip"), 
-  exdir = 
-    file.path(
-      "intermediate_data"
-    )
-  )
-
-unzip(
-  zipfile = 
-    file.path("raw_data", 
-              "daily_SPEC_2016.zip"), 
-  exdir = 
-    file.path(
-      "intermediate_data"
-    )
-  )
-
-# read files into r
-daily_88101_2016_working <- 
-  read_csv(
-    file = 
+  # unzip
+  unzip(
+    zipfile = 
+      file.path("raw_data", 
+                "daily_88101_2016.zip"), 
+    exdir = 
       file.path(
-        "intermediate_data",
-        "daily_88101_2016.csv"
+        "intermediate_data"
       )
     )
-
-save(
-  daily_88101_2016_working, 
-  file = 
-    file.path(
-      "intermediate_data", 
-      "daily_88101_2016_working.rdata"
-    )
-)
-
-daily_88502_2016_working <- 
-  read_csv(
+  
+  # read into a tibble
+  epa_daily_88101_2016_working <- 
+    read_csv(
+      file = 
+        file.path(
+          "intermediate_data",
+          "daily_88101_2016.csv"
+        )
+      )
+  
+  # save on disk
+  save(
+    epa_daily_88101_2016_working, 
     file = 
       file.path(
-        "intermediate_data",
-        "daily_88502_2016.csv"
+        "intermediate_data", 
+        "epa_daily_88101_2016_working.rdata"
+      )
+  )
+
+}
+
+
+# daily non-frm (88502) files
+if(!file.exists(file.path("intermediate_data",
+                          "epa_daily_88502_2016_working.rdata"))) {
+
+  # unzip
+  unzip(
+    zipfile = 
+      file.path("raw_data", 
+                "daily_88502_2016.zip"), 
+    exdir = 
+      file.path(
+        "intermediate_data"
       )
     )
+  
+  # read files into r
+  epa_daily_88502_2016_working <- 
+    read_csv(
+      file = 
+        file.path(
+          "intermediate_data",
+          "daily_88502_2016.csv"
+        )
+      )
+  
+  # save to disk
+  save(
+    epa_daily_88502_2016_working, 
+    file = 
+      file.path(
+        "intermediate_data", 
+        "epa_daily_88502_2016_working.rdata"
+      )
+  )
+}
 
-save(
-  daily_88502_2016_working, 
-  file = 
-    file.path(
-      "intermediate_data", 
-      "daily_88502_2016_working.rdata"
-    )
-)
 
-daily_SPEC_2016_working <- 
-  read_csv(
-    file = file.path(
-      "intermediate_data", 
-      "daily_SPEC_2016.csv"
-    )
-)
+# speciation (SPEC) files
+if(!file.exists(file.path("intermediate_data",
+                          "epa_daily_SPEC_2016_working.rdata"))) {
 
-save(
-  daily_SPEC_2016_working, 
-  file = 
-    file.path(
-      "intermediate_data", 
-      "daily_SPEC_2016_working.rdata"
-    )
-)
+  unzip(
+    zipfile = 
+      file.path("raw_data", 
+                "daily_SPEC_2016.zip"), 
+    exdir = 
+      file.path(
+        "intermediate_data"
+      )
+  )
+    
+  epa_daily_SPEC_2016_working <- 
+    read_csv(
+      file = file.path(
+        "intermediate_data", 
+        "daily_SPEC_2016.csv"
+      )
+  )
+  
+  save(
+    epa_daily_SPEC_2016_working, 
+    file = 
+      file.path(
+        "intermediate_data", 
+        "epa_daily_SPEC_2016_working.rdata"
+      )
+  )
+  
+}
 
 # remove all objects from the environment
 rm(list = ls(all.names = TRUE))
@@ -1056,6 +1079,14 @@ rm(list = ls(all.names = TRUE))
 
 
 ```{r isolate individual monitors}
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "daily_88101_2016_working.rdata"
+    )
+)
 
 
 
