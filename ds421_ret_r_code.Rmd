@@ -1039,15 +1039,6 @@ save(
     )
 )
 
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "carb_pm_25_monitors_overall.rdata"
-    )
-)
-)
-
 # isolate monitors by latitude and longitude
 carb_pm_25_lat_long <- 
   carb_pm_25_monitors_overall %>% 
