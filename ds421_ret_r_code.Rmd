@@ -1498,7 +1498,7 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-```{r plot monitor locations and air pollution}
+```{r plot monitor locations, air pollution, schools, and combine}
 
 load(
   file = 
@@ -1523,6 +1523,13 @@ load(
       "carb_pm25_sf.rdata"
     )
 )
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_lat_long_2016_17.rdata")
+    )
 
 # simplify the epa_monitors
 epa_pm25_sf_to_join <- 
@@ -1560,6 +1567,7 @@ save(all_monitors_no_duplicates_sf,
        )
      )
 
+# plot monitors on top of air pollution levels
 plot(air_cropped)
 plot(all_monitors_no_duplicates_sf, pch=16, cex=0.5, col="red", add=TRUE)
 
@@ -1570,7 +1578,23 @@ all_monitors_no_duplicates_sf$modeled_air_at_monitor <-
     all_monitors_no_duplicates_sf
   )
 
+# make plot
 plot(all_monitors_no_duplicates_sf["modeled_air_at_monitor"])
+
+# extract values of air data at schools
+school_lat_long_2016_17_sf$modeled_air_at_school <- 
+  raster::extract(
+    air_cropped,
+    school_lat_long_2016_17_sf
+  )
+
+# make plot
+school_lat_long_2016_17_sf$modeled_air_at_school <- 
+  raster::extract(
+    air_cropped,
+    school_lat_long_2016_17_sf
+  )
+
 
 ```
 
