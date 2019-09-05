@@ -1053,7 +1053,9 @@ carb_pm25_sf <-
       c("longitude",
         "latitude"),
     crs = st_crs(air_cropped)
-  )
+  ) %>% 
+  left_join(carb_pm_25_lat_long,  # add lat/long back
+            by = c("aqs_id", "site"))
 
 plot(carb_pm25_sf)
 
@@ -1065,6 +1067,9 @@ save(
       "carb_pm25_sf.rdata"
     )
 )
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -1354,7 +1359,8 @@ cal_epa_monitors_sf <-
   select(monitor_id_poc, transformed_datum, original_datum) %>% 
   left_join(cal_epa_88101_2016_monitors,  # join back to the rest of the data
             by = "monitor_id_poc") %>% 
-  select(-datum)  # remove "datum" column
+  select(-datum) %>%   # remove "datum" column
+  mutate(aqs_id = gsub('-', '', monitor_id))  # remove dashes from aqs_id
 
 save(
   cal_epa_monitors_sf, 
@@ -1367,7 +1373,11 @@ save(
 
 plot(cal_epa_monitors_sf)
 
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
 ```
+
 
 ```{r compare epa and carb monitors}
 
@@ -1386,11 +1396,6 @@ load(
       "cal_epa_monitors_sf.rdata"
     )
 )
-
-cal_epa_monitors_sf <-
-  cal_epa_monitors_sf %>% 
-  mutate(aqs_id = 
-           gsub('-', '', monitor_id))
 
 cal_epa_monitors_no_geom <- 
   cal_epa_monitors_sf %>% 
@@ -1486,6 +1491,86 @@ plot(carb_pm25_sf)
 plot(cal_epa_monitors_sf)
 plot(school_lat_long_2015_16_sf)
 plot(school_lat_long_2016_17_sf)
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r plot monitor locations and air pollution}
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "air_cropped.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "cal_epa_monitors_sf.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "carb_pm25_sf.rdata"
+    )
+)
+
+# simplify the epa_monitors
+epa_pm25_sf_to_join <- 
+  cal_epa_monitors_sf %>% 
+  select(aqs_id, site = monitor_id_poc, latitude, longitude) %>% 
+  mutate(source = "epa")
+  
+# reorder the carb monitors
+carb_pm25_sf_to_join <- 
+  carb_pm25_sf %>% 
+  select(aqs_id, site, latitude, longitude) %>% 
+  mutate(source = "carb", 
+         site = as.character(site))
+
+# make sf of all monitors at once
+all_monitors_sf <- 
+    do.call(rbind, 
+            list(carb_pm25_sf_to_join, 
+                 epa_pm25_sf_to_join
+                 )
+    )
+
+# drop duplicates
+all_monitors_no_duplicates_sf <- 
+  arrange(all_monitors_sf,  # sort by source putting epa first
+          source, aqs_id) %>%  # then by aqs_id
+  distinct(aqs_id, .keep_all = TRUE)  # remove dups by aqs_id, keep other vars
+
+# save result
+save(all_monitors_no_duplicates_sf,
+     file = 
+       file.path(
+         "intermediate_data", 
+         "all_monitors_no_duplicates_sf.rdata"
+       )
+     )
+
+plot(air_cropped)
+plot(all_monitors_no_duplicates_sf, pch=16, cex=0.5, col="red", add=TRUE)
+
+# extract values of air data at monitors
+all_monitors_no_duplicates_sf$modeled_air_at_monitor <- 
+  raster::extract(
+    air_cropped, 
+    all_monitors_no_duplicates_sf
+  )
+
+plot(all_monitors_no_duplicates_sf["modeled_air_at_monitor"])
 
 ```
 
