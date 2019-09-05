@@ -1589,11 +1589,14 @@ school_lat_long_2016_17_sf$modeled_air_at_school <-
   )
 
 # make plot
-school_lat_long_2016_17_sf$modeled_air_at_school <- 
-  raster::extract(
-    air_cropped,
-    school_lat_long_2016_17_sf
-  )
+plot(school_lat_long_2016_17_sf["modeled_air_at_school"], pch=16, cex=0.4)
+
+# plot all 3!
+plot(air_cropped)
+plot(school_lat_long_2016_17_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
+plot(all_monitors_no_duplicates_sf, pch=16, cex=0.2, col="red", add=TRUE)
+
+
 
 
 ```
