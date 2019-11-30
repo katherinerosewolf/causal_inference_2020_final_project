@@ -105,14 +105,14 @@ rm(list = ls(all.names = TRUE))
 
 # download 2017 pm2.5 air pollution file .nc edition
 if(!file.exists(file.path("raw_data", 
-                          "GWRwSPEC_PM25_NA_201701_201712-RH35.nc"))) {
+                          "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35.nc"))) {
 
   download.file(
-    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201701_201712-RH35.nc", 
+    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC.HEI_PM25_NA_201701_201712-RH35.nc", 
     destfile = 
       file.path(
         "raw_data", 
-        "GWRwSPEC_PM25_NA_201701_201712-RH35.nc"
+        "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35.nc"
       )
     )
   
@@ -123,14 +123,14 @@ if(!file.exists(file.path("raw_data",
 
 # download 2017 pm2.5 air pollution file .asc edition
 if(!file.exists(file.path("raw_data", 
-                          "GWRwSPEC_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"))) {
+                          "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"))) {
   
   download.file(
-    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201701_201712-RH35-NoNegs.asc.zip", 
+    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip", 
     destfile = 
       file.path(
         "raw_data", 
-        "GWRwSPEC_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"
+        "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"
       )
     )
   
@@ -402,19 +402,19 @@ if(!file.exists(file.path("raw_data",
 ```{r download carb monitor data for 2016}
 
 if(!file.exists(file.path("raw_data", 
-           "carb_2016_daily_monitors_raw.txt"))) {
+           "carb_2017_daily_monitors_raw.txt"))) {
   
   # universal entries into query
   download <- 
     "https://www.arb.ca.gov/aqmis2/display.php"
   
   # values for daily query
-  values_daily_2016 <- 
+  values_daily_2017 <- 
     list(
       download = "y", 
       param = "PM25", 
       units = "001", 
-      year = "2016", 
+      year = "2017", 
       county_name = "--COUNTY--", 
       basin = "--AIR BASIN--", 
       latitude = "--PART OF STATE--", 
@@ -425,26 +425,26 @@ if(!file.exists(file.path("raw_data",
       std15 = ""
     )
   
-  # set cookies correctly for the daily 2016 monitors
+  # set cookies correctly for the daily 2017 monitors
   POST(download, 
-       body = values_daily_2016)
+       body = values_daily_2017)
   Sys.sleep(time = 2)
   GET(download, 
-      query = values_daily_2016)
+      query = values_daily_2017)
   Sys.sleep(time = 2)
   
-  # actually get the 2016 daily monitor list
-  carb_2016_daily_monitors_raw <- 
+  # actually get the 2017 daily monitor list
+  carb_2017_daily_monitors_raw <- 
      GET(download,
-         query = values_daily_2016)
-  content(carb_2016_daily_monitors_raw, "raw")
+         query = values_daily_2017)
+  content(carb_2017_daily_monitors_raw, "raw")
   Sys.sleep(time = 2)
   
-  # write the 2016 daily monitor list to disk
-  writeBin(content(carb_2016_daily_monitors_raw, "raw"), 
+  # write the 2017 daily monitor list to disk
+  writeBin(content(carb_2017_daily_monitors_raw, "raw"), 
            file.path(
              "raw_data", 
-             "carb_2016_daily_monitors_raw.txt"
+             "carb_2017_daily_monitors_raw.txt"
            ))
   
   # remove all objects from the environment
@@ -453,19 +453,19 @@ if(!file.exists(file.path("raw_data",
 }
 
 if(!file.exists(file.path("raw_data", 
-           "carb_2016_hourly_monitors_raw.txt"))) {
+           "carb_2017_hourly_monitors_raw.txt"))) {
   
   # universal entries into query
   download <- 
     "https://www.arb.ca.gov/aqmis2/display.php"
   
   # values for hourly query
-  values_hourly_2016 <- 
+  values_hourly_2017 <- 
     list(
       download = "y", 
       param = "PM25HR", 
       units = "001", 
-      year = "2016", 
+      year = "2017", 
       county_name = "--COUNTY--", 
       basin = "--AIR BASIN--", 
       latitude = "--PART OF STATE--", 
@@ -476,21 +476,21 @@ if(!file.exists(file.path("raw_data",
       std15 = ""
     )
   
-  # set cookies correctly for the hourly 2016 monitors
-  POST(download, body = values_hourly_2016)
+  # set cookies correctly for the hourly 2017 monitors
+  POST(download, body = values_hourly_2017)
   Sys.sleep(time = 2)
-  GET(download, query = values_hourly_2016)
+  GET(download, query = values_hourly_2017)
   Sys.sleep(time = 2)
   
-  # actually get the 2016 hourly monitor list
-  carb_2016_hourly_monitors_raw <- 
-     GET(download, query = values_hourly_2016)
+  # actually get the 2017 hourly monitor list
+  carb_2017_hourly_monitors_raw <- 
+     GET(download, query = values_hourly_2017)
   
-  # write the 2016 hourly monitor list to disk
-  writeBin(content(carb_2016_hourly_monitors_raw, "raw"), 
+  # write the 2017 hourly monitor list to disk
+  writeBin(content(carb_2017_hourly_monitors_raw, "raw"), 
            file.path(
              "raw_data", 
-             "carb_2016_hourly_monitors_raw.txt"
+             "carb_2017_hourly_monitors_raw.txt"
            ))
   
   # remove all objects from the environment
@@ -500,19 +500,19 @@ if(!file.exists(file.path("raw_data",
 ```
 
 
-```{r download epa monitor data for 2016}
+```{r download epa monitor data for 2017}
 
 # download federal reference method (parameter code 88101) data
 
 if(!file.exists(file.path("raw_data",
-                          "daily_88101_2016.zip"))) {
+                          "daily_88101_2017.zip"))) {
   
   GET(
     url = 
-      "https://aqs.epa.gov/aqsweb/airdata/daily_88101_2016.zip", 
+      "https://aqs.epa.gov/aqsweb/airdata/daily_88101_2017.zip", 
     write_disk(
       file.path("raw_data", 
-                "daily_88101_2016.zip"), 
+                "daily_88101_2017.zip"), 
     overwrite = TRUE
     )
   )
@@ -525,14 +525,14 @@ if(!file.exists(file.path("raw_data",
 # download non-federal-reference-method (parameter code 88502) data
 
 if(!file.exists(file.path("raw_data",
-                          "daily_88502_2016.zip"))) {
+                          "daily_88502_2017.zip"))) {
   
   GET(
     url = 
-      "https://aqs.epa.gov/aqsweb/airdata/daily_88502_2016.zip", 
+      "https://aqs.epa.gov/aqsweb/airdata/daily_88502_2017.zip", 
     write_disk(
       file.path("raw_data", 
-                "daily_88502_2016.zip"),
+                "daily_88502_2017.zip"),
       overwrite = TRUE
       )
   )
@@ -545,13 +545,13 @@ if(!file.exists(file.path("raw_data",
 # download speciation data
 
 if(!file.exists(file.path("raw_data", 
-                          "daily_SPEC_2016.zip"))) {
+                          "daily_SPEC_2017.zip"))) {
 
   GET(
-    url = "https://aqs.epa.gov/aqsweb/airdata/daily_SPEC_2016.zip", 
+    url = "https://aqs.epa.gov/aqsweb/airdata/daily_SPEC_2017.zip", 
     write_disk(
       file.path("raw_data", 
-                "daily_SPEC_2016.zip"),
+                "daily_SPEC_2017.zip"),
       overwrite = TRUE
       )
   )
@@ -575,7 +575,7 @@ unzip(
   zipfile = 
     file.path(
       "raw_data", 
-      "GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip"
+      "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"
     ), 
   exdir = 
     file.path(
@@ -588,7 +588,7 @@ asc_air_data <-
   raster(
     file.path(
       "intermediate_data", 
-      "GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc"
+      "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc"
     )
   )
 
@@ -858,22 +858,21 @@ rm(list = ls(all.names = TRUE))
 ```{r make tibbles for 2015-2016 and 2016-2017}
 
 # load relevant files
-## 2015-16 enrollment
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "school_enrollment_2015_16_working_from_raw.rdata"
-    )
-)
-
-# load relevant files
 ## 2016-17 enrollment
 load(
   file = 
     file.path(
       "intermediate_data", 
       "school_enrollment_2016_17_working_from_raw.rdata"
+    )
+)
+
+## 2015-16 enrollment
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_enrollment_2017_18_working_from_raw.rdata"
     )
 )
 
@@ -905,11 +904,11 @@ load(
 )
 
 # fix variable names
-school_enrollment_2015_16_working <- 
-  column_name_fixer(school_enrollment_2015_16_working_from_raw)
-
 school_enrollment_2016_17_working <- 
   column_name_fixer(school_enrollment_2016_17_working_from_raw)
+
+school_enrollment_2017_18_working <- 
+  column_name_fixer(school_enrollment_2017_18_working_from_raw)
 
 public_school_directory_working <- 
   column_name_fixer(public_school_directory_working_from_raw)
@@ -918,23 +917,23 @@ school_lat_long <-
   public_school_directory_working %>% 
   dplyr::select(cds_code = cdscode, latitude, longitude)
   
-# get cds codes for schools with nonzero enrollment in 2015-16
-school_cds_codes_2015_16 <- 
-  school_enrollment_2015_16_working %>% 
+# get cds codes for schools with nonzero enrollment in 2016-17
+school_cds_codes_2016_17 <- 
+  school_enrollment_2016_17_working %>% 
   filter(enr_total > 0) %>% 
   dplyr::select(cds_code, school) %>% 
   unique()
 
-# get cds codes for schools with nonzero enrollment in 2016-17
-school_cds_codes_2016_17 <- 
-  school_enrollment_2015_16_working %>% 
+# get cds codes for schools with nonzero enrollment in 2017-18
+school_cds_codes_2017_18 <- 
+  school_enrollment_2017_18_working %>% 
   filter(enr_total > 0) %>% 
   dplyr::select(cds_code, school) %>% 
   unique()
 
 # join school and latitude/longitude, remove those without one (FIX)
-school_lat_long_2015_16 <- 
-  school_cds_codes_2015_16 %>% 
+school_lat_long_2016_17 <- 
+  school_cds_codes_2016_17 %>% 
   left_join(school_lat_long, by = "cds_code") %>% 
   filter(!is.na(latitude)) %>% 
   filter(!is.na(longitude)) %>% 
@@ -942,8 +941,8 @@ school_lat_long_2015_16 <-
   mutate(latitude = as.numeric(latitude), 
          longitude = as.numeric(longitude))
   
-school_lat_long_2016_17 <- 
-  school_cds_codes_2016_17 %>% 
+school_lat_long_2017_18 <- 
+  school_cds_codes_2017_18 %>% 
   left_join(school_lat_long, by = "cds_code") %>% 
   filter(!is.na(latitude)) %>% 
   filter(!is.na(longitude)) %>% 
@@ -975,15 +974,6 @@ school_lat_long_2016_17 <-
 # school_lat_long_2016_17$longitude[school_lat_long_2015_16$cds_code == 19753090130781] <- -118.514622
 
 # make monitor locations into spatial point files
-school_lat_long_2015_16_sf <-
-  st_as_sf(
-    school_lat_long_2015_16,
-    coords =
-      c("longitude",
-        "latitude"),
-    crs = st_crs(air_cropped)
-  )
-
 school_lat_long_2016_17_sf <-
   st_as_sf(
     school_lat_long_2016_17,
@@ -993,14 +983,14 @@ school_lat_long_2016_17_sf <-
     crs = st_crs(air_cropped)
   )
 
-save(
-  school_lat_long_2015_16_sf,
-  file =
-    file.path(
-      "intermediate_data",
-      "school_lat_long_2015_16.rdata"
-    )
-)
+school_lat_long_2017_18_sf <-
+  st_as_sf(
+    school_lat_long_2017_18,
+    coords =
+      c("longitude",
+        "latitude"),
+    crs = st_crs(air_cropped)
+  )
 
 save(
   school_lat_long_2016_17_sf,
@@ -1011,8 +1001,17 @@ save(
     )
 )
 
-plot(school_lat_long_2015_16_sf)
+save(
+  school_lat_long_2017_18_sf,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_2017_18.rdata"
+    )
+)
+
 plot(school_lat_long_2016_17_sf)
+plot(school_lat_long_2017_18_sf)
 
 # # remove all objects from the environment
 # rm(list = ls(all.names = TRUE))
@@ -1026,7 +1025,7 @@ load(
   file = 
     file.path(
       "intermediate_data", 
-      "school_lat_long_2015_16.rdata"
+      "school_lat_long_2016_17.rdata"
     )
 )
 
@@ -1034,7 +1033,7 @@ load(
   file = 
     file.path(
       "intermediate_data", 
-      "school_lat_long_2016_17.rdata"
+      "school_lat_long_2017_18.rdata"
     )
 )
 
@@ -1087,60 +1086,60 @@ monitor_csv_to_tibble_reader <-
   }
 
 # read raw monitors
-carb_2016_daily_monitors_working <- 
-  monitor_csv_to_tibble_reader("carb_2016_daily_monitors")
-carb_2016_hourly_monitors_working <- 
-  monitor_csv_to_tibble_reader("carb_2016_hourly_monitors")
+carb_2017_daily_monitors_working <- 
+  monitor_csv_to_tibble_reader("carb_2017_daily_monitors")
+carb_2017_hourly_monitors_working <- 
+  monitor_csv_to_tibble_reader("carb_2017_hourly_monitors")
 
 # get number of rows with text signaling the end of the data
-data_end_daily_2016 <- 
+data_end_daily_2017 <- 
   which(
     grepl(
       "Quality Flag Definition", 
-      carb_2016_daily_monitors_working$basin
+      carb_2017_daily_monitors_working$basin
     )
   ) - 1
 
-data_end_hourly_2016 <- 
+data_end_hourly_2017 <- 
   which(
     grepl(
       "Quality Flag Definition", 
-      carb_2016_hourly_monitors_working$basin
+      carb_2017_hourly_monitors_working$basin
     )
   ) - 1
 
 # remove those rows
-carb_2016_daily_monitors_working <- 
-  carb_2016_daily_monitors_working %>% 
-  slice(1:data_end_daily_2016)
+carb_2017_daily_monitors_working <- 
+  carb_2017_daily_monitors_working %>% 
+  slice(1:data_end_daily_2017)
 
-carb_2016_hourly_monitors_working <- 
-  carb_2016_hourly_monitors_working %>% 
-  slice(1:data_end_hourly_2016)
+carb_2017_hourly_monitors_working <- 
+  carb_2017_hourly_monitors_working %>% 
+  slice(1:data_end_hourly_2017)
 
 # find monitors in common
-intersect(carb_2016_daily_monitors_working$aqs_id, 
-          carb_2016_hourly_monitors_working$aqs_id)
+intersect(carb_2017_daily_monitors_working$aqs_id, 
+          carb_2017_hourly_monitors_working$aqs_id)
 
 # fix the monitors for putting together hourlies and dailies
-carb_2016_daily_monitors_working <-
-  carb_2016_daily_monitors_working %>% 
-  mutate(observations = pm25daily2016obs, 
+carb_2017_daily_monitors_working <-
+  carb_2017_daily_monitors_working %>% 
+  mutate(observations = pm25daily2017obs, 
          frequency = "daily") %>% 
-  dplyr::select(-pm25daily2016obs)
+  dplyr::select(-pm25daily2017obs)
 
-carb_2016_hourly_monitors_working <- 
-  carb_2016_hourly_monitors_working %>% 
-  mutate(observations = pm25hourly2016obs, 
+carb_2017_hourly_monitors_working <- 
+  carb_2017_hourly_monitors_working %>% 
+  mutate(observations = pm25hourly2017obs, 
          frequency = "hourly") %>% 
-  dplyr::select(-pm25hourly2016obs)
+  dplyr::select(-pm25hourly2017obs)
 
-colnames(carb_2016_daily_monitors_working) ==
-  colnames(carb_2016_hourly_monitors_working)
+colnames(carb_2017_daily_monitors_working) ==
+  colnames(carb_2017_hourly_monitors_working)
 
 carb_pm_25_monitors_overall <- 
-  carb_2016_daily_monitors_working %>% 
-  bind_rows(carb_2016_hourly_monitors_working)
+  carb_2017_daily_monitors_working %>% 
+  bind_rows(carb_2017_hourly_monitors_working)
 
 save(
   carb_pm_25_monitors_overall, 
@@ -1190,13 +1189,13 @@ rm(list = ls(all.names = TRUE))
 
 # daily frm (88101) files
 if(!file.exists(file.path("intermediate_data",
-                          "epa_daily_88101_2016_working.rdata"))) {
+                          "epa_daily_88101_2017_working.rdata"))) {
 
   # unzip
   unzip(
     zipfile = 
       file.path("raw_data", 
-                "daily_88101_2016.zip"), 
+                "daily_88101_2017.zip"), 
     exdir = 
       file.path(
         "intermediate_data"
@@ -1204,22 +1203,22 @@ if(!file.exists(file.path("intermediate_data",
     )
   
   # read into a tibble
-  epa_daily_88101_2016_working <- 
+  epa_daily_88101_2017_working <- 
     read_csv(
       file = 
         file.path(
           "intermediate_data",
-          "daily_88101_2016.csv"
+          "daily_88101_2017.csv"
         )
       )
   
   # save on disk
   save(
-    epa_daily_88101_2016_working, 
+    epa_daily_88101_2017_working, 
     file = 
       file.path(
         "intermediate_data", 
-        "epa_daily_88101_2016_working.rdata"
+        "epa_daily_88101_2017_working.rdata"
       )
   )
 
@@ -1228,13 +1227,13 @@ if(!file.exists(file.path("intermediate_data",
 
 # daily non-frm (88502) files
 if(!file.exists(file.path("intermediate_data",
-                          "epa_daily_88502_2016_working.rdata"))) {
+                          "epa_daily_88502_2017_working.rdata"))) {
 
   # unzip
   unzip(
     zipfile = 
       file.path("raw_data", 
-                "daily_88502_2016.zip"), 
+                "daily_88502_2017.zip"), 
     exdir = 
       file.path(
         "intermediate_data"
@@ -1242,22 +1241,22 @@ if(!file.exists(file.path("intermediate_data",
     )
   
   # read files into r
-  epa_daily_88502_2016_working <- 
+  epa_daily_88502_2017_working <- 
     read_csv(
       file = 
         file.path(
           "intermediate_data",
-          "daily_88502_2016.csv"
+          "daily_88502_2017.csv"
         )
       )
   
   # save to disk
   save(
-    epa_daily_88502_2016_working, 
+    epa_daily_88502_2017_working, 
     file = 
       file.path(
         "intermediate_data", 
-        "epa_daily_88502_2016_working.rdata"
+        "epa_daily_88502_2017_working.rdata"
       )
   )
 }
@@ -1265,32 +1264,32 @@ if(!file.exists(file.path("intermediate_data",
 
 # speciation (SPEC) files
 if(!file.exists(file.path("intermediate_data",
-                          "epa_daily_SPEC_2016_working.rdata"))) {
+                          "epa_daily_SPEC_2017_working.rdata"))) {
 
   unzip(
     zipfile = 
       file.path("raw_data", 
-                "daily_SPEC_2016.zip"), 
+                "daily_SPEC_2017.zip"), 
     exdir = 
       file.path(
         "intermediate_data"
       )
   )
     
-  epa_daily_SPEC_2016_working <- 
+  epa_daily_SPEC_2017_working <- 
     read_csv(
       file = file.path(
         "intermediate_data", 
-        "daily_SPEC_2016.csv"
+        "daily_SPEC_2017.csv"
       )
   )
   
   save(
-    epa_daily_SPEC_2016_working, 
+    epa_daily_SPEC_2017_working, 
     file = 
       file.path(
         "intermediate_data", 
-        "epa_daily_SPEC_2016_working.rdata"
+        "epa_daily_SPEC_2017_working.rdata"
       )
   )
   
@@ -1309,7 +1308,7 @@ load(
   file = 
     file.path(
       "intermediate_data", 
-      "epa_daily_88101_2016_working.rdata"
+      "epa_daily_88101_2017_working.rdata"
     )
 )
 
@@ -1323,22 +1322,22 @@ load(
 )
 
 # fix column names
-epa_daily_88101_2016_working <-
-  epa_daily_88101_2016_working %>% 
+epa_daily_88101_2017_working <-
+  epa_daily_88101_2017_working %>% 
   column_name_fixer()
 
 # limit to california
-cal_epa_88101_2016_working <-
-  epa_daily_88101_2016_working %>% 
+cal_epa_88101_2017_working <-
+  epa_daily_88101_2017_working %>% 
   filter(state_code == "06")
 
 # remove big file 
-rm(epa_daily_88101_2016_working)
+rm(epa_daily_88101_2017_working)
 invisible(gc())
 
 # create monitor ids
-cal_epa_88101_2016_working <- 
-  cal_epa_88101_2016_working %>% 
+cal_epa_88101_2017_working <- 
+  cal_epa_88101_2017_working %>% 
   mutate(
     monitor_id = 
       paste(
@@ -1351,8 +1350,8 @@ cal_epa_88101_2016_working <-
     )
 
 # make tibble with monitors only
-cal_epa_88101_2016_monitors <- 
-  cal_epa_88101_2016_working %>% 
+cal_epa_88101_2017_monitors <- 
+  cal_epa_88101_2017_working %>% 
   select(
     monitor_id_poc,
     monitor_id,
@@ -1372,8 +1371,8 @@ cal_epa_88101_2016_monitors <-
   distinct()
 
 # unqiue monitors based solely on latitude and longitude
-cal_epa_88101_2016_monitor_locations <- 
-  cal_epa_88101_2016_monitors %>% 
+cal_epa_88101_2017_monitor_locations <- 
+  cal_epa_88101_2017_monitors %>% 
   select(
     monitor_id_poc, 
     latitude, 
@@ -1407,7 +1406,7 @@ crs(air_cropped)
 
 # isolate NAD83 monitors
 cal_epa_monitors_nad83 <- 
-  cal_epa_88101_2016_monitor_locations %>% 
+  cal_epa_88101_2017_monitor_locations %>% 
   filter(datum == "NAD83")
 
 # save NAD83 monitors
@@ -1422,7 +1421,7 @@ save(
   
 # isolate WGS84 monitors
 cal_epa_monitors_wgs84 <- 
-  cal_epa_88101_2016_monitor_locations %>% 
+  cal_epa_88101_2017_monitor_locations %>% 
   filter(datum == "WGS84")
 
 # save WGS84 monitors
@@ -1469,7 +1468,7 @@ cal_epa_monitors_sf <-
   mutate(transformed_datum = "wgs84", 
          original_datum = datum) %>%  # add new datum
   select(monitor_id_poc, transformed_datum, original_datum) %>% 
-  left_join(cal_epa_88101_2016_monitors,  # join back to the rest of the data
+  left_join(cal_epa_88101_2017_monitors,  # join back to the rest of the data
             by = "monitor_id_poc") %>% 
   select(-datum) %>%   # remove "datum" column
   mutate(aqs_id = gsub('-', '', monitor_id))  # remove dashes from aqs_id
@@ -1601,8 +1600,8 @@ load(
 plot(air_cropped)
 plot(carb_pm25_sf)
 plot(cal_epa_monitors_sf)
-plot(school_lat_long_2015_16_sf)
 plot(school_lat_long_2016_17_sf)
+plot(school_lat_long_2017_18_sf)
 
 # remove all objects from the environment
 rm(list = ls(all.names = TRUE))
