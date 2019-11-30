@@ -312,7 +312,7 @@ download.file(
   method = 'libcurl'
   )
   
-Sys.sleep(time = 5)  # pause to try to avoid triggering anti-scraping blocker
+  Sys.sleep(time = 5)  # pause to try to avoid anti-scraping blocker
 
 }
 
@@ -329,6 +329,8 @@ download.file(
     ), 
   method = 'libcurl'
   )
+  
+Sys.sleep(time = 5)  # pause to try to avoid anti-scraping blocker
   
   # remove all objects from the environment
   rm(list = ls(all.names = TRUE))
@@ -366,8 +368,9 @@ if(!file.exists(file.path("raw_data",
     destfile = 
       file.path(
         "raw_data", 
-        "frpm1718.xlsx"
-      )
+        "frpm1617.xls"
+      ), 
+    mode = 'wb'
     )
   
   # remove all objects from the environment
@@ -385,7 +388,8 @@ if(!file.exists(file.path("raw_data",
       file.path(
         "raw_data", 
         "frpm1718.xlsx"
-      )
+      ), 
+    mode = 'wb'
     )
   
   # remove all objects from the environment
@@ -1516,7 +1520,6 @@ carb_monitors_no_geom <-
   carb_pm25_sf %>% 
   st_drop_geometry()
 
-
 carb_but_not_epa_monitors <- 
   anti_join(
   carb_monitors_no_geom, 
@@ -1581,27 +1584,9 @@ load(
     )
 )
 
-load(
-  file =
-    file.path(
-      "intermediate_data",
-      "school_lat_long_2015_16.rdata"
-    )
-)
-
-load(
-  file =
-    file.path(
-      "intermediate_data",
-      "school_lat_long_2016_17.rdata"
-    )
-)
-
 plot(air_cropped)
 plot(carb_pm25_sf)
 plot(cal_epa_monitors_sf)
-plot(school_lat_long_2016_17_sf)
-plot(school_lat_long_2017_18_sf)
 
 # remove all objects from the environment
 rm(list = ls(all.names = TRUE))
