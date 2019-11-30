@@ -103,16 +103,16 @@ rm(list = ls(all.names = TRUE))
 
 ```{r download modeled air pollution data}
 
-# download air pollution file .nc edition
+# download 2017 pm2.5 air pollution file .nc edition
 if(!file.exists(file.path("raw_data", 
-                          "GWRwSPEC_PM25_NA_201601_201612-RH35.nc"))) {
+                          "GWRwSPEC_PM25_NA_201701_201712-RH35.nc"))) {
 
   download.file(
-    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201601_201612-RH35.nc", 
+    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201701_201712-RH35.nc", 
     destfile = 
       file.path(
         "raw_data", 
-        "GWRwSPEC_PM25_NA_201601_201612-RH35.nc"
+        "GWRwSPEC_PM25_NA_201701_201712-RH35.nc"
       )
     )
   
@@ -121,16 +121,16 @@ if(!file.exists(file.path("raw_data",
 
 }
 
-# download air pollution file .asc edition
+# download 2017 pm2.5 air pollution file .asc edition
 if(!file.exists(file.path("raw_data", 
-                          "GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip"))) {
+                          "GWRwSPEC_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"))) {
   
   download.file(
-    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip", 
+    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC_PM25_NA_201701_201712-RH35-NoNegs.asc.zip", 
     destfile = 
       file.path(
         "raw_data", 
-        "GWRwSPEC_PM25_NA_201601_201612-RH35-NoNegs.asc.zip"
+        "GWRwSPEC_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"
       )
     )
   
@@ -138,6 +138,13 @@ if(!file.exists(file.path("raw_data",
   rm(list = ls(all.names = TRUE))
   
 }
+
+# download nox air pollution file .nc edition
+
+
+# download nox air pollution file .asc edition
+
+
 
 ```
 
@@ -153,7 +160,7 @@ if(!file.exists(file.path("raw_data",
   state_shapefiles <- 
     states(
             cb = FALSE,  # downloads detailed outlines
-            year = 2016, 
+            year = 2017, 
             class = 'sf'  # requests sf format to play nicely with sf package
           )
   
@@ -309,6 +316,7 @@ Sys.sleep(time = 5)  # pause to try to avoid triggering anti-scraping blocker
 
 }
 
+
 # download teaching credential data 2016-17
 if(!file.exists(file.path("raw_data", 
                           "StaffCred16.txt"))) {
@@ -326,7 +334,68 @@ download.file(
   rm(list = ls(all.names = TRUE))
 }
 
+
+# download teaching credential data 2016-17
+if(!file.exists(file.path("raw_data", 
+                          "StaffCred17.txt"))) {
+download.file(
+  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred17.txt", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "StaffCred17.txt"
+    ), 
+  method = 'libcurl'
+  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+}
+
 ```
+
+
+```{r download free and reduced price lunch data}
+
+# download poverty data 2016-17
+if(!file.exists(file.path("raw_data", 
+                          "frpm1617.xls"))) {
+
+  download.file(
+    url = "https://www.cde.ca.gov/ds/sd/sd/documents/frpm1617.xls", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "frpm1718.xlsx"
+      )
+    )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+
+}
+
+# download poverty data 2017-18
+if(!file.exists(file.path("raw_data", 
+                          "frpm1718.xlsx"))) {
+
+  download.file(
+    url = "https://www.cde.ca.gov/ds/sd/sd/documents/frpm1718.xlsx", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "frpm1718.xlsx"
+      )
+    )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+
+}
+
+```
+
+
 
 ## monitors
 
@@ -712,6 +781,49 @@ map(
 # rm(list = ls(all.names = TRUE))
   
 ```
+
+
+```{r read free and reduced price lunch data and save as .rdata files}
+
+# read data 2017-18
+free_red_lunch_2017_18 <-
+  readxl::read_excel(
+    file.path(
+      "raw_data", 
+      "frpm1718.xlsx"
+    )
+  )
+
+# save .rdata file to intermediate data
+save(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "free_red_lunch_2017_18.rdata"
+    )
+)
+  
+# read data 2016-17
+free_red_lunch_2016_17 <-
+  readxl::read_xls(
+    file.path(
+      "raw_data", 
+      "frpm1617.xls"
+    )
+  )
+
+# save .rdata file to intermediate data
+save(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "free_red_lunch_2016_17.rdata"
+    )
+)
+
+  
+```
+
 
 
 ```{r read and save school addresses}
@@ -1579,7 +1691,7 @@ all_monitors_no_duplicates_sf$modeled_air_at_monitor <-
   )
 
 # make plot
-plot(all_monitors_no_duplicates_sf["modeled_air_at_monitor"])
+plot(all_monitors_no_duplicates_sf["modeled_air_at_monitor"], pch=16, cex=1)
 
 # extract values of air data at schools
 school_lat_long_2016_17_sf$modeled_air_at_school <- 
@@ -1596,8 +1708,14 @@ plot(air_cropped)
 plot(school_lat_long_2016_17_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
 plot(all_monitors_no_duplicates_sf, pch=16, cex=0.2, col="red", add=TRUE)
 
+nrow(school_lat_long_2016_17_sf)
+nrow(all_monitors_no_duplicates_sf)
 
 
+```
+
+
+```{r}
 
 ```
 
