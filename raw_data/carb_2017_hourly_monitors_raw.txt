@@ -133,5 +133,5 @@ SV ,YOL,Woodland-Gibson Road,Y,Yolo,3249,CA,38.661209999999997,-121.732690000000
 5, The observation was flagged invalid manually  
 
 Data extracted from mrgd database: 
-November 30, 2019 at 13:16:03
+November 30, 2019 at 19:36:22
   

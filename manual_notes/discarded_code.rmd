@@ -208,3 +208,70 @@ nrow(facility_emissions_2017_pm25)
 
 ```
 
+
+
+```{r plot in once place}
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "carb_pm25_sf.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "cal_epa_monitors_sf.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "air_cropped.rdata"
+    )
+)
+
+
+
+plot(air_cropped)
+plot(carb_pm25_sf)
+plot(cal_epa_monitors_sf)
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r}
+
+# # two without lat/long
+# ## Gateway to College, San Francisco Unified, 50 Phelan Avenue Science Hall, Room 127, San Francisco, CA 94112-1821
+# ### manually found lat/long via Google Maps: 37.724958, -122.452911
+# ## Academy of Arts and Sciences: Los Angeles (9-12) 17500 Burbank Blvd. Encino, CA 91361-1718 
+# ### manually found lat/long via Google Maps: 34.172299, -118.514622
+# 
+# # fix outliers
+# ## 2015-16
+# ### Gateway to College, CDS code 38684780128876
+# school_lat_long_2015_16$latitude[school_lat_long_2015_16$cds_code == 38684780128876] <- 37.724958
+# school_lat_long_2015_16$longitude[school_lat_long_2015_16$cds_code == 38684780128876] <- -122.452911
+#   
+# school_lat_long_2016_17$latitude[school_lat_long_2015_16$cds_code == 38684780128876] <- 37.724958
+# school_lat_long_2016_17$longitude[school_lat_long_2015_16$cds_code == 38684780128876] <- -122.452911
+# 
+# ## 2016-17
+# ### Academy of Arts and Sciences: Los Angeles (9-12)
+# school_lat_long_2015_16$latitude[school_lat_long_2015_16$cds_code == 19753090130781] <- 34.172299
+# school_lat_long_2015_16$longitude[school_lat_long_2015_16$cds_code == 19753090130781] <- -118.514622
+# 
+# school_lat_long_2016_17$latitude[school_lat_long_2015_16$cds_code == 19753090130781] <- 34.172299
+# school_lat_long_2016_17$longitude[school_lat_long_2015_16$cds_code == 19753090130781] <- -118.514622
+
+```
+

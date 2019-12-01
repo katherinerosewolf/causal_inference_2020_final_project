@@ -113,7 +113,8 @@ if(!file.exists(file.path("raw_data",
       file.path(
         "raw_data", 
         "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35.nc"
-      )
+      ), 
+    method = 'libcurl'
     )
   
   # remove all objects from the environment
@@ -131,7 +132,8 @@ if(!file.exists(file.path("raw_data",
       file.path(
         "raw_data", 
         "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"
-      )
+      ), 
+    method = 'libcurl'
     )
   
   # remove all objects from the environment
@@ -187,34 +189,10 @@ if(!file.exists(file.path("raw_data",
 # school enrollment data by racial/ethnic designation, gender, and grade
 
 if(!file.exists(file.path("raw_data", 
-                          "school_enrollment_2009_10_raw.txt"))
-   ||
-   !file.exists(file.path("raw_data", 
-                          "school_enrollment_2010_11_raw.txt"))
-   ||
-   !file.exists(file.path("raw_data", 
-                          "school_enrollment_2011_12_raw.txt"))
-   ||
-   !file.exists(file.path("raw_data", 
-                          "school_enrollment_2012_13_raw.txt"))
-   ||
-   !file.exists(file.path("raw_data", 
-                          "school_enrollment_2013_14_raw.txt"))
-   ||
-   !file.exists(file.path("raw_data", 
-                          "school_enrollment_2014_15_raw.txt"))
-   ||
-   !file.exists(file.path("raw_data", 
-                          "school_enrollment_2015_16_raw.txt"))
-   ||
-   !file.exists(file.path("raw_data", 
                           "school_enrollment_2016_17_raw.txt"))
    ||
    !file.exists(file.path("raw_data", 
-                          "school_enrollment_2017_18_raw.txt"))
-   ||
-   !file.exists(file.path("raw_data", 
-                          "school_enrollment_2018_19_raw.txt"))) {
+                          "school_enrollment_2017_18_raw.txt"))) {
 
   # make school enrollment raw downloader function
   school_enrollment_raw_downloader <-
@@ -233,26 +211,40 @@ if(!file.exists(file.path("raw_data",
               end_year_chr, 
               "&cCat=Enrollment&cPage=filesenr.asp")
       
-      GET(
-        url = url_file, 
-        write_disk = 
-          file.path(
-            "raw_data", 
-            str_c("school_enrollment_", 
-                  start_year_chr,
-                  "_", 
-                  end_year_chr, 
-                  "_raw.txt")
-          ), 
-        overwrite = TRUE
-      )
+      # GET(
+      #   url = url_file, 
+      #   write_disk = 
+      #     file.path(
+      #       "raw_data", 
+      #       str_c("school_enrollment_", 
+      #             start_year_chr,
+      #             "_", 
+      #             end_year_chr, 
+      #             "_raw.txt")
+      #     ), 
+      #   overwrite = TRUE
+      # )
+      
+      download.file(url = url_file, 
+                    destfile = file.path(
+                      "raw_data", 
+                      str_c("school_enrollment_", 
+                            start_year_chr,
+                            "_", 
+                            end_year_chr, 
+                            "_raw.txt")
+                      ), 
+                    method = 'libcurl'
+                    )
+      
+      Sys.sleep(time = 5)  # pause to try to avoid anti-scraping blocker
     }
   
-  # make vector of starting years 2009-2018
+  # make vector of starting years 2015-2018
   start_years <- 
     seq(
-      from = 2009,
-      to = 2018, 
+      from = 2016,
+      to = 2017, 
       by = 1
     )
   
@@ -330,7 +322,7 @@ download.file(
   method = 'libcurl'
   )
   
-Sys.sleep(time = 5)  # pause to try to avoid anti-scraping blocker
+  Sys.sleep(time = 5)  # pause to try to avoid anti-scraping blocker
   
   # remove all objects from the environment
   rm(list = ls(all.names = TRUE))
@@ -587,6 +579,14 @@ unzip(
     )
   )
 
+# check the file type
+gdalUtils::gdalinfo(
+  file.path(
+      "raw_data", 
+      "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"
+    )
+)  # yup, just one band
+
 # create the working raster
 asc_air_data <- 
   raster(
@@ -595,7 +595,7 @@ asc_air_data <-
       "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc"
     )
   )
-
+  
 # save air data raster
 save(
   asc_air_data, 
@@ -710,7 +710,7 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-### school data
+## school data
 
 ```{r read school enrollment data and save as .rdata files}
 
@@ -770,8 +770,8 @@ school_enrollment_tab_reader <-
 # make vector of starting years 2009-2018
 start_years <- 
   seq(
-    from = 2009,
-    to = 2018, 
+    from = 2016,
+    to = 2017, 
     by = 1
   )
 
@@ -800,6 +800,7 @@ free_red_lunch_2017_18 <-
 
 # save .rdata file to intermediate data
 save(
+  free_red_lunch_2017_18,
   file = 
     file.path(
       "intermediate_data", 
@@ -818,6 +819,7 @@ free_red_lunch_2016_17 <-
 
 # save .rdata file to intermediate data
 save(
+  free_red_lunch_2016_17,
   file = 
     file.path(
       "intermediate_data", 
@@ -832,15 +834,40 @@ save(
 
 ```{r read and save school addresses}
 
+# fix parsing error in school addresses
+public_school_directory_raw_text  <- 
+  readLines(
+    con =  
+      file.path(
+        "raw_data",
+        "public_school_directory.txt"
+        )
+    )
+
+public_school_directory_fixed_quotes <- 
+  gsub(pattern = "\"350", 
+       replace = "350", 
+       x = public_school_directory_raw_text)
+
+writeLines(
+  public_school_directory_fixed_quotes, 
+  con = 
+    file.path(
+      "raw_data",
+      "public_school_directory_fixed.txt"
+      )
+  )
+
 # read school addresses into tibble
 public_school_directory_working_from_raw <-
   read_delim(file =
                file.path(
                  "raw_data",
-                 "public_school_directory.txt"
+                 "public_school_directory_fixed.txt"
                  ),
              delim = "\t", 
-             col_types = cols(.default = "?", CDSCode = col_double())
+             col_types = cols(.default = "c", 
+                              CDSCode = col_double())
              )
 
 # save school addresses
@@ -853,13 +880,13 @@ save(
     )
 )
 
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
 
 ```
 
 
-```{r make tibbles for 2015-2016 and 2016-2017}
+```{r make tibbles for 2016-2017 and 2017-2018}
 
 # load relevant files
 ## 2016-17 enrollment
@@ -871,7 +898,7 @@ load(
     )
 )
 
-## 2015-16 enrollment
+## 2017-18 enrollment
 load(
   file = 
     file.path(
@@ -915,30 +942,48 @@ school_enrollment_2017_18_working <-
   column_name_fixer(school_enrollment_2017_18_working_from_raw)
 
 public_school_directory_working <- 
-  column_name_fixer(public_school_directory_working_from_raw)
+  column_name_fixer(public_school_directory_working_from_raw) %>% 
+  rename(cds_code = cdscode)
 
+# get lat/longs from public school directory
 school_lat_long <- 
   public_school_directory_working %>% 
-  dplyr::select(cds_code = cdscode, latitude, longitude)
-  
-# get cds codes for schools with nonzero enrollment in 2016-17
+  dplyr::select(cds_code, latitude, longitude)
+
+# isolate schools with nonzero enrollment in 2016-17
+school_nonzero_2016_17 <- 
+  school_enrollment_2016_17_working %>% 
+  filter(enr_total > 0)
+
+# isolate schools with nonzero enrollment in 2016-17
+school_nonzero_2017_18 <- 
+  school_enrollment_2017_18_working %>% 
+  filter(enr_total > 0)
+
+# get cds codes for schools 2016-17
 school_cds_codes_2016_17 <- 
   school_enrollment_2016_17_working %>% 
-  filter(enr_total > 0) %>% 
   dplyr::select(cds_code, school) %>% 
   unique()
 
 # get cds codes for schools with nonzero enrollment in 2017-18
 school_cds_codes_2017_18 <- 
   school_enrollment_2017_18_working %>% 
-  filter(enr_total > 0) %>% 
   dplyr::select(cds_code, school) %>% 
   unique()
 
-# join school and latitude/longitude, remove those without one (FIX)
-school_lat_long_2016_17 <- 
+# join school and latitude/longitude
+school_lat_long_na_2016_17 <- 
   school_cds_codes_2016_17 %>% 
-  left_join(school_lat_long, by = "cds_code") %>% 
+  left_join(school_lat_long, by = "cds_code")
+
+school_lat_long_na_2017_18 <- 
+  school_cds_codes_2017_18 %>% 
+  left_join(school_lat_long, by = "cds_code")
+
+# filter missing latitudes and longitudes
+school_lat_long_2016_17 <- 
+  school_lat_long_na_2016_17 %>% 
   filter(!is.na(latitude)) %>% 
   filter(!is.na(longitude)) %>% 
   filter(longitude != "No Data") %>% 
@@ -946,38 +991,14 @@ school_lat_long_2016_17 <-
          longitude = as.numeric(longitude))
   
 school_lat_long_2017_18 <- 
-  school_cds_codes_2017_18 %>% 
-  left_join(school_lat_long, by = "cds_code") %>% 
+  school_lat_long_na_2017_18 %>% 
   filter(!is.na(latitude)) %>% 
   filter(!is.na(longitude)) %>% 
   filter(longitude != "No Data") %>% 
   mutate(latitude = as.numeric(latitude), 
          longitude = as.numeric(longitude))
 
-# # two without lat/long
-# ## Gateway to College, San Francisco Unified, 50 Phelan Avenue Science Hall, Room 127, San Francisco, CA 94112-1821
-# ### manually found lat/long via Google Maps: 37.724958, -122.452911
-# ## Academy of Arts and Sciences: Los Angeles (9-12) 17500 Burbank Blvd. Encino, CA 91361-1718 
-# ### manually found lat/long via Google Maps: 34.172299, -118.514622
-# 
-# # fix outliers
-# ## 2015-16
-# ### Gateway to College, CDS code 38684780128876
-# school_lat_long_2015_16$latitude[school_lat_long_2015_16$cds_code == 38684780128876] <- 37.724958
-# school_lat_long_2015_16$longitude[school_lat_long_2015_16$cds_code == 38684780128876] <- -122.452911
-#   
-# school_lat_long_2016_17$latitude[school_lat_long_2015_16$cds_code == 38684780128876] <- 37.724958
-# school_lat_long_2016_17$longitude[school_lat_long_2015_16$cds_code == 38684780128876] <- -122.452911
-# 
-# ## 2016-17
-# ### Academy of Arts and Sciences: Los Angeles (9-12)
-# school_lat_long_2015_16$latitude[school_lat_long_2015_16$cds_code == 19753090130781] <- 34.172299
-# school_lat_long_2015_16$longitude[school_lat_long_2015_16$cds_code == 19753090130781] <- -118.514622
-# 
-# school_lat_long_2016_17$latitude[school_lat_long_2015_16$cds_code == 19753090130781] <- 34.172299
-# school_lat_long_2016_17$longitude[school_lat_long_2015_16$cds_code == 19753090130781] <- -118.514622
-
-# make monitor locations into spatial point files
+# make school locations into spatial point files
 school_lat_long_2016_17_sf <-
   st_as_sf(
     school_lat_long_2016_17,
@@ -996,12 +1017,118 @@ school_lat_long_2017_18_sf <-
     crs = st_crs(air_cropped)
   )
 
+# join school files with rest of data
+school_data_2016_17_sf <- 
+  right_join(
+    school_lat_long_2016_17_sf, 
+    school_enrollment_2016_17_working, 
+    by = "cds_code"
+  )
+
+school_data_2017_18_sf <- 
+  right_join(
+    school_lat_long_2017_18_sf, 
+    school_enrollment_2017_18_working, 
+    by = "cds_code"
+  )
+
+# save files
+save(
+  public_school_directory_working,
+  file =
+    file.path(
+      "intermediate_data",
+      "public_school_directory_working.rdata"
+    )
+)
+
+save(
+  school_enrollment_2016_17_working,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_enrollment_2016_17_working.rdata"
+    )
+)
+
+save(
+  school_enrollment_2017_18_working,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_enrollment_2017_18_working.rdata"
+    )
+)
+
+save(
+  school_nonzero_2016_17, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_nonzero_2016_17.rdata"
+    )
+)
+
+save(
+  school_nonzero_2017_18, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_nonzero_2017_18.rdata"
+    )
+)
+
+save(
+  school_cds_codes_2016_17, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_cds_codes_2016_17.rdata"
+    )
+)
+
+save(
+  school_cds_codes_2017_18, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_cds_codes_2017_18.rdata"
+    )
+)
+
+save(
+  school_lat_long, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_lat_long.rdata"
+    )
+)
+
+save(
+  school_lat_long_na_2016_17,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_na_2016_17.rdata"
+    )
+)
+  
+save(
+ school_lat_long_na_2017_18,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_na_2017_18.rdata"
+    )
+)
+
 save(
   school_lat_long_2016_17_sf,
   file =
     file.path(
       "intermediate_data",
-      "school_lat_long_2016_17.rdata"
+      "school_lat_long_2016_17_sf.rdata"
     )
 )
 
@@ -1010,12 +1137,30 @@ save(
   file =
     file.path(
       "intermediate_data",
-      "school_lat_long_2017_18.rdata"
+      "school_lat_long_2017_18_sf.rdata"
     )
 )
 
-plot(school_lat_long_2016_17_sf)
-plot(school_lat_long_2017_18_sf)
+save(
+  school_data_2016_17_sf, 
+  file = 
+    file.path(
+      "intermediate_data",
+      "school_data_2016_17_sf.rdata"
+    )
+)
+
+save(
+  school_data_2017_18_sf, 
+  file = 
+    file.path(
+      "intermediate_data",
+      "school_data_2017_18_sf.rdata"
+    )
+)
+
+# plot(school_lat_long_2016_17_sf)
+# plot(school_lat_long_2017_18_sf)
 
 # # remove all objects from the environment
 # rm(list = ls(all.names = TRUE))
@@ -1023,23 +1168,146 @@ plot(school_lat_long_2017_18_sf)
 ```
 
 
-```{r spatially locate schools}
+```{r determining where schools get lost}
 
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "school_lat_long_2016_17.rdata"
-    )
-)
-
+# number of schools in 2016-17 enrollment data
 load( 
   file = 
     file.path(
       "intermediate_data", 
-      "school_lat_long_2017_18.rdata"
+      "school_enrollment_2016_17_working.rdata"
     )
 )
+
+unique_schools_enrollment <- 
+  length(unique(school_enrollment_2016_17_working$cds_code))
+
+# number of schools in directory
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "public_school_directory_working.rdata"
+    )
+)
+
+unique_schools_directory <- 
+  length(unique(public_school_directory_working$cds_code))
+
+# number of schools with non-zero enrollments
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_nonzero_2016_17.rdata"
+    )
+)
+
+unique_schools_non_zero <- 
+  length(unique(school_nonzero_2016_17$cds_code))
+
+# number of schools with enrollment with valid latitude and longitude
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_lat_long_2016_17_sf.rdata"
+    )
+)
+  
+unique_schools_with_lat_long <- 
+  length(unique(school_lat_long_2016_17_sf$cds_code))
+
+# final number of schools in dataset 
+load(
+  file = 
+    file.path(
+      "intermediate_data",
+      "school_data_2016_17_sf.rdata"
+    )
+)
+
+unique_school_data_final <- 
+  length(unique(school_data_2016_17_sf$cds_code))
+
+# get crs codes of schools without lat_longs
+crs_codes_no_lat_long <- 
+  setdiff(
+    unique(school_data_2016_17_sf$cds_code), 
+    unique(school_lat_long_2016_17_sf$cds_code)
+  )
+
+# pull those schools and look at them
+load(
+  file = 
+    file.path(
+      "intermediate_data",
+      "public_school_directory_working.rdata"
+    )
+)
+
+school_enrollment_no_lat_long <- 
+  school_enrollment_2016_17_working %>% 
+  filter(cds_code %in% crs_codes_no_lat_long)
+
+unique_schools_no_lat_long <- 
+  school_enrollment_2016_17_working %>% 
+  filter(cds_code %in% crs_codes_no_lat_long) %>% 
+  select(
+    cds_code, 
+    county,
+    district,
+    school) %>% 
+  unique() %>% 
+  mutate(cds_school_code = 
+           str_sub(cds_code, 
+                   start = -7))
+
+unique_schools_no_nonsec <- 
+  unique_schools_no_lat_long %>% 
+  filter(!(school == "Nonpublic, Nonsectarian Schools"))
+
+school_directory_no_lat_long <- 
+  public_school_directory_working %>% 
+  filter(cds_code %in% crs_codes_no_lat_long)
+
+school_enrollment_in_dataset <- 
+  sum(school_data_2016_17_sf$enr_total)
+
+school_enrollment_dropped_lat_long <- 
+  sum(school_enrollment_no_lat_long$enr_total)
+
+limited_public_school_directory <- 
+  public_school_directory_working %>% 
+  select(cds_code_dir = cds_code, county, school, latitude, longitude) %>% 
+  mutate(cds_school_code = str_sub(cds_code_dir, 
+                                   start = -7))
+  
+# trying to match on counties and names
+schools_matched_by_county_and_name <- 
+  left_join(
+    unique_schools_no_nonsec, 
+    limited_public_school_directory, 
+    by = c("county", "school", "cds_school_code"))
+
+# trying to match on names
+schools_matched_by_name <- 
+  left_join(
+    unique_schools_no_nonsec, 
+    limited_public_school_directory, 
+    by = c("school", "cds_school_code"))
+
+save(
+  schools_matched_by_name, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "schools_matched_by_name.rdata"
+    )
+)  
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -1300,12 +1568,13 @@ if(!file.exists(file.path("intermediate_data",
 }
 
 # remove all objects from the environment
+
 rm(list = ls(all.names = TRUE))
 
 ```
 
 
-```{r isolate individual monitors}
+```{r isolate individual monitors in carb and epa}
 
 # load 88101 file
 load(
@@ -1494,7 +1763,7 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-```{r compare epa and carb monitors}
+```{r compare and compile epa and carb monitors into one unique monitor dat}
 
 load(
   file = 
@@ -1509,6 +1778,14 @@ load(
     file.path(
       "intermediate_data", 
       "cal_epa_monitors_sf.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "air_cropped.rdata"
     )
 )
 
@@ -1532,100 +1809,6 @@ epa_but_not_carb_monitors <-
   carb_monitors_no_geom, 
   by = "aqs_id"
 )
-
-save(
-  carb_but_not_epa_monitors, 
-  file = 
-    file.path(
-      "intermediate_data", 
-      "carb_but_not_epa_monitors.rdata"
-    )
-)
-
-save(
-  carb_but_not_epa_monitors, 
-  file = 
-    file.path(
-      "intermediate_data", 
-      "epa_but_not_carb_monitors.rdata"
-    )
-)
-
-
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
-
-```
-
-
-```{r plot in once place}
-
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "carb_pm25_sf.rdata"
-    )
-)
-
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "cal_epa_monitors_sf.rdata"
-    )
-)
-
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "air_cropped.rdata"
-    )
-)
-
-plot(air_cropped)
-plot(carb_pm25_sf)
-plot(cal_epa_monitors_sf)
-
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
-
-```
-
-
-```{r plot monitor locations, air pollution, schools, and combine}
-
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "air_cropped.rdata"
-    )
-)
-
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "cal_epa_monitors_sf.rdata"
-    )
-)
-
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "carb_pm25_sf.rdata"
-    )
-)
-
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "school_lat_long_2016_17.rdata")
-    )
 
 # simplify the epa_monitors
 epa_pm25_sf_to_join <- 
@@ -1654,7 +1837,39 @@ all_monitors_no_duplicates_sf <-
           source, aqs_id) %>%  # then by aqs_id
   distinct(aqs_id, .keep_all = TRUE)  # remove dups by aqs_id, keep other vars
 
-# save result
+# extract values of air data at monitors
+all_monitors_no_duplicates_sf$modeled_air_at_monitor <- 
+  raster::extract(
+    air_cropped, 
+    all_monitors_no_duplicates_sf
+  )
+
+# # plot monitors on top of air pollution levels
+# plot(air_cropped)
+# plot(all_monitors_no_duplicates_sf, pch=16, cex=0.5, col="red", add=TRUE)
+# plot(all_monitors_no_duplicates_sf["modeled_air_at_monitor"], pch=16, cex=1)
+
+# save carb not epa monitors
+save(
+  carb_but_not_epa_monitors, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "carb_but_not_epa_monitors.rdata"
+    )
+)
+
+# save epa not carb monitors
+save(
+  carb_but_not_epa_monitors, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "epa_but_not_carb_monitors.rdata"
+    )
+)
+
+# save monitors sans duplicates
 save(all_monitors_no_duplicates_sf,
      file = 
        file.path(
@@ -1663,37 +1878,99 @@ save(all_monitors_no_duplicates_sf,
        )
      )
 
-# plot monitors on top of air pollution levels
-plot(air_cropped)
-plot(all_monitors_no_duplicates_sf, pch=16, cex=0.5, col="red", add=TRUE)
 
-# extract values of air data at monitors
-all_monitors_no_duplicates_sf$modeled_air_at_monitor <- 
-  raster::extract(
-    air_cropped, 
-    all_monitors_no_duplicates_sf
-  )
 
-# make plot
-plot(all_monitors_no_duplicates_sf["modeled_air_at_monitor"], pch=16, cex=1)
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r extract air values at schools}
+
+# load monitors
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "all_monitors_no_duplicates_sf.rdata"
+    )
+)
+
+# load pm2.5 estimates
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "air_cropped.rdata"
+    )
+)
+
+# load schools
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_lat_long_2016_17_sf.rdata")
+    )
+
+# rename school thing
+school_air_2016_17_sf <- 
+  school_lat_long_2016_17_sf
 
 # extract values of air data at schools
-school_lat_long_2016_17_sf$modeled_air_at_school <- 
+school_air_2016_17_sf$modeled_air_at_school <- 
   raster::extract(
     air_cropped,
-    school_lat_long_2016_17_sf
+    school_air_2016_17_sf
   )
 
-# make plot
-plot(school_lat_long_2016_17_sf["modeled_air_at_school"], pch=16, cex=0.4)
+# save new sf with air at school
+save(
+  school_air_2016_17_sf, 
+  file = 
+       file.path(
+         "intermediate_data", 
+         "school_air_2016_17_sf.rdata"
+       )
+     )
 
-# plot all 3!
-plot(air_cropped)
-plot(school_lat_long_2016_17_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
-plot(all_monitors_no_duplicates_sf, pch=16, cex=0.2, col="red", add=TRUE)
+# # make plot
+# plot(school_air_2016_17_sf["modeled_air_at_school"], pch=16, cex=0.4)
 
-nrow(school_lat_long_2016_17_sf)
+# # plot all 3!
+# plot(air_cropped)
+# plot(school_air_2016_17_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
+# plot(all_monitors_no_duplicates_sf, pch=16, cex=0.2, col="red", add=TRUE)
+
+nrow(school_air_2016_17_sf)
 nrow(all_monitors_no_duplicates_sf)
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r WHAT WE HAVE TO HERE}
+
+# load monitors
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "all_monitors_no_duplicates_sf.rdata"
+    )
+)
+
+# load schools with air
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_air_2016_17_sf.rdata"
+    )
+)
 
 
 ```
