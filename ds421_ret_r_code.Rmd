@@ -13,6 +13,7 @@ library(tigris)
 library(sf)
 library(httr)
 library(tidyverse)
+library(bindrcpp)
 library(ggmap)
 
 # stop r from abbreviating doubles in school ids
@@ -20,8 +21,8 @@ options("scipen" = 40)
 
 praise()  # self-esteem boost
 
-# # set encrypted google api key
-# register_google(key = hidden_google_api_key)
+# set encrypted google api key
+register_google(key = Sys.getenv("hidden_google_api_key"))
 
 
 ```
