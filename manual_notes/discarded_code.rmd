@@ -275,3 +275,23 @@ rm(list = ls(all.names = TRUE))
 
 ```
 
+
+```{r}
+
+
+# # pull latitude from Long Valley record with it
+# latitude_from_long_view_elementary <- 
+#   schools_matched_by_cds_code_only %>% 
+#   filter(cds_school_code == "6010763") %>%  # filter to Long Valley cds code
+#   filter(!(latitude == "No Data")) %>%  # filter to the one with lat/long
+#   pull(latitude)  # pull latitude as value
+
+# # pull longitude from Long Valley record with it
+# longitude_from_long_view_elementary <- 
+#   schools_matched_by_cds_code_only %>% 
+#   filter(cds_school_code == "6010763") %>%  # filter to Long Valley cds code
+#   filter(!(latitude == "No Data")) %>%  # filter to the one with lat/long
+#   pull(longitude)  # pull longitude as value
+
+```
+

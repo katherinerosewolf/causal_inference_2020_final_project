@@ -1,17 +1,15 @@
-# R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
-
 language: r
-sudo: true
 sudo: required
 cache: packages
 dist: trusty
-
 before_install:
-  - sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable --yes
-  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
-  - sudo apt-get --yes --force-yes update -qq
-  - sudo apt-get install --yes libudunits2-dev libproj-dev libgeos-dev libgdal-dev libgsl-dev
-
-script: 
-  - R -f tests/render_rmds.R
-  - df -h
+- sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable --yes
+- sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
+- sudo apt-get --yes --force-yes update -qq
+- sudo apt-get install --yes libudunits2-dev libproj-dev libgeos-dev libgdal-dev libgsl-dev
+script:
+- R -f tests/render_rmds.R
+- df -h
+env:
+  global:
+    secure: oJVxr4eIw1d2Go8jwOIjKagw6D+ZemwTpEzHhu8A1s3uaTBgl26jTMNzraGY6IE9aCrqi3mC6OndYkeFT6sGXpHwp46iy0+gLNwx4J/7p6/sQueC0Q24bq+XHy19oRj0tYhiza/2W49SoO6qhYf6CPd5xOYhQFErjDDSDihRYATtiWF1C8YwIGmSakr5fj2xUa4DE6u8ft0R6CDBvGilX94ZSRem56nANjVXJaSvPrutpKprNBxK3XmpWWA09pWEo0qsMxbpfO8Xk5JdAoc446M+ukb0x+MVRTILltymOygDVUG2A4KkhAzMaYc5nlHNVEiFBYeZszaJmtErdzeKBwG2OIfeIsijwAur5wpUUfT5/P0mZr/NvAQJNiGKjd2jnvAR0b72F3GynO1yBJZ5bUMg2nDwBNa7SQmiIHtgwFN9JCUqAOaDMzri8C59LX+zUM66iaLHmDhWmTmR/HtHEcD/oB16xUBq9H8QeClsIZ0CeJNjkdTnH05Pl/4PlOCHINUxhusKhrB3fY8PxzkmBS2/ljrrvDW2ZosUMpe8kCM/Ufq8s6+9FM5mZj+5TX2rczkrh+4bDHCWbMAiV6b/unwEyCTUlcvvMDFXo5oE+TuOmTLcUkI1FX/0h1ReWpFIiY+O5eiBMsxp7ZbjZ8DCZ6BkETDPUlkTyx3GezqPqgM=

@@ -13,11 +13,16 @@ library(tigris)
 library(sf)
 library(httr)
 library(tidyverse)
+library(ggmap)
 
 # stop r from abbreviating doubles in school ids
 options("scipen" = 40)
 
 praise()  # self-esteem boost
+
+# # set encrypted google api key
+# register_google(key = hidden_google_api_key)
+
 
 ```
 
@@ -580,7 +585,8 @@ unzip(
   )
 
 # check the file type
-gdalUtils::gdalinfo(
+gdal_utils(
+  util = "info",
   file.path(
       "raw_data", 
       "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"
@@ -781,8 +787,8 @@ map(
   .x = start_years
 )
 
-# # remove all objects from the environment
-# rm(list = ls(all.names = TRUE))
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
   
 ```
 
@@ -826,6 +832,9 @@ save(
       "free_red_lunch_2016_17.rdata"
     )
 )
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
   
 ```
@@ -880,8 +889,8 @@ save(
     )
 )
 
-# # remove all objects from the environment
-# rm(list = ls(all.names = TRUE))
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -1162,13 +1171,13 @@ save(
 # plot(school_lat_long_2016_17_sf)
 # plot(school_lat_long_2017_18_sf)
 
-# # remove all objects from the environment
-# rm(list = ls(all.names = TRUE))
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
 ```
 
 
-```{r determining where schools get lost}
+```{r school data cleaning 2016-17}
 
 # number of schools in 2016-17 enrollment data
 load( 
@@ -1246,10 +1255,8 @@ load(
     )
 )
 
-school_enrollment_no_lat_long <- 
-  school_enrollment_2016_17_working %>% 
-  filter(cds_code %in% crs_codes_no_lat_long)
-
+# isolate schools with no lat/long (cds_code, county, district, school)
+# create school code independent of county and district
 unique_schools_no_lat_long <- 
   school_enrollment_2016_17_working %>% 
   filter(cds_code %in% crs_codes_no_lat_long) %>% 
@@ -1263,51 +1270,90 @@ unique_schools_no_lat_long <-
            str_sub(cds_code, 
                    start = -7))
 
+# exclude nonpublic and nonsectarian schools
 unique_schools_no_nonsec <- 
   unique_schools_no_lat_long %>% 
   filter(!(school == "Nonpublic, Nonsectarian Schools"))
 
+# find which schools missing lat/longs are in the directory
 school_directory_no_lat_long <- 
   public_school_directory_working %>% 
-  filter(cds_code %in% crs_codes_no_lat_long)
+  filter(cds_code %in% crs_codes_no_lat_long)  # (only two)
 
-school_enrollment_in_dataset <- 
-  sum(school_data_2016_17_sf$enr_total)
-
-school_enrollment_dropped_lat_long <- 
-  sum(school_enrollment_no_lat_long$enr_total)
-
+# simplify public school directory and 
+# create school code independent of county and district
 limited_public_school_directory <- 
   public_school_directory_working %>% 
-  select(cds_code_dir = cds_code, county, school, latitude, longitude) %>% 
-  mutate(cds_school_code = str_sub(cds_code_dir, 
+  select(
+    cds_code_dir = cds_code, 
+    county, 
+    school, 
+    latitude, 
+    longitude) %>% 
+  mutate(cds_school_code = str_sub(cds_code_dir,  # this isolates the individual school code
                                    start = -7))
-  
-# trying to match on counties and names
-schools_matched_by_county_and_name <- 
-  left_join(
-    unique_schools_no_nonsec, 
-    limited_public_school_directory, 
-    by = c("county", "school", "cds_school_code"))
 
-# trying to match on names
-schools_matched_by_name <- 
+# match on cds code
+schools_matched_by_cds_code_only <- 
   left_join(
     unique_schools_no_nonsec, 
     limited_public_school_directory, 
-    by = c("school", "cds_school_code"))
+    by = c("cds_school_code"))
 
 save(
-  schools_matched_by_name, 
+  schools_matched_by_cds_code_only, 
   file = 
     file.path(
       "intermediate_data", 
-      "schools_matched_by_name.rdata"
+      "schools_matched_by_cds_code_only.rdata"
     )
 )  
 
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
+# clean THE LAST THREE
+
+# clean Long Valley by removing version without lat/longs
+schools_no_lat_long_long_valley_fix <- 
+  schools_matched_by_cds_code_only %>% 
+  filter(!(cds_school_code == "6010763" &  # remove no-data long view record
+             latitude == "No Data"))  
+
+# pull cds codes for the directory from the two remaining w/o lat/longs
+cds_codes_last_two <- 
+  schools_no_lat_long_long_valley_fix %>% 
+  filter(latitude == "No Data") %>%  # filter to those w/o lat/longs
+  pull(cds_code_dir)  # pull the cds code in the directory
+
+# pull directory records for last two for annoyingly manual geocoding
+addresses_last_two <- 
+  public_school_directory_working %>% 
+  filter(cds_code %in% cds_codes_last_two) %>% 
+  select(cds_code_dir = cds_code,  # change name of cds_code 
+         school, 
+         street, 
+         city, 
+         state, 
+         zip) %>% 
+  mutate(address_geocode =  # put entire address in one column for google
+           str_c(street, 
+                 ", ", 
+                 city, 
+                 ", ", 
+                 state, 
+                 " ", 
+                 zip)
+  )
+
+# # geocoding time!
+# geocoded_lat_longs_last_two <- 
+#   addresses_last_two %>% 
+#   mutate_geocode(
+#     location = address_geocode
+#   )
+  
+  
+
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -1440,7 +1486,7 @@ carb_pm25_sf <-
   left_join(carb_pm_25_lat_long,  # add lat/long back
             by = c("aqs_id", "site"))
 
-plot(carb_pm25_sf)
+# plot(carb_pm25_sf)
 
 save(
   carb_pm25_sf, 
@@ -1755,7 +1801,7 @@ save(
     )
 )
 
-plot(cal_epa_monitors_sf)
+# plot(cal_epa_monitors_sf)
 
 # remove all objects from the environment
 rm(list = ls(all.names = TRUE))
