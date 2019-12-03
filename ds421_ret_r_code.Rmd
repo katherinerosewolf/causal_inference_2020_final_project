@@ -24,7 +24,6 @@ praise()  # self-esteem boost
 # set encrypted google api key
 register_google(key = Sys.getenv("hidden_google_api_key"))
 
-
 ```
 
 
