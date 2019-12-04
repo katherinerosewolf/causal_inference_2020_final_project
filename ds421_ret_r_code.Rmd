@@ -1791,9 +1791,6 @@ load(
 # plot(school_air_2016_17_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
 # plot(all_monitors_no_duplicates_sf, pch=16, cex=0.2, col="red", add=TRUE)
 
-nrow(school_air_2016_17_sf)
-nrow(all_monitors_no_duplicates_sf)
-
 # remove all objects from the environment
 rm(list = ls(all.names = TRUE))
 
