@@ -295,3 +295,520 @@ rm(list = ls(all.names = TRUE))
 
 ```
 
+
+
+```{r make tibbles for 2016-2017 and 2017-2018}
+
+# load relevant files
+## 2016-17 enrollment
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_enrollment_2016_17_working_from_raw.rdata"
+    )
+)
+
+## 2017-18 enrollment
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_enrollment_2017_18_working_from_raw.rdata"
+    )
+)
+
+## school addresses
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "public_school_directory_working_from_raw.rdata"
+    )
+)
+
+# load function to make variable names snake case
+load(
+  file = 
+    file.path(
+      "functions", 
+      "column_name_fixer.rdata"
+    )
+)
+
+# load air data file
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "air_cropped.rdata"
+    )
+)
+
+# fix variable names
+school_enrollment_2016_17_working <- 
+  column_name_fixer(school_enrollment_2016_17_working_from_raw)
+
+school_enrollment_2017_18_working <- 
+  column_name_fixer(school_enrollment_2017_18_working_from_raw)
+
+public_school_directory_working <- 
+  column_name_fixer(public_school_directory_working_from_raw) %>% 
+  rename(cds_code = cdscode)
+
+# get lat/longs from public school directory
+school_lat_long <- 
+  public_school_directory_working %>% 
+  dplyr::select(cds_code, latitude, longitude)
+
+# isolate schools with nonzero enrollment in 2016-17
+school_nonzero_2016_17 <- 
+  school_enrollment_2016_17_working %>% 
+  filter(enr_total > 0)
+
+# isolate schools with nonzero enrollment in 2016-17
+school_nonzero_2017_18 <- 
+  school_enrollment_2017_18_working %>% 
+  filter(enr_total > 0)
+
+# get cds codes for schools 2016-17
+school_cds_codes_2016_17 <- 
+  school_enrollment_2016_17_working %>% 
+  dplyr::select(cds_code, school) %>% 
+  unique()
+
+# get cds codes for schools with nonzero enrollment in 2017-18
+school_cds_codes_2017_18 <- 
+  school_enrollment_2017_18_working %>% 
+  dplyr::select(cds_code, school) %>% 
+  unique()
+
+# join school and latitude/longitude
+school_lat_long_na_2016_17 <- 
+  school_cds_codes_2016_17 %>% 
+  left_join(school_lat_long, by = "cds_code")
+
+school_lat_long_na_2017_18 <- 
+  school_cds_codes_2017_18 %>% 
+  left_join(school_lat_long, by = "cds_code")
+
+# filter missing latitudes and longitudes
+school_lat_long_2016_17 <- 
+  school_lat_long_na_2016_17 %>% 
+  filter(!is.na(latitude)) %>% 
+  filter(!is.na(longitude)) %>% 
+  filter(longitude != "No Data") %>% 
+  mutate(latitude = as.numeric(latitude), 
+         longitude = as.numeric(longitude))
+  
+school_lat_long_2017_18 <- 
+  school_lat_long_na_2017_18 %>% 
+  filter(!is.na(latitude)) %>% 
+  filter(!is.na(longitude)) %>% 
+  filter(longitude != "No Data") %>% 
+  mutate(latitude = as.numeric(latitude), 
+         longitude = as.numeric(longitude))
+
+
+
+# save files
+save(
+  public_school_directory_working,
+  file =
+    file.path(
+      "intermediate_data",
+      "public_school_directory_working.rdata"
+    )
+)
+
+save(
+  school_enrollment_2016_17_working,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_enrollment_2016_17_working.rdata"
+    )
+)
+
+save(
+  school_enrollment_2017_18_working,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_enrollment_2017_18_working.rdata"
+    )
+)
+
+save(
+  school_nonzero_2016_17, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_nonzero_2016_17.rdata"
+    )
+)
+
+save(
+  school_nonzero_2017_18, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_nonzero_2017_18.rdata"
+    )
+)
+
+save(
+  school_cds_codes_2016_17, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_cds_codes_2016_17.rdata"
+    )
+)
+
+save(
+  school_cds_codes_2017_18, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_cds_codes_2017_18.rdata"
+    )
+)
+
+save(
+  school_lat_long, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_lat_long.rdata"
+    )
+)
+
+save(
+  school_lat_long_na_2016_17,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_na_2016_17.rdata"
+    )
+)
+  
+save(
+ school_lat_long_na_2017_18,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_na_2017_18.rdata"
+    )
+)
+
+save(
+  school_lat_long_2016_17_sf,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_2016_17_sf.rdata"
+    )
+)
+
+save(
+  school_lat_long_2017_18_sf,
+  file =
+    file.path(
+      "intermediate_data",
+      "school_lat_long_2017_18_sf.rdata"
+    )
+)
+
+save(
+  school_data_2016_17_sf, 
+  file = 
+    file.path(
+      "intermediate_data",
+      "school_data_2016_17_sf.rdata"
+    )
+)
+
+save(
+  school_data_2017_18_sf, 
+  file = 
+    file.path(
+      "intermediate_data",
+      "school_data_2017_18_sf.rdata"
+    )
+)
+
+# plot(school_lat_long_2016_17_sf)
+# plot(school_lat_long_2017_18_sf)
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r school data cleaning 2016-17}
+
+# number of schools in 2016-17 enrollment data
+load( 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_enrollment_2016_17_working.rdata"
+    )
+)
+
+unique_schools_enrollment <- 
+  length(unique(school_enrollment_2016_17_working$cds_code))
+
+# number of schools in directory
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "public_school_directory_working.rdata"
+    )
+)
+
+unique_schools_directory <- 
+  length(unique(public_school_directory_working$cds_code))
+
+# number of schools with non-zero enrollments
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_nonzero_2016_17.rdata"
+    )
+)
+
+unique_schools_non_zero <- 
+  length(unique(school_nonzero_2016_17$cds_code))
+
+# number of schools with enrollment with valid latitude and longitude
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_lat_long_2016_17_sf.rdata"
+    )
+)
+  
+unique_schools_with_lat_long <- 
+  length(unique(school_lat_long_2016_17_sf$cds_code))
+
+# final number of schools in dataset 
+load(
+  file = 
+    file.path(
+      "intermediate_data",
+      "school_data_2016_17_sf.rdata"
+    )
+)
+
+unique_school_data_final <- 
+  length(unique(school_data_2016_17_sf$cds_code))
+
+# get crs codes of schools without lat_longs
+crs_codes_no_lat_long <- 
+  setdiff(
+    unique(school_data_2016_17_sf$cds_code), 
+    unique(school_lat_long_2016_17_sf$cds_code)
+  )
+
+# pull those schools and look at them
+load(
+  file = 
+    file.path(
+      "intermediate_data",
+      "public_school_directory_working.rdata"
+    )
+)
+
+# isolate schools with no lat/long (cds_code, county, district, school)
+# create school code independent of county and district
+unique_schools_no_lat_long <- 
+  school_enrollment_2016_17_working %>% 
+  filter(cds_code %in% crs_codes_no_lat_long) %>% 
+  select(
+    cds_code, 
+    county,
+    district,
+    school) %>% 
+  unique() %>% 
+  mutate(cds_school_code = 
+           str_sub(cds_code, 
+                   start = -7))
+
+# exclude nonpublic and nonsectarian schools
+unique_schools_no_nonsec <- 
+  unique_schools_no_lat_long %>% 
+  filter(!(school == "Nonpublic, Nonsectarian Schools"))
+
+# find which schools missing lat/longs are in the directory
+school_directory_no_lat_long <- 
+  public_school_directory_working %>% 
+  filter(cds_code %in% crs_codes_no_lat_long)  # (only two)
+
+# simplify public school directory and 
+# create school code independent of county and district
+limited_public_school_directory <- 
+  public_school_directory_working %>% 
+  select(
+    cds_code_dir = cds_code, 
+    county, 
+    school, 
+    latitude, 
+    longitude) %>% 
+  mutate(cds_school_code = str_sub(cds_code_dir,  # this isolates the individual school code
+                                   start = -7))
+
+# match on cds code
+schools_matched_by_cds_code_only <- 
+  left_join(
+    unique_schools_no_nonsec, 
+    limited_public_school_directory, 
+    by = c("cds_school_code"))
+
+save(
+  schools_matched_by_cds_code_only, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "schools_matched_by_cds_code_only.rdata"
+    )
+)  
+
+# clean THE LAST THREE
+
+# clean Long Valley by removing version without lat/longs
+schools_no_lat_long_long_valley_fix <- 
+  schools_matched_by_cds_code_only %>% 
+  filter(!(cds_school_code == "6010763" &  # remove no-data long view record
+             latitude == "No Data"))  
+
+# pull cds codes for the directory from the two remaining w/o lat/longs
+cds_codes_last_two <- 
+  schools_no_lat_long_long_valley_fix %>% 
+  filter(latitude == "No Data") %>%  # filter to those w/o lat/longs
+  pull(cds_code_dir)  # pull the cds code in the directory
+
+# pull directory records for last two for annoyingly manual geocoding
+addresses_last_two <- 
+  public_school_directory_working %>% 
+  filter(cds_code %in% cds_codes_last_two) %>% 
+  select(cds_code_dir = cds_code,  # change name of cds_code 
+         school, 
+         street, 
+         city, 
+         state, 
+         zip) %>% 
+  mutate(address_geocode =  # put entire address in one column for google
+           str_c(street, 
+                 ", ", 
+                 city, 
+                 ", ", 
+                 state, 
+                 " ", 
+                 zip)
+  )
+
+# geocoding time!
+geocoded_lat_longs_last_two <-
+  addresses_last_two %>%
+  mutate_geocode(
+    location = address_geocode
+  ) 
+
+# make limited dataset
+geocoded_simple <- 
+  geocoded_lat_longs_last_two %>% 
+  select(school_geo = school,  # rename variables to show that they came from the geo dataset
+         cds_code_geo = cds_code_dir, 
+         lon_geo = lon, 
+         lat_geo = lat)
+
+# add geocoded lat/longs
+schools_missing_lat_long_fixed <- 
+  schools_no_lat_long_long_valley_fix %>% 
+  left_join(geocoded_simple, 
+            by = c("cds_code" = "cds_code_geo")) %>%  
+  mutate(geo_source = "small_cds",  # add column to tibble for lat-long source
+         geo_source = replace(geo_source, !is.na(lon_geo), "google"), 
+         longitude = ifelse(longitude == "No Data", lon_geo, longitude), 
+         latitude = ifelse(latitude == "No Data", lat_geo, latitude)
+  ) %>% 
+  select(man_cds_code = cds_code, 
+         man_longitude = longitude, 
+         man_latitude = latitude, geo_source)
+
+# single schools from school_enrollment_2016_17_working 
+# (includes those sans enrollment)
+
+# make full dataset
+school_clean <- 
+  school_enrollment_2016_17_working %>% 
+  left_join(schools_missing_lat_long_fixed, 
+            by = c("cds_code" = "man_cds_code"))
+  
+# unique schools
+unique_schools_2016_17 <- 
+  school_enrollment_2016_17_working %>% 
+  select(cds_code, county, district, school) %>% 
+  mutate(cds_school_code = str_sub(cds_code,  # this isolates the individual school code
+                                   start = -7)) %>% 
+  unique()  # each of these has a unique cds code
+
+# check number of unique school cds codes
+# (turns out only 0000000 and 0000001 aren't unique)
+sum(table(unique_schools_2016_17$cds_school_code) - 1)
+
+# get lat/longs from public school directory
+school_lat_long <- 
+  public_school_directory_working %>% 
+  dplyr::select(cds_code, latitude, longitude) %>% 
+  mutate(cds_school_code = str_sub(cds_code,  # this isolates the individual school code
+                                   start = -7))
+
+length(unique(school_lat_long$cds_school_code))
+
+unique_schools_all_lat_long <- 
+  unique_
+
+  
+  
+  
+
+  
+  
+
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r}
+
+# check number of unique school cds codes
+# (turns out only 0000000 and 0000001 aren't unique)
+sum(table(unique_schools_2016_17$cds_school_code) - 1)
+
+# get lat/longs from public school directory
+school_lat_long <- 
+  public_school_directory_working %>% 
+  dplyr::select(cds_code, latitude, longitude) %>% 
+  mutate(cds_school_code = str_sub(cds_code,  # this isolates the individual school code
+                                   start = -7))
+
+length(unique(school_lat_long$cds_school_code))
+
+  
+
+  # isolate schools with nonzero enrollment in 2016-17
+school_nonzero_2016_17 <- 
+  school_enrollment_2016_17_working %>% 
+  filter(enr_total > 0)
+
+```
+
