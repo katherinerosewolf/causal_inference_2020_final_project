@@ -1119,6 +1119,7 @@ schools_missing_lat_long_fixed <-
 ```
 
 ```{r}
+
 # make spatial point files
 
 # # make school locations into spatial point files
@@ -1753,34 +1754,34 @@ load(
     )
 )
 
-# load schools
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "school_lat_long_2016_17_sf.rdata")
-    )
-
-# rename school thing
-school_air_2016_17_sf <- 
-  school_lat_long_2016_17_sf
-
-# extract values of air data at schools
-school_air_2016_17_sf$modeled_air_at_school <- 
-  raster::extract(
-    air_cropped,
-    school_air_2016_17_sf
-  )
-
-# save new sf with air at school
-save(
-  school_air_2016_17_sf, 
-  file = 
-       file.path(
-         "intermediate_data", 
-         "school_air_2016_17_sf.rdata"
-       )
-     )
+# # load schools
+# load(
+#   file = 
+#     file.path(
+#       "intermediate_data", 
+#       "school_lat_long_2016_17_sf.rdata")
+#     )
+# 
+# # rename school thing
+# school_air_2016_17_sf <- 
+#   school_lat_long_2016_17_sf
+# 
+# # extract values of air data at schools
+# school_air_2016_17_sf$modeled_air_at_school <- 
+#   raster::extract(
+#     air_cropped,
+#     school_air_2016_17_sf
+#   )
+# 
+# # save new sf with air at school
+# save(
+#   school_air_2016_17_sf, 
+#   file = 
+#        file.path(
+#          "intermediate_data", 
+#          "school_air_2016_17_sf.rdata"
+#        )
+#      )
 
 # # make plot
 # plot(school_air_2016_17_sf["modeled_air_at_school"], pch=16, cex=0.4)
@@ -1797,33 +1798,3 @@ nrow(all_monitors_no_duplicates_sf)
 rm(list = ls(all.names = TRUE))
 
 ```
-
-
-```{r WHAT WE HAVE TO HERE}
-
-# load monitors
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "all_monitors_no_duplicates_sf.rdata"
-    )
-)
-
-# load schools with air
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "school_air_2016_17_sf.rdata"
-    )
-)
-
-
-```
-
-
-```{r}
-
-```
-
