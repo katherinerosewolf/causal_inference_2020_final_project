@@ -2287,17 +2287,272 @@ save(
     )
 )
 
-# single_student_2016_17_sf <- 
-  
-# range(weird_clean_schools_2016_17$this_value)
-# 
-# range(clean_schools_final_2016_17_sf$value)
-# sum(clean_schools_final_2016_17_sf$value)
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
 ```
 
 
-```{r }
+```{r disorganized last-minute summary statistics}
+
+load(
+  file =
+    file.path(
+      "intermediate_data",
+      "single_students_2016_17.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "all_monitors_no_duplicates_sf.rdata"
+    )
+)
+
+load(
+  file =
+    file.path(
+      "intermediate_data",
+      "school_air_2016_17_sf.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data",
+      "air_cropped.rdata"
+    )
+)
+
+# single students recode eth
+single_students_2016_17 <-
+single_students_2016_17 %>% 
+  mutate(ethnic_category = ethnic,
+         ethnic_category = 
+           recode(
+             ethnic_category,
+             `0` = "not reported",
+             `1` = "american_indian_alaska_native_nh",
+             `2` = "asian_nh",
+             `3` = "pacific_islander_nh",
+             `4` = "filipino_nh",
+             `5` = "hispanic_latino",
+             `6` = "african_american",
+             `7` = "white_nh",
+             `9` = "two_plus_nh")
+  )
+
+percent_students_by_ethnic_pm <- 
+  single_students_2016_17 %>% 
+  group_by(pm25_12_plus, ethnic_category) %>% 
+  summarise(number=n()) %>% 
+  group_by(ethnic_category) %>% 
+  mutate(percentage = number/sum(number)*100)
+
+
+write_csv(
+  percent_students_by_ethnic_pm, 
+  path = 
+    file.path(
+      "output_for_writeups", 
+      "percent_students_by_ethnic_pm.csv"
+    )
+)
+
+percent_students_by_ethnic <- 
+  single_students_2016_17 %>% 
+  group_by(ethnic_category) %>% 
+  summarise(number=n()) %>% 
+  group_by() %>% 
+  mutate(percentage = number/sum(number)*100)
+
+write_csv(
+  percent_students_by_ethnic, 
+  path = 
+    file.path(
+      "output_for_writeups", 
+      "percent_students_by_ethnic.csv"
+    )
+)
+
+
+# plot(air_cropped)
+
+# plot monitors on top of air pollution levels
+plot(air_cropped)
+plot(all_monitors_no_duplicates_sf, pch=16, cex=0.5, col="red", add=TRUE)
+plot(all_monitors_no_duplicates_sf["modeled_air_at_monitor"], pch=16, cex=1)
+
+# make plot of modeled air at each school
+plot(school_air_2016_17_sf["modeled_air_at_school"], pch=16, cex=0.4)
+
+# plot all 3!
+plot(air_cropped)
+plot(school_air_2016_17_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
+plot(all_monitors_no_duplicates_sf, pch=16, cex=0.2, col="red", add=TRUE)
+
+# number of students
+number_of_students <- 
+  single_students_2016_17 %>% 
+  group_by(pm25_12_plus) %>% 
+  summarise(number = n())
+
+
+
+# number of schools by pm
+number_of_schools <- 
+  school_air_2016_17_sf %>% 
+  group_by(pm25_12_plus) %>% 
+  summarise(number = n())
+
+
+# distance of schools by pm
+school_distance <- 
+  single_students_2016_17 %>% 
+  select(pm25_12_plus, cds_code_16_17, distance) %>% 
+  unique() %>% 
+  group_by(pm25_12_plus) %>% 
+  summarise(median_distance = median(distance))
+  
+# students by grade
+number_of_students_by_grade <- 
+  single_students_2016_17 %>% 
+  group_by(grade) %>% 
+  summarise(number = n())
+
+# students by grade, pm
+number_of_students_by_grade_pm <- 
+  single_students_2016_17 %>% 
+  group_by(pm25_12_plus, grade) %>% 
+  summarise(number = n(), 
+            percent = n()/sum(number))
+
+# percent by gender, pm
+percent_students_by_gender_pm <- 
+  single_students_2016_17 %>% 
+  group_by(pm25_12_plus, gender) %>% 
+  summarise(number=n()) %>% 
+  group_by(gender) %>% 
+  mutate(percentage = number/sum(number)*100)
+
+# percent by grade, pm
+percent_students_by_grade_pm <- 
+  single_students_2016_17 %>% 
+  group_by(pm25_12_plus, grade) %>% 
+  summarise(number=n()) %>% 
+  group_by(grade) %>% 
+  mutate(percentage = number/sum(number)*100)
+
+# distance by pm
+distance_by_pm <- 
+  single_students_2016_17 %>% 
+  group_by(pm25_12_plus) %>% 
+  summarise(median_distance = median(distance)) 
+
+median_distance <- 
+single_students_2016_17 %>% 
+  summarise(median_distance = median(distance))
+
+# distance by ethnicity, pm
+distance_by_pm_ethnic <- 
+  single_students_2016_17 %>% 
+  group_by(pm25_12_plus, ethnic_category) %>% 
+  summarise(median_distance = median(distance)) 
+
+# distance by gender, pm
+distance_by_pm_gender <- 
+  single_students_2016_17 %>% 
+  group_by(pm25_12_plus, gender) %>% 
+  summarise(median_distance = median(distance)) 
+
+# distance by grade, pm
+distance_by_pm_grade <- 
+  single_students_2016_17 %>% 
+  group_by(pm25_12_plus, grade) %>% 
+  summarise(median_distance = median(distance))
+
+write_csv(
+  distance_by_pm_grade, 
+  path = 
+    file.path(
+      "output_for_writeups", 
+      "distance_by_pm_grade.csv"
+    )
+)
+
+
+write_csv(
+  distance_by_pm_ethnic, 
+  path = 
+    file.path(
+      "output_for_writeups", 
+      "distance_by_pm_ethnic.csv"
+    )
+)
+
+
+write_csv(
+  percent_students_by_grade_pm, 
+  path = 
+    file.path(
+      "output_for_writeups", 
+      "percent_students_by_grade_pm.csv"
+    )
+)
+
+# 
+write_csv(
+  number_of_students_by_grade, 
+  path = 
+    file.path(
+      "output_for_writeups", 
+      "students_by_grade.csv"
+    )
+)
+
+# 
+write_csv(
+  number_of_students_by_grade_pm, 
+  path = 
+    file.path(
+      "output_for_writeups", 
+      "students_by_grade_pm.csv"
+    )
+)
+
+# 
+
+
+
+no_pm_values <- 
+  single_students_2016_17 %>% 
+  filter(is.na(pm25_12_plus))
+
+cds_codes_no_pm_values <- 
+  no_pm_values %>% 
+  pull(cds_code_16_17) %>% 
+  unique()
+  
+schools_without_pm_sf <- 
+  school_air_2016_17_sf %>% 
+  filter(cds_code_16_17 %in% cds_codes_no_pm_values)
+
+plot(model)
+plot(schools_without_pm_sf)
+
+
+plot(air_cropped)
+plot(schools_without_pm_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
+
+  
+(1527678+1496569+791) / 6218410
+
+(1607723 + 1584723 + 926) / 6218410
+
+
 
 
 
