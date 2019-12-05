@@ -155,7 +155,7 @@ if(!file.exists(file.path("raw_data",
 
 ```
 
-## geographic shapefile
+## geographic shapefiles
 
 ```{r load united states state shapefiles}
 
@@ -186,6 +186,56 @@ if(!file.exists(file.path("raw_data",
 }
 
 ```
+
+
+```{r air district boundaries}
+
+# download air district boundary shapefiles
+# download 2017 pm2.5 air pollution file .asc edition
+if(!file.exists(file.path("raw_data", 
+                          "california-air-resources-board-air-district-boundaries.zip"))) {
+  
+  download.file(
+    url = "https://data.ca.gov/dataset/d16bdc45-5f0d-4b68-9a82-f39731bcae61/resource/c1b45bcd-fd05-4cb5-bd63-7640c8fca0a6/download/california-air-resources-board-air-district-boundaries.zip", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "california-air-resources-board-air-district-boundaries.zip"
+      ), 
+    method = 'libcurl'
+    )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+  
+}
+
+```
+
+
+```{r air basin boundaries}
+
+if(!file.exists(file.path("raw_data", 
+                          "california-air-resources-board-air-basin-boundaries.zip"))) {
+  
+  download.file(
+    url = "https://data.ca.gov/dataset/d16bdc45-5f0d-4b68-9a82-f39731bcae61/resource/7884fbab-f309-48b3-81bd-e8cd6106693f/download/california-air-resources-board-air-basin-boundaries.zip", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "california-air-resources-board-air-basin-boundaries.zip"
+      ), 
+    method = 'libcurl'
+    )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+  
+}
+
+```
+
+
 
 ## school enrollment
 
@@ -290,6 +340,7 @@ if(!file.exists(file.path("raw_data",
 }
 
 ```
+
 
 ## teaching credentials
 
@@ -588,8 +639,8 @@ unzip(
 gdal_utils(
   util = "info",
   file.path(
-      "raw_data", 
-      "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"
+      "intermediate_data", 
+      "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc"
     )
 )  # yup, just one band
 
@@ -611,6 +662,106 @@ save(
       "asc_air_data.rdata"
     )
 )
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r air district boundary data}
+
+# load asc air data to get crs
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "asc_air_data.rdata"
+    )
+)
+
+# unzip air district boundary data
+unzip(
+  zipfile = 
+    file.path(
+      "raw_data", 
+      "california-air-resources-board-air-district-boundaries.zip"
+    ), 
+  exdir = 
+    file.path(
+      "intermediate_data"
+    )
+  )
+
+# read it into r
+air_districts <- 
+  st_read(
+    dsn = 
+      file.path(
+        "intermediate_data", 
+        "CaAirDistrict.shp"
+        )
+  ) %>% 
+  st_transform(crs = proj4string(asc_air_data))
+
+save(
+  air_districts, 
+  file = 
+    file.path(
+      "intermediate_data",
+      "air_districts.rdata"
+      )
+  )
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r air basin data}
+
+# load asc air data to get crs
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "asc_air_data.rdata"
+    )
+)
+
+# unzip air district boundary data
+unzip(
+  zipfile = 
+    file.path(
+      "raw_data", 
+      "california-air-resources-board-air-basin-boundaries.zip"
+    ), 
+  exdir = 
+    file.path(
+      "intermediate_data"
+    )
+  )
+
+# read it into r
+air_basins <- 
+  st_read(
+    dsn = 
+      file.path(
+        "intermediate_data", 
+        "CaAirBasin.shp"
+        )
+  ) %>% 
+  st_transform(crs = proj4string(asc_air_data))
+
+save(
+  air_basins, 
+  file = 
+    file.path(
+      "intermediate_data",
+      "air_basins.rdata"
+      )
+  )
 
 # remove all objects from the environment
 rm(list = ls(all.names = TRUE))
@@ -895,7 +1046,7 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-```{r make school sf files 2016-2017}
+```{r make school sf and non-sf files 2016-2017}
 
 # load relevant files
 # 2016-17 enrollment
@@ -1195,13 +1346,22 @@ school_enroll_2016_17_sf <-
   
 # save created files
 save(
+  school_enrollment_2016_17_no_nonsec,
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_enrollment_2016_17_no_nonsec.rdata"
+      )
+  )
+
+save(
   geocoded_lat_longs_last_two, 
   file = 
     file.path(
       "raw_data",  # saving to raw data b/c new
       "geocoded_lat_longs_last_two.rdata"
-    )
-)
+      )
+  )
 
 save(
   schools_missing_lat_long_fixed, 
@@ -1209,8 +1369,8 @@ save(
     file.path(
       "intermediate_data",
       "schools_missing_lat_long_fixed.rdata"
-    )
-)
+      )
+  )
 
 save(
   schools_2016_17_sf,
@@ -1808,6 +1968,7 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
+## combining data types
 
 ```{r extract air values at schools}
 
@@ -1817,6 +1978,24 @@ load(
     file.path(
       "intermediate_data", 
       "all_monitors_no_duplicates_sf.rdata"
+    )
+)
+
+# load air districts
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "air_districts.rdata"
+    )
+)
+
+# load air basins
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "air_basins.rdata"
     )
 )
 
@@ -1838,18 +2017,38 @@ load(
     )
 
 # rename school thing
-school_air_2016_17_sf <-
+school_to_get_air_2016_17_sf <-
   schools_2016_17_sf
 
 # extract values of air data at schools
-school_air_2016_17_sf$modeled_air_at_school <-
+school_to_get_air_2016_17_sf$modeled_air_at_school <-
   raster::extract(
     air_cropped,
-    school_air_2016_17_sf
+    school_to_get_air_2016_17_sf
   )
 
-# create new binary variable for over/under 12
+# create new binary variable for pm2.5 over/under 12 ug/m3
+school_to_get_air_2016_17_sf <- 
+  school_to_get_air_2016_17_sf %>% 
+  mutate(pm25_12_plus = ifelse(modeled_air_at_school >= 12, "yes", "no"))
 
+# detect the air district containing each school
+school_air_district_no_basin_2016_17_sf <- 
+  school_to_get_air_2016_17_sf %>% 
+  st_join(
+    air_districts["NAME"], 
+    left = TRUE
+    ) %>% 
+  rename(air_district = NAME)
+
+# detect the air basin containing each school
+school_air_2016_17_sf <- 
+  school_air_district_no_basin_2016_17_sf %>% 
+  st_join(
+    air_basins["NAME"],
+    left = TRUE
+    ) %>% 
+  rename(air_basin = NAME)
 
 # save new sf with air at school
 save(
@@ -1919,12 +2118,18 @@ distance_vector <-
          recursive = TRUE)
 
 # and in the darkness bind them
-school_air_dist_2016_17_sf <- 
+school_air_distance_2016_17_sf <- 
   bind_cols(
     school_air_2016_17_sf, 
     distance = distance_vector, 
     nearest_neighbor = neighbor_id_vector
   )
+
+# make non_sf_version
+school_air_distance_2016_17 <- 
+  school_air_distance_2016_17_sf %>% 
+  st_drop_geometry()
+  
   
 # save files
 save(
@@ -1937,12 +2142,164 @@ save(
 )
 
 save(
-  school_air_dist_2016_17_sf, 
+  school_air_distance_2016_17_sf, 
   file = 
     file.path(
       "intermediate_data", 
-      "school_air_dist_2016_17_sf.rdata"
+      "school_air_distance_2016_17_sf.rdata"
     )
 )
 
+save(
+  school_air_distance_2016_17, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_air_distance_2016_17.rdata"
+    )
+)
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
 ```
+
+
+```{r making the big school dataset}
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_air_distance_2016_17_sf.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_air_distance_2016_17.rdata"
+    )
+)
+
+load(
+  file = 
+    file.path(
+      "intermediate_data",
+      "school_enrollment_2016_17_no_nonsec.rdata"
+    )
+)
+
+school_counts_2016_17_sf <-
+  right_join(
+    school_air_distance_2016_17_sf,
+    school_enrollment_2016_17_no_nonsec,
+    by = c(
+      "cds_code_16_17", 
+      "cds_school_code_16_17", 
+      "county_16_17", 
+      "district_16_17", 
+      "school_16_17"
+      )
+  ) %>% 
+  gather(  # make each type of student their own row
+    kdgn,
+    gr_1,
+    gr_2,
+    gr_3,
+    gr_4,
+    gr_5,
+    gr_6,
+    gr_7,
+    gr_8,
+    gr_9,
+    gr_10,
+    gr_11,
+    gr_12,
+    ungr_elm,
+    ungr_sec, 
+    adult, 
+    key = "grade",
+    value = "students"
+  )
+
+# join school- and enrollment-variables without sf piece
+school_enroll_rough_2016_17 <-
+  right_join(  # join school- and enrollment-variables without sf piece
+    school_air_distance_2016_17,
+    school_enrollment_2016_17_no_nonsec,
+    by = c(
+      "cds_code_16_17", 
+      "cds_school_code_16_17", 
+      "county_16_17", 
+      "district_16_17", 
+      "school_16_17"
+      )
+  ) %>% 
+  select(-c(cds_school_code_16_17,  # make it smaller for the horror to come
+            county_16_17,
+            district_16_17,
+            geo_source,
+            enr_total
+            ))
+
+# single student list!  (6+ million rows, beware)
+single_students_2016_17 <-
+  school_enroll_rough_2016_17 %>% 
+  gather(  # make each grade of student their own row
+    kdgn,
+    gr_1,
+    gr_2,
+    gr_3,
+    gr_4,
+    gr_5,
+    gr_6,
+    gr_7,
+    gr_8,
+    gr_9,
+    gr_10,
+    gr_11,
+    gr_12,
+    ungr_elm,
+    ungr_sec, 
+    adult, 
+    key = "grade",
+    value = "students"
+  ) %>% 
+  uncount(students)  # make each student a unique row
+
+save(
+ school_counts_2016_17_sf, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_counts_2016_17_sf.rdata"
+    )
+)
+
+save(
+ single_students_2016_17, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "single_students_2016_17.rdata"
+    )
+)
+
+# single_student_2016_17_sf <- 
+  
+# range(weird_clean_schools_2016_17$this_value)
+# 
+# range(clean_schools_final_2016_17_sf$value)
+# sum(clean_schools_final_2016_17_sf$value)
+
+```
+
+
+```{r }
+
+
+
+```
+
