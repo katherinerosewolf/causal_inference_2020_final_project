@@ -14,6 +14,7 @@ library(sf)
 library(httr)
 library(tidyverse)
 library(ggmap)
+library(nngeo)
 
 # stop r from abbreviating doubles in school ids
 options("scipen" = 40)
@@ -894,7 +895,7 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-```{r make tibbles for 2016-2017}
+```{r make school sf files 2016-2017}
 
 # load relevant files
 # 2016-17 enrollment
@@ -933,39 +934,59 @@ load(
     )
 )
 
-# fix variable names
+# fix variable names for school enrollment
 school_enrollment_2016_17_working <- 
   column_name_fixer(school_enrollment_2016_17_working_from_raw) %>%
-   mutate(cds_school_code = str_sub(cds_code,  
-                                   start = -7))
+  rename(
+    cds_code_16_17 = cds_code,
+    county_16_17 = county, 
+    district_16_17 = district, 
+    school_16_17 = school
+  ) %>% 
+   mutate(
+     cds_school_code_16_17 = str_sub(cds_code_16_17, 
+                                     start = -7), 
+     
+     )
+
+# fix school enrollment data to eliminate nonpublic nonsec schools
+school_enrollment_2016_17_no_nonsec <- 
+  school_enrollment_2016_17_working %>% 
+  filter(school_16_17 != "Nonpublic, Nonsectarian Schools")
 
 # public school directory
 public_school_directory_working <- 
   column_name_fixer(public_school_directory_working_from_raw) %>% 
-  rename(cds_code = cdscode) %>% 
+  rename(cds_code_dir = cdscode, 
+         county_dir = county,
+         district_dir = district,
+         school_dir = school) %>% 
   # this isolates the individual school code
-  mutate(cds_school_code = str_sub(cds_code,  
-                                   start = -7))
+  mutate(cds_school_code_dir = str_sub(cds_code_dir,  
+                                       start = -7))
 
 # get unique schools in 2016-17
 unique_schools_2016_17 <- 
   school_enrollment_2016_17_working %>% 
-  select(cds_code, county, district, school) %>% 
-  mutate(cds_school_code = str_sub(cds_code,  # this isolates the individual school code
-                                   start = -7)) %>% 
+  select(cds_code_16_17, 
+         cds_school_code_16_17, 
+         county_16_17, 
+         district_16_17, 
+         school_16_17) %>% 
   unique()  # each of these has a unique cds code
 
 # get lat/longs from public school directory
 school_directory_lat_long <- 
   public_school_directory_working %>% 
   dplyr::select(
-    cds_code_dir = cds_code, 
-    cds_school_code_dir = cds_school_code, 
-    county_dir = county,
-    district_dir = district,
-    school_dir = school,
-    latitude = latitude, 
-    longitude = longitude)
+    cds_code_dir, 
+    cds_school_code_dir, 
+    county_dir,
+    district_dir,
+    school_dir,
+    latitude, 
+    longitude
+    )
 
 # # check duplicates in cds code
 # sum(table(school_directory_lat_long$cds_code_dir) - 1)  # should be 0
@@ -976,11 +997,11 @@ school_directory_lat_long <-
 schools_2016_17 <- 
   school_enrollment_2016_17_working %>% 
   dplyr::select(
-    cds_code_16_17 = cds_code, 
-    cds_school_code_16_17 = cds_school_code, 
-    county_16_17 = county,
-    district_16_17 = district,
-    school_16_17 = school) %>% 
+    cds_code_16_17, 
+    cds_school_code_16_17, 
+    county_16_17,
+    district_16_17,
+    school_16_17) %>% 
   unique()
 
 # merge two
@@ -1019,7 +1040,7 @@ schools_2016_17_lat_long_missing_no_nonsec <-
 # find which schools missing lat/longs are in the directory
 school_directory_no_lat_long <- 
   public_school_directory_working %>% 
-  filter(cds_code %in% cds_codes_no_lat_long)  # (two, these will be geocoded)
+  filter(cds_code_dir %in% cds_codes_no_lat_long)  # (two, these will be geocoded)
 
 # match on cds code
 schools_no_lat_long_matched_by_cds_school_code_only <- 
@@ -1065,9 +1086,9 @@ cds_codes_last_two <-
 # pull directory records for last two for annoyingly manual geocoding
 addresses_last_two <- 
   public_school_directory_working %>% 
-  filter(cds_code %in% cds_codes_last_two) %>% 
-  select(cds_code_dir = cds_code,  # change name of cds_code 
-         school, 
+  filter(cds_code_dir %in% cds_codes_last_two) %>% 
+  select(cds_code_dir,  # change name of cds_code 
+         school_dir, 
          street, 
          city, 
          state, 
@@ -1092,7 +1113,7 @@ geocoded_lat_longs_last_two <-
 # make limited dataset
 geocoded_simple <- 
   geocoded_lat_longs_last_two %>% 
-  select(school_geo = school,  # rename variables to show that they came from the geo dataset
+  select(school_geo = school_dir,  # rename variables to show that they came from the geo dataset
          cds_code_geo = cds_code_dir, 
          lon_geo = lon, 
          lat_geo = lat)
@@ -1112,52 +1133,107 @@ schools_missing_lat_long_fixed <-
          man_latitude = latitude, 
          geo_source)
 
+# merge with prior dataset
+schools_lat_long_merge <- 
+  school_lat_long_2016_17_first_try %>% 
+  left_join(schools_missing_lat_long_fixed, 
+            by = c("cds_code_16_17" = "man_cds_code")
+            )
+
+# make final school dataset
+schools_lat_long_complete <- 
+  schools_lat_long_merge %>% 
+  # remove 397 nonpublic, nonsectarian schools
+  filter(!(school_16_17 == "Nonpublic, Nonsectarian Schools")) %>% 
+  mutate(longitude = ifelse(longitude == "No Data", 
+                            man_longitude, 
+                            longitude), 
+         longitude = ifelse(is.na(longitude), 
+                            man_longitude, 
+                            longitude),
+         longitude = as.numeric(longitude),
+         latitude = ifelse(latitude == "No Data", 
+                            man_latitude, 
+                            latitude), 
+         latitude = ifelse(is.na(latitude), 
+                            man_latitude, 
+                            latitude),
+         latitude = as.numeric(latitude),
+         geo_source = ifelse(is.na(geo_source),  # update geo_source column
+                             "directory", 
+                             geo_source)) %>% 
+  select(-c(cds_school_code_dir, 
+            county_dir,
+            district_dir,  # note that some of these differ 
+            school_dir,  # note that some of these differ
+            man_longitude, 
+            man_latitude)) # drop directory and manual columns
+  
+# make into sf format for mapping
+schools_2016_17_sf <-
+  st_as_sf(
+    schools_lat_long_complete,
+    coords =
+      c("longitude",
+        "latitude"),
+    crs = st_crs(air_cropped)
+  )
+
+# join school files with rest of data
+school_enroll_2016_17_sf <-
+  right_join(
+    schools_2016_17_sf,
+    school_enrollment_2016_17_no_nonsec,
+    by = c(
+      "cds_code_16_17", 
+      "cds_school_code_16_17", 
+      "county_16_17", 
+      "district_16_17", 
+      "school_16_17"
+      )
+  )
+  
+# save created files
+save(
+  geocoded_lat_longs_last_two, 
+  file = 
+    file.path(
+      "raw_data",  # saving to raw data b/c new
+      "geocoded_lat_longs_last_two.rdata"
+    )
+)
+
+save(
+  schools_missing_lat_long_fixed, 
+  file = 
+    file.path(
+      "intermediate_data",
+      "schools_missing_lat_long_fixed.rdata"
+    )
+)
+
+save(
+  schools_2016_17_sf,
+  file = 
+    file.path(
+      "intermediate_data", 
+      "schools_2016_17_sf.rdata"
+      )
+  )
+
+save(
+  school_enroll_2016_17_sf, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_enroll_2016_17_sf.rdata"
+      )
+  )
 
 # # remove all objects from the environment
 # rm(list = ls(all.names = TRUE))
 
 ```
-
-```{r}
-
-# make spatial point files
-
-# # make school locations into spatial point files
-# school_lat_long_2016_17_sf <-
-#   st_as_sf(
-#     school_lat_long_2016_17,
-#     coords =
-#       c("longitude",
-#         "latitude"),
-#     crs = st_crs(air_cropped)
-#   )
-# 
-# school_lat_long_2017_18_sf <-
-#   st_as_sf(
-#     school_lat_long_2017_18,
-#     coords =
-#       c("longitude",
-#         "latitude"),
-#     crs = st_crs(air_cropped)
-#   )
-# 
-# # join school files with rest of data
-# school_data_2016_17_sf <- 
-#   right_join(
-#     school_lat_long_2016_17_sf, 
-#     school_enrollment_2016_17_working, 
-#     by = "cds_code"
-#   )
-# 
-# school_data_2017_18_sf <- 
-#   right_join(
-#     school_lat_long_2017_18_sf, 
-#     school_enrollment_2017_18_working, 
-#     by = "cds_code"
-#   )
-
-```
-
 
 
 ## monitor data
@@ -1611,7 +1687,7 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-```{r compare and compile epa and carb monitors into one unique monitor dat}
+```{r compare and compile epa and carb monitors into one unique monitor dataset}
 
 load(
   file = 
@@ -1726,12 +1802,11 @@ save(all_monitors_no_duplicates_sf,
        )
      )
 
-
-
 # remove all objects from the environment
 rm(list = ls(all.names = TRUE))
 
 ```
+
 
 
 ```{r extract air values at schools}
@@ -1754,34 +1829,37 @@ load(
     )
 )
 
-# # load schools
-# load(
-#   file = 
-#     file.path(
-#       "intermediate_data", 
-#       "school_lat_long_2016_17_sf.rdata")
-#     )
-# 
-# # rename school thing
-# school_air_2016_17_sf <- 
-#   school_lat_long_2016_17_sf
-# 
-# # extract values of air data at schools
-# school_air_2016_17_sf$modeled_air_at_school <- 
-#   raster::extract(
-#     air_cropped,
-#     school_air_2016_17_sf
-#   )
-# 
-# # save new sf with air at school
-# save(
-#   school_air_2016_17_sf, 
-#   file = 
-#        file.path(
-#          "intermediate_data", 
-#          "school_air_2016_17_sf.rdata"
-#        )
-#      )
+# load schools
+load(
+  file =
+    file.path(
+      "intermediate_data",
+      "schools_2016_17_sf.rdata")
+    )
+
+# rename school thing
+school_air_2016_17_sf <-
+  schools_2016_17_sf
+
+# extract values of air data at schools
+school_air_2016_17_sf$modeled_air_at_school <-
+  raster::extract(
+    air_cropped,
+    school_air_2016_17_sf
+  )
+
+# create new binary variable for over/under 12
+
+
+# save new sf with air at school
+save(
+  school_air_2016_17_sf,
+  file =
+       file.path(
+         "intermediate_data",
+         "school_air_2016_17_sf.rdata"
+       )
+     )
 
 # # make plot
 # plot(school_air_2016_17_sf["modeled_air_at_school"], pch=16, cex=0.4)
@@ -1790,8 +1868,81 @@ load(
 # plot(air_cropped)
 # plot(school_air_2016_17_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
 # plot(all_monitors_no_duplicates_sf, pch=16, cex=0.2, col="red", add=TRUE)
+ 
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
 
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
+```
+
+
+
+```{r calculating monitor distances}
+
+# load monitors
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "all_monitors_no_duplicates_sf.rdata"
+      )
+  )
+
+# load schools
+load(
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_air_2016_17_sf.rdata"
+      )
+  )
+
+# find nearest neighbor distances
+neighbors <- 
+  st_nn(
+    x = school_air_2016_17_sf, 
+    y = all_monitors_no_duplicates_sf, 
+    sparse = TRUE,
+    k = 1, 
+    maxdist = Inf,
+    returnDist = TRUE, 
+    progress = FALSE
+    )
+
+# make neighbor list into a vector
+neighbor_id_vector <- 
+  unlist(neighbors[1], 
+         recursive = TRUE)
+  
+# make distance list into a vector
+distance_vector <- 
+  unlist(neighbors[2], 
+         recursive = TRUE)
+
+# and in the darkness bind them
+school_air_dist_2016_17_sf <- 
+  bind_cols(
+    school_air_2016_17_sf, 
+    distance = distance_vector, 
+    nearest_neighbor = neighbor_id_vector
+  )
+  
+# save files
+save(
+  neighbors, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "neighbors.rdata"
+    )
+)
+
+save(
+  school_air_dist_2016_17_sf, 
+  file = 
+    file.path(
+      "intermediate_data", 
+      "school_air_dist_2016_17_sf.rdata"
+    )
+)
 
 ```

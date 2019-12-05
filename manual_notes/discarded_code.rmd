@@ -810,5 +810,12 @@ school_nonzero_2016_17 <-
   school_enrollment_2016_17_working %>% 
   filter(enr_total > 0)
 
+View(schools_lat_long_merge$cds_school_code_16_17 == schools_lat_long_merge$cds_school_code_dir)
+View(schools_lat_long_merge$district_16_17 == schools_lat_long_merge$district_dir)
+View(schools_lat_long_merge$county_16_17 == schools_lat_long_merge$county_dir)
+View(schools_lat_long_merge$school_16_17 == schools_lat_long_merge$school_dir)
+
+
+
 ```
 
