@@ -1207,7 +1207,7 @@ ethnicity_grade_by_school <-
              `7` = "white_nh",
              `9` = "two_plus_nh")) %>% 
   select(-c(ethnic)) %>% 
-  pivot_wider(names_from = c(ethnic_category, gender), 
+  pivot_wider(names_from = c(ethnic_category, gender),  # collect by school
               values_from = enr_total, 
               values_fill = list(enr_total = 0)) %>% 
   mutate(school_k_12_enrollment = rowSums(.[2:ncol(.)])) %>%   # get total enrollment
@@ -1222,7 +1222,11 @@ causal_inference_preliminary_dataset <-
 # save it in main folder
 save(causal_inference_preliminary_dataset, 
      file = file.path("causal_inference_preliminary_dataset.rdata"))
-  
+
+# write csv to main folder
+write_csv(causal_inference_preliminary_dataset, 
+          path = "causal_inference_preliminary_dataset.csv")
+
 # # remove all objects from the environment
 # rm(list = ls(all.names = TRUE))
 
