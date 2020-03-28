@@ -1217,7 +1217,8 @@ ethnicity_grade_by_school <-
 causal_inference_preliminary_dataset <- 
   school_air_2018_19_sf %>% 
   left_join(ethnicity_grade_by_school, 
-            by = "cds_code_18_19")
+            by = "cds_code_18_19") %>% 
+  select(-c(cds_school_code_18_19, cds_school_code_dir, county_dir))
 
 # save it in main folder
 save(causal_inference_preliminary_dataset, 
@@ -1226,6 +1227,8 @@ save(causal_inference_preliminary_dataset,
 # write csv to main folder
 write_csv(causal_inference_preliminary_dataset, 
           path = "causal_inference_preliminary_dataset.csv")
+
+colnames(causal_inference_preliminary_dataset)
 
 # # remove all objects from the environment
 # rm(list = ls(all.names = TRUE))
