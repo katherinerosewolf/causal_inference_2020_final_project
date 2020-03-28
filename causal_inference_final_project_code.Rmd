@@ -1,7 +1,7 @@
 ---
-title: "DS421 Summer 2019 R Markdown Document"
+title: "Causal Inference Final Project Code"
 author: "Katherine Rose Wolf"
-date: "August 4, 2019"
+date: `r format(Sys.time(), "%d %B, %Y")`
 output: html_document
 ---
 
@@ -108,16 +108,16 @@ rm(list = ls(all.names = TRUE))
 
 ```{r download modeled air pollution data}
 
-# download 2017 pm2.5 air pollution file .nc edition
+# download 2018 pm2.5 air pollution file .nc edition
 if(!file.exists(file.path("raw_data", 
-                          "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35.nc"))) {
+                          "GWRwSPEC.HEI_PM25_NA_201801_201812-RH35.nc"))) {
 
   download.file(
-    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC.HEI_PM25_NA_201701_201712-RH35.nc", 
+    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC.HEI_PM25_NA_201801_201812-RH35.nc", 
     destfile = 
       file.path(
         "raw_data", 
-        "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35.nc"
+        "GWRwSPEC.HEI_PM25_NA_201801_201812-RH35.nc"
       ), 
     method = 'libcurl'
     )
@@ -127,16 +127,16 @@ if(!file.exists(file.path("raw_data",
 
 }
 
-# download 2017 pm2.5 air pollution file .asc edition
+# download 2018 pm2.5 air pollution file .asc edition
 if(!file.exists(file.path("raw_data", 
-                          "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"))) {
+                          "GWRwSPEC.HEI_PM25_NA_201801_201812-RH35-NoNegs.asc.zip"))) {
   
   download.file(
-    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip", 
+    url = "http://fizz.phys.dal.ca/~atmos/datasets/EST2019/GWRwSPEC.HEI_PM25_NA_201801_201812-RH35-NoNegs.asc.zip", 
     destfile = 
       file.path(
         "raw_data", 
-        "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"
+        "GWRwSPEC.HEI_PM25_NA_201801_201812-RH35-NoNegs.asc.zip"
       ), 
     method = 'libcurl'
     )
@@ -145,13 +145,6 @@ if(!file.exists(file.path("raw_data",
   rm(list = ls(all.names = TRUE))
   
 }
-
-# download nox air pollution file .nc edition
-
-
-# download nox air pollution file .asc edition
-
-
 
 ```
 
@@ -191,7 +184,6 @@ if(!file.exists(file.path("raw_data",
 ```{r air district boundaries}
 
 # download air district boundary shapefiles
-# download 2017 pm2.5 air pollution file .asc edition
 if(!file.exists(file.path("raw_data", 
                           "california-air-resources-board-air-district-boundaries.zip"))) {
   
@@ -236,7 +228,6 @@ if(!file.exists(file.path("raw_data",
 ```
 
 
-
 ## school enrollment
 
 ```{r download school enrollment data}
@@ -244,10 +235,7 @@ if(!file.exists(file.path("raw_data",
 # school enrollment data by racial/ethnic designation, gender, and grade
 
 if(!file.exists(file.path("raw_data", 
-                          "school_enrollment_2016_17_raw.txt"))
-   ||
-   !file.exists(file.path("raw_data", 
-                          "school_enrollment_2017_18_raw.txt"))) {
+                          "school_enrollment_2018_19_raw.txt"))) {
 
   # make school enrollment raw downloader function
   school_enrollment_raw_downloader <-
@@ -263,7 +251,7 @@ if(!file.exists(file.path("raw_data",
         str_c("http://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=", 
               start_year_chr, 
               "-", 
-              end_year_chr, 
+              end_year_chr,
               "&cCat=Enrollment&cPage=filesenr.asp")
       
       # GET(
@@ -298,8 +286,8 @@ if(!file.exists(file.path("raw_data",
   # make vector of starting years 2015-2018
   start_years <- 
     seq(
-      from = 2016,
-      to = 2017, 
+      from = 2018,
+      to = 2018, 
       by = 1
     )
   
@@ -346,54 +334,15 @@ if(!file.exists(file.path("raw_data",
 
 ```{r download teaching credential data}
 
-# download teaching credential data 2015-16
+# download teaching credential data 2018-19
 if(!file.exists(file.path("raw_data", 
-                          "StaffCred15.txt"))) {
-  
+                          "StaffCred18.txt"))) {
 download.file(
-  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred15.txt", 
+  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred18.txt", 
   destfile = 
     file.path(
       "raw_data", 
-      "StaffCred15.txt"
-    ), 
-  method = 'libcurl'
-  )
-  
-  Sys.sleep(time = 5)  # pause to try to avoid anti-scraping blocker
-
-}
-
-
-# download teaching credential data 2016-17
-if(!file.exists(file.path("raw_data", 
-                          "StaffCred16.txt"))) {
-download.file(
-  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred16.txt", 
-  destfile = 
-    file.path(
-      "raw_data", 
-      "StaffCred16.txt"
-    ), 
-  method = 'libcurl'
-  )
-  
-  Sys.sleep(time = 5)  # pause to try to avoid anti-scraping blocker
-  
-  # remove all objects from the environment
-  rm(list = ls(all.names = TRUE))
-}
-
-
-# download teaching credential data 2016-17
-if(!file.exists(file.path("raw_data", 
-                          "StaffCred17.txt"))) {
-download.file(
-  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffCred17.txt", 
-  destfile = 
-    file.path(
-      "raw_data", 
-      "StaffCred17.txt"
+      "StaffCred18.txt"
     ), 
   method = 'libcurl'
   )
@@ -407,16 +356,16 @@ download.file(
 
 ```{r download free and reduced price lunch data}
 
-# download poverty data 2016-17
+# download poverty data 2018-19
 if(!file.exists(file.path("raw_data", 
-                          "frpm1617.xls"))) {
+                          "frpm1819.xlsx"))) {
 
   download.file(
-    url = "https://www.cde.ca.gov/ds/sd/sd/documents/frpm1617.xls", 
+    url = "https://www.cde.ca.gov/ds/sd/sd/documents/frpm1819.xlsx", 
     destfile = 
       file.path(
         "raw_data", 
-        "frpm1617.xls"
+        "frpm1819.xlsx"
       ), 
     mode = 'wb'
     )
@@ -424,193 +373,6 @@ if(!file.exists(file.path("raw_data",
   # remove all objects from the environment
   rm(list = ls(all.names = TRUE))
 
-}
-
-# download poverty data 2017-18
-if(!file.exists(file.path("raw_data", 
-                          "frpm1718.xlsx"))) {
-
-  download.file(
-    url = "https://www.cde.ca.gov/ds/sd/sd/documents/frpm1718.xlsx", 
-    destfile = 
-      file.path(
-        "raw_data", 
-        "frpm1718.xlsx"
-      ), 
-    mode = 'wb'
-    )
-  
-  # remove all objects from the environment
-  rm(list = ls(all.names = TRUE))
-
-}
-
-```
-
-
-
-## monitors
-
-```{r download carb monitor data for 2016}
-
-if(!file.exists(file.path("raw_data", 
-           "carb_2017_daily_monitors_raw.txt"))) {
-  
-  # universal entries into query
-  download <- 
-    "https://www.arb.ca.gov/aqmis2/display.php"
-  
-  # values for daily query
-  values_daily_2017 <- 
-    list(
-      download = "y", 
-      param = "PM25", 
-      units = "001", 
-      year = "2017", 
-      county_name = "--COUNTY--", 
-      basin = "--AIR BASIN--", 
-      latitude = "--PART OF STATE--", 
-      report = "SITELIST", 
-      order = "basin,county_name,s.name", 
-      submit = "Retrieve Data", 
-      ptype = "aqd", 
-      std15 = ""
-    )
-  
-  # set cookies correctly for the daily 2017 monitors
-  POST(download, 
-       body = values_daily_2017)
-  Sys.sleep(time = 2)
-  GET(download, 
-      query = values_daily_2017)
-  Sys.sleep(time = 2)
-  
-  # actually get the 2017 daily monitor list
-  carb_2017_daily_monitors_raw <- 
-     GET(download,
-         query = values_daily_2017)
-  content(carb_2017_daily_monitors_raw, "raw")
-  Sys.sleep(time = 2)
-  
-  # write the 2017 daily monitor list to disk
-  writeBin(content(carb_2017_daily_monitors_raw, "raw"), 
-           file.path(
-             "raw_data", 
-             "carb_2017_daily_monitors_raw.txt"
-           ))
-  
-  # remove all objects from the environment
-  rm(list = ls(all.names = TRUE))
-  
-}
-
-if(!file.exists(file.path("raw_data", 
-           "carb_2017_hourly_monitors_raw.txt"))) {
-  
-  # universal entries into query
-  download <- 
-    "https://www.arb.ca.gov/aqmis2/display.php"
-  
-  # values for hourly query
-  values_hourly_2017 <- 
-    list(
-      download = "y", 
-      param = "PM25HR", 
-      units = "001", 
-      year = "2017", 
-      county_name = "--COUNTY--", 
-      basin = "--AIR BASIN--", 
-      latitude = "--PART OF STATE--", 
-      report = "SITELIST", 
-      order = "basin,county_name,s.name", 
-      submit = "Retrieve Data", 
-      ptype = "aqd", 
-      std15 = ""
-    )
-  
-  # set cookies correctly for the hourly 2017 monitors
-  POST(download, body = values_hourly_2017)
-  Sys.sleep(time = 2)
-  GET(download, query = values_hourly_2017)
-  Sys.sleep(time = 2)
-  
-  # actually get the 2017 hourly monitor list
-  carb_2017_hourly_monitors_raw <- 
-     GET(download, query = values_hourly_2017)
-  
-  # write the 2017 hourly monitor list to disk
-  writeBin(content(carb_2017_hourly_monitors_raw, "raw"), 
-           file.path(
-             "raw_data", 
-             "carb_2017_hourly_monitors_raw.txt"
-           ))
-  
-  # remove all objects from the environment
-  rm(list = ls(all.names = TRUE))
-}
-
-```
-
-
-```{r download epa monitor data for 2017}
-
-# download federal reference method (parameter code 88101) data
-
-if(!file.exists(file.path("raw_data",
-                          "daily_88101_2017.zip"))) {
-  
-  GET(
-    url = 
-      "https://aqs.epa.gov/aqsweb/airdata/daily_88101_2017.zip", 
-    write_disk(
-      file.path("raw_data", 
-                "daily_88101_2017.zip"), 
-    overwrite = TRUE
-    )
-  )
-  
-  # remove all objects from the environment
-  rm(list = ls(all.names = TRUE))
-  
-}
-
-# download non-federal-reference-method (parameter code 88502) data
-
-if(!file.exists(file.path("raw_data",
-                          "daily_88502_2017.zip"))) {
-  
-  GET(
-    url = 
-      "https://aqs.epa.gov/aqsweb/airdata/daily_88502_2017.zip", 
-    write_disk(
-      file.path("raw_data", 
-                "daily_88502_2017.zip"),
-      overwrite = TRUE
-      )
-  )
-  
-  # remove all objects from the environment
-  rm(list = ls(all.names = TRUE))
-  
-}
-
-# download speciation data
-
-if(!file.exists(file.path("raw_data", 
-                          "daily_SPEC_2017.zip"))) {
-
-  GET(
-    url = "https://aqs.epa.gov/aqsweb/airdata/daily_SPEC_2017.zip", 
-    write_disk(
-      file.path("raw_data", 
-                "daily_SPEC_2017.zip"),
-      overwrite = TRUE
-      )
-  )
-  
-  # remove all objects from the environment
-  rm(list = ls(all.names = TRUE))
-  
 }
 
 ```
@@ -627,7 +389,7 @@ unzip(
   zipfile = 
     file.path(
       "raw_data", 
-      "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc.zip"
+      "GWRwSPEC.HEI_PM25_NA_201801_201812-RH35-NoNegs.asc.zip"
     ), 
   exdir = 
     file.path(
@@ -640,7 +402,7 @@ gdal_utils(
   util = "info",
   file.path(
       "intermediate_data", 
-      "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc"
+      "GWRwSPEC.HEI_PM25_NA_201801_201812-RH35-NoNegs.asc"
     )
 )  # yup, just one band
 
@@ -649,7 +411,7 @@ asc_air_data <-
   raster(
     file.path(
       "intermediate_data", 
-      "GWRwSPEC.HEI_PM25_NA_201701_201712-RH35-NoNegs.asc"
+      "GWRwSPEC.HEI_PM25_NA_201801_201812-RH35-NoNegs.asc"
     )
   )
   
@@ -927,8 +689,8 @@ school_enrollment_tab_reader <-
 # make vector of starting years 2009-2018
 start_years <- 
   seq(
-    from = 2016,
-    to = 2017, 
+    from = 2018,
+    to = 2018, 
     by = 1
   )
 
@@ -946,41 +708,22 @@ rm(list = ls(all.names = TRUE))
 
 ```{r read free and reduced price lunch data and save as .rdata files}
 
-# read data 2017-18
-free_red_lunch_2017_18 <-
+# read data 2018-19
+free_red_lunch_2018_19 <-
   readxl::read_excel(
     file.path(
       "raw_data", 
-      "frpm1718.xlsx"
+      "frpm1819.xlsx"
     )
   )
 
 # save .rdata file to intermediate data
 save(
-  free_red_lunch_2017_18,
+  free_red_lunch_2018_19,
   file = 
     file.path(
       "intermediate_data", 
-      "free_red_lunch_2017_18.rdata"
-    )
-)
-  
-# read data 2016-17
-free_red_lunch_2016_17 <-
-  readxl::read_xls(
-    file.path(
-      "raw_data", 
-      "frpm1617.xls"
-    )
-  )
-
-# save .rdata file to intermediate data
-save(
-  free_red_lunch_2016_17,
-  file = 
-    file.path(
-      "intermediate_data", 
-      "free_red_lunch_2016_17.rdata"
+      "free_red_lunch_2018_19.rdata"
     )
 )
 
@@ -989,7 +732,6 @@ rm(list = ls(all.names = TRUE))
 
   
 ```
-
 
 
 ```{r read and save school addresses}
@@ -1046,15 +788,15 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-```{r make school sf and non-sf files 2016-2017}
+```{r make school sf and non-sf files 2018-2019}
 
 # load relevant files
-# 2016-17 enrollment
+# 2018-19 enrollment
 load(
   file = 
     file.path(
       "intermediate_data", 
-      "school_enrollment_2016_17_working_from_raw.rdata"
+      "school_enrollment_2018_19_working_from_raw.rdata"
     )
 )
 
@@ -1086,24 +828,24 @@ load(
 )
 
 # fix variable names for school enrollment
-school_enrollment_2016_17_working <- 
-  column_name_fixer(school_enrollment_2016_17_working_from_raw) %>%
+school_enrollment_2018_19_working <- 
+  column_name_fixer(school_enrollment_2018_19_working_from_raw) %>%
   rename(
-    cds_code_16_17 = cds_code,
-    county_16_17 = county, 
-    district_16_17 = district, 
-    school_16_17 = school
+    cds_code_18_19 = cds_code,
+    county_18_19 = county, 
+    district_18_19 = district, 
+    school_18_19 = school
   ) %>% 
    mutate(
-     cds_school_code_16_17 = str_sub(cds_code_16_17, 
+     cds_school_code_18_19 = str_sub(cds_code_18_19, 
                                      start = -7), 
      
      )
 
 # fix school enrollment data to eliminate nonpublic nonsec schools
-school_enrollment_2016_17_no_nonsec <- 
-  school_enrollment_2016_17_working %>% 
-  filter(school_16_17 != "Nonpublic, Nonsectarian Schools")
+school_enrollment_2018_19_no_nonsec <- 
+  school_enrollment_2018_19_working %>% 
+  filter(school_18_19 != "Nonpublic, Nonsectarian Schools")
 
 # public school directory
 public_school_directory_working <- 
@@ -1116,14 +858,14 @@ public_school_directory_working <-
   mutate(cds_school_code_dir = str_sub(cds_code_dir,  
                                        start = -7))
 
-# get unique schools in 2016-17
-unique_schools_2016_17 <- 
-  school_enrollment_2016_17_working %>% 
-  select(cds_code_16_17, 
-         cds_school_code_16_17, 
-         county_16_17, 
-         district_16_17, 
-         school_16_17) %>% 
+# get unique schools in 2018-19
+unique_schools_2018_19 <- 
+  school_enrollment_2018_19_working %>% 
+  select(cds_code_18_19, 
+         cds_school_code_18_19, 
+         county_18_19, 
+         district_18_19, 
+         school_18_19) %>% 
   unique()  # each of these has a unique cds code
 
 # get lat/longs from public school directory
@@ -1144,49 +886,49 @@ school_directory_lat_long <-
 # sum(table(school_directory_lat_long$cds_school_code_dir) - 1)  # should be 0
 # # note, this is not zero!  beware!
 
-# get cds codes for schools 2016-17
-schools_2016_17 <- 
-  school_enrollment_2016_17_working %>% 
+# get cds codes for schools 2018-19
+schools_2018_19 <- 
+  school_enrollment_2018_19_working %>% 
   dplyr::select(
-    cds_code_16_17, 
-    cds_school_code_16_17, 
-    county_16_17,
-    district_16_17,
-    school_16_17) %>% 
+    cds_code_18_19, 
+    cds_school_code_18_19, 
+    county_18_19,
+    district_18_19,
+    school_18_19) %>% 
   unique()
 
 # merge two
-school_lat_long_2016_17_first_try <- 
-  schools_2016_17 %>% 
+school_lat_long_2018_19_first_try <- 
+  schools_2018_19 %>% 
   left_join(school_directory_lat_long, 
-            by = c("cds_code_16_17" =  "cds_code_dir"))
+            by = c("cds_code_18_19" =  "cds_code_dir"))
 
 # filter missing latitudes and longitudes
-school_lat_long_2016_17_no_missing <- 
-  school_lat_long_2016_17_first_try %>% 
+school_lat_long_2018_19_no_missing <- 
+  school_lat_long_2018_19_first_try %>% 
   filter(!is.na(latitude)) %>% 
   filter(!is.na(longitude)) %>% 
   filter(longitude != "No Data") %>% 
   mutate(latitude = as.numeric(latitude), 
          longitude = as.numeric(longitude))
 
-# get cds codes of schools in 2016-17 dataset without lat_longs
+# get cds codes of schools in 2018-19 dataset without lat_longs
 cds_codes_no_lat_long <- 
   setdiff(
-    unique(schools_2016_17$cds_code_16_17), 
-    unique(school_lat_long_2016_17_no_missing$cds_code_16_17)
+    unique(schools_2018_19$cds_code_18_19), 
+    unique(school_lat_long_2018_19_no_missing$cds_code_18_19)
   )
 
-# isolate schools with no lat/long (421 remain!)
+# isolate schools with no lat/long
 # (cds_code, cds_school_code, county, district, school)
-schools_2016_17_lat_long_missing <- 
-  schools_2016_17 %>% 
-  filter(cds_code_16_17 %in% cds_codes_no_lat_long) 
+schools_2018_19_lat_long_missing <- 
+  schools_2018_19 %>% 
+  filter(cds_code_18_19 %in% cds_codes_no_lat_long) 
 
-# exclude nonpublic and nonsectarian schools (24 remain!)
-schools_2016_17_lat_long_missing_no_nonsec <- 
-  schools_2016_17_lat_long_missing %>% 
-  filter(!(school_16_17 == "Nonpublic, Nonsectarian Schools"))
+# exclude nonpublic and nonsectarian schools
+schools_2018_19_lat_long_missing_no_nonsec <- 
+  schools_2018_19_lat_long_missing %>% 
+  filter(!(school_18_19 == "Nonpublic, Nonsectarian Schools"))
 
 # find which schools missing lat/longs are in the directory
 school_directory_no_lat_long <- 
@@ -1196,132 +938,73 @@ school_directory_no_lat_long <-
 # match on cds code
 schools_no_lat_long_matched_by_cds_school_code_only <- 
   left_join(
-    schools_2016_17_lat_long_missing_no_nonsec, 
+    schools_2018_19_lat_long_missing_no_nonsec, 
     school_directory_lat_long, 
-    by = c("cds_school_code_16_17" = "cds_school_code_dir")
+    by = c("cds_school_code_18_19" = "cds_school_code_dir")
     ) 
 
 # pull long valley longitude
 long_valley_longitude <- 
   schools_no_lat_long_matched_by_cds_school_code_only %>% 
-  filter(cds_school_code_16_17 == "6010763" &  # remove no-data long view record
+  filter(cds_school_code_18_19 == "6010763" &  # remove no-data long view record
            !(longitude == "No Data")) %>% 
   pull(longitude)
 
 # pull long valley latitude
 long_valley_latitude <- 
   schools_no_lat_long_matched_by_cds_school_code_only %>% 
-  filter(cds_school_code_16_17 == "6010763" &  # remove no-data long view record
+  filter(cds_school_code_18_19 == "6010763" &  # remove no-data long view record
            !(latitude == "No Data")) %>% 
   pull(latitude)
   
 # make the replacement
-schools_2016_17_lat_long_missing_long_valley_fix <- 
-  schools_no_lat_long_matched_by_cds_school_code_only %>% 
-  # remove long view record that doesn't correspond to 16-17 data
-  filter(!(cds_school_code_16_17 == "6010763" &  
-             latitude != "No Data")) %>% 
-  mutate(longitude = ifelse(cds_school_code_16_17 == "6010763", 
-                            long_valley_longitude,
-                            longitude), 
-         latitude = ifelse(cds_school_code_16_17 == "6010763", 
-                            long_valley_latitude,
-                            latitude))
-
-# pull cds codes for the directory from the two remaining w/o lat/longs
-cds_codes_last_two <- 
-  schools_2016_17_lat_long_missing_long_valley_fix %>% 
-  filter(latitude == "No Data") %>%  # filter to those w/o lat/longs
-  pull(cds_code_dir)  # pull the cds code in the directory
-
-# pull directory records for last two for annoyingly manual geocoding
-addresses_last_two <- 
-  public_school_directory_working %>% 
-  filter(cds_code_dir %in% cds_codes_last_two) %>% 
-  select(cds_code_dir,  # change name of cds_code 
-         school_dir, 
-         street, 
-         city, 
-         state, 
-         zip) %>% 
-  mutate(address_geocode =  # put entire address in one column for google
-           str_c(street, 
-                 ", ", 
-                 city, 
-                 ", ", 
-                 state, 
-                 " ", 
-                 zip)
-  )
-
-# geocoding time!
-geocoded_lat_longs_last_two <-
-  addresses_last_two %>%
-  mutate_geocode(
-    location = address_geocode
-  ) 
-
-# make limited dataset
-geocoded_simple <- 
-  geocoded_lat_longs_last_two %>% 
-  select(school_geo = school_dir,  # rename variables to show that they came from the geo dataset
-         cds_code_geo = cds_code_dir, 
-         lon_geo = lon, 
-         lat_geo = lat)
-
-# add geocoded lat/longs
 schools_missing_lat_long_fixed <- 
-  schools_2016_17_lat_long_missing_long_valley_fix %>% 
-  left_join(geocoded_simple, 
-            by = c("cds_code_16_17" = "cds_code_geo")) %>%  
-  mutate(geo_source = "small_cds",  # add column to tibble for lat-long source
-         geo_source = replace(geo_source, !is.na(lon_geo), "google"), 
-         longitude = ifelse(longitude == "No Data", lon_geo, longitude), 
-         latitude = ifelse(latitude == "No Data", lat_geo, latitude)
-  ) %>% 
-  select(man_cds_code = cds_code_16_17, 
-         man_longitude = longitude, 
-         man_latitude = latitude, 
-         geo_source)
+  schools_no_lat_long_matched_by_cds_school_code_only %>% 
+  # remove long view record that doesn't correspond to 18-19 data
+  filter(!(cds_school_code_18_19 == "6010763" &  
+             latitude != "No Data")) %>% 
+  mutate(man_longitude = ifelse(cds_school_code_18_19 == "6010763", 
+                                long_valley_longitude,
+                                longitude), 
+         man_latitude = ifelse(cds_school_code_18_19 == "6010763", 
+                               long_valley_latitude,
+                               latitude)) %>% 
+  select(c(cds_code_18_19,
+           man_longitude, 
+           man_latitude))  # remove latitude and longitude columns
 
 # merge with prior dataset
-schools_lat_long_merge <- 
-  school_lat_long_2016_17_first_try %>% 
-  left_join(schools_missing_lat_long_fixed, 
-            by = c("cds_code_16_17" = "man_cds_code")
-            )
+schools_lat_long_merge <-
+  school_lat_long_2018_19_first_try %>%
+  left_join(schools_missing_lat_long_fixed,
+            by = "cds_code_18_19")
 
 # make final school dataset
-schools_lat_long_complete <- 
-  schools_lat_long_merge %>% 
+schools_lat_long_complete <-
+  schools_lat_long_merge %>%
   # remove 397 nonpublic, nonsectarian schools
-  filter(!(school_16_17 == "Nonpublic, Nonsectarian Schools")) %>% 
-  mutate(longitude = ifelse(longitude == "No Data", 
-                            man_longitude, 
-                            longitude), 
-         longitude = ifelse(is.na(longitude), 
-                            man_longitude, 
+  filter(!(school_18_19 == "Nonpublic, Nonsectarian Schools")) %>%
+  mutate(longitude = ifelse(longitude == "No Data",
+                            man_longitude,
+                            longitude),
+         longitude = ifelse(is.na(longitude),
+                            man_longitude,
                             longitude),
          longitude = as.numeric(longitude),
-         latitude = ifelse(latitude == "No Data", 
-                            man_latitude, 
-                            latitude), 
-         latitude = ifelse(is.na(latitude), 
-                            man_latitude, 
+         latitude = ifelse(latitude == "No Data",
+                            man_latitude,
                             latitude),
-         latitude = as.numeric(latitude),
-         geo_source = ifelse(is.na(geo_source),  # update geo_source column
-                             "directory", 
-                             geo_source)) %>% 
-  select(-c(cds_school_code_dir, 
-            county_dir,
-            district_dir,  # note that some of these differ 
+         latitude = ifelse(is.na(latitude),
+                            man_latitude,
+                            latitude),
+         latitude = as.numeric(latitude)) %>%
+  select(-c(district_dir,  # note that some of these differ
             school_dir,  # note that some of these differ
-            man_longitude, 
+            man_longitude,
             man_latitude)) # drop directory and manual columns
-  
+
 # make into sf format for mapping
-schools_2016_17_sf <-
+schools_2018_19_sf <-
   st_as_sf(
     schools_lat_long_complete,
     coords =
@@ -1331,41 +1014,32 @@ schools_2016_17_sf <-
   )
 
 # join school files with rest of data
-school_enroll_2016_17_sf <-
+school_enroll_2018_19_sf <-
   right_join(
-    schools_2016_17_sf,
-    school_enrollment_2016_17_no_nonsec,
+    schools_2018_19_sf,
+    school_enrollment_2018_19_no_nonsec,
     by = c(
-      "cds_code_16_17", 
-      "cds_school_code_16_17", 
-      "county_16_17", 
-      "district_16_17", 
-      "school_16_17"
+      "cds_code_18_19",
+      "cds_school_code_18_19",
+      "county_18_19",
+      "district_18_19",
+      "school_18_19"
       )
   )
-  
+
 # save created files
 save(
-  school_enrollment_2016_17_no_nonsec,
-  file = 
+  school_enrollment_2018_19_no_nonsec,
+  file =
     file.path(
-      "intermediate_data", 
-      "school_enrollment_2016_17_no_nonsec.rdata"
+      "intermediate_data",
+      "school_enrollment_2018_19_no_nonsec.rdata"
       )
   )
 
 save(
-  geocoded_lat_longs_last_two, 
-  file = 
-    file.path(
-      "raw_data",  # saving to raw data b/c new
-      "geocoded_lat_longs_last_two.rdata"
-      )
-  )
-
-save(
-  schools_missing_lat_long_fixed, 
-  file = 
+  schools_missing_lat_long_fixed,
+  file =
     file.path(
       "intermediate_data",
       "schools_missing_lat_long_fixed.rdata"
@@ -1373,40 +1047,32 @@ save(
   )
 
 save(
-  schools_2016_17_sf,
-  file = 
+  schools_2018_19_sf,
+  file =
     file.path(
-      "intermediate_data", 
-      "schools_2016_17_sf.rdata"
+      "intermediate_data",
+      "schools_2018_19_sf.rdata"
       )
   )
 
 save(
-  school_enroll_2016_17_sf, 
-  file = 
+  school_enroll_2018_19_sf,
+  file =
     file.path(
-      "intermediate_data", 
-      "school_enroll_2016_17_sf.rdata"
+      "intermediate_data",
+      "school_enroll_2018_19_sf.rdata"
       )
   )
 
-# # remove all objects from the environment
-# rm(list = ls(all.names = TRUE))
+# # # remove all objects from the environment
+# # rm(list = ls(all.names = TRUE))
 
 ```
+
 
 ## combining data types
 
 ```{r extract air values at schools}
-
-# load monitors
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "all_monitors_no_duplicates_sf.rdata"
-    )
-)
 
 # load air districts
 load(
@@ -1440,28 +1106,28 @@ load(
   file =
     file.path(
       "intermediate_data",
-      "schools_2016_17_sf.rdata")
+      "schools_2018_19_sf.rdata")
     )
 
 # rename school thing
-school_to_get_air_2016_17_sf <-
-  schools_2016_17_sf
+school_to_get_air_2018_19_sf <-
+  schools_2018_19_sf
 
 # extract values of air data at schools
-school_to_get_air_2016_17_sf$modeled_air_at_school <-
+school_to_get_air_2018_19_sf$modeled_air_at_school <-
   raster::extract(
     air_cropped,
-    school_to_get_air_2016_17_sf
+    school_to_get_air_2018_19_sf
   )
 
 # create new binary variable for pm2.5 over/under 12 ug/m3
-school_to_get_air_2016_17_sf <- 
-  school_to_get_air_2016_17_sf %>% 
+school_to_get_air_2018_19_sf <- 
+  school_to_get_air_2018_19_sf %>% 
   mutate(pm25_12_plus = ifelse(modeled_air_at_school >= 12, "yes", "no"))
 
 # detect the air district containing each school
-school_air_district_no_basin_2016_17_sf <- 
-  school_to_get_air_2016_17_sf %>% 
+school_air_district_no_basin_2018_19_sf <- 
+  school_to_get_air_2018_19_sf %>% 
   st_join(
     air_districts["NAME"], 
     left = TRUE
@@ -1469,8 +1135,8 @@ school_air_district_no_basin_2016_17_sf <-
   rename(air_district = NAME)
 
 # detect the air basin containing each school
-school_air_2016_17_sf <- 
-  school_air_district_no_basin_2016_17_sf %>% 
+school_air_2018_19_sf <- 
+  school_air_district_no_basin_2018_19_sf %>% 
   st_join(
     air_basins["NAME"],
     left = TRUE
@@ -1479,20 +1145,20 @@ school_air_2016_17_sf <-
 
 # save new sf with air at school
 save(
-  school_air_2016_17_sf,
+  school_air_2018_19_sf,
   file =
        file.path(
          "intermediate_data",
-         "school_air_2016_17_sf.rdata"
+         "school_air_2018_19_sf.rdata"
        )
      )
 
 # # make plot
-# plot(school_air_2016_17_sf["modeled_air_at_school"], pch=16, cex=0.4)
+# plot(school_air_2018_19_sf["modeled_air_at_school"], pch=16, cex=0.4)
 
 # # plot all 3!
 # plot(air_cropped)
-# plot(school_air_2016_17_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
+# plot(school_air_2018_19_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
 # plot(all_monitors_no_duplicates_sf, pch=16, cex=0.2, col="red", add=TRUE)
  
 # # remove all objects from the environment
@@ -1501,21 +1167,14 @@ save(
 ```
 
 
-```{r making the big school dataset}
+
+```{r making the final dataset}
 
 load(
   file = 
     file.path(
       "intermediate_data", 
-      "school_air_distance_2016_17_sf.rdata"
-    )
-)
-
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "school_air_distance_2016_17.rdata"
+      "school_air_2018_19_sf.rdata"
     )
 )
 
@@ -1523,108 +1182,49 @@ load(
   file = 
     file.path(
       "intermediate_data",
-      "school_enrollment_2016_17_no_nonsec.rdata"
+      "school_enrollment_2018_19_no_nonsec.rdata"
     )
 )
 
-school_counts_2016_17_sf <-
-  right_join(
-    school_air_distance_2016_17_sf,
-    school_enrollment_2016_17_no_nonsec,
-    by = c(
-      "cds_code_16_17", 
-      "cds_school_code_16_17", 
-      "county_16_17", 
-      "district_16_17", 
-      "school_16_17"
-      )
-  ) %>% 
-  gather(  # make each type of student their own row
-    kdgn,
-    gr_1,
-    gr_2,
-    gr_3,
-    gr_4,
-    gr_5,
-    gr_6,
-    gr_7,
-    gr_8,
-    gr_9,
-    gr_10,
-    gr_11,
-    gr_12,
-    ungr_elm,
-    ungr_sec, 
-    adult, 
-    key = "grade",
-    value = "students"
-  )
+# aggregate counts by ethnicity and gender
+ethnicity_grade_by_school <- 
+  school_enrollment_2018_19_no_nonsec %>% 
+  select(c(cds_code_18_19, 
+           ethnic, 
+           gender,
+           enr_total)) %>% 
+  mutate(ethnic_category = ethnic,  # make the ethnic categories meaningful
+         ethnic_category =
+           recode(
+             ethnic_category,
+             `0` = "not reported",
+             `1` = "american_indian_alaska_native_nh",
+             `2` = "asian_nh",
+             `3` = "pacific_islander_nh",
+             `4` = "filipino_nh",
+             `5` = "hispanic_latino",
+             `6` = "african_american",
+             `7` = "white_nh",
+             `9` = "two_plus_nh")) %>% 
+  select(-c(ethnic)) %>% 
+  pivot_wider(names_from = c(ethnic_category, gender), 
+              values_from = enr_total, 
+              values_fill = list(enr_total = 0)) %>% 
+  mutate(school_k_12_enrollment = rowSums(.[2:ncol(.)])) %>%   # get total enrollment
+  select(cds_code_18_19, school_k_12_enrollment, sort(names(.)))  # sort columns
+  
+# make the final dataset
+causal_inference_preliminary_dataset <- 
+  school_air_2018_19_sf %>% 
+  left_join(ethnicity_grade_by_school, 
+            by = "cds_code_18_19")
 
-# join school- and enrollment-variables without sf piece
-school_enroll_rough_2016_17 <-
-  right_join(  # join school- and enrollment-variables without sf piece
-    school_air_distance_2016_17,
-    school_enrollment_2016_17_no_nonsec,
-    by = c(
-      "cds_code_16_17", 
-      "cds_school_code_16_17", 
-      "county_16_17", 
-      "district_16_17", 
-      "school_16_17"
-      )
-  ) %>% 
-  select(-c(cds_school_code_16_17,  # make it smaller for the horror to come
-            county_16_17,
-            district_16_17,
-            geo_source,
-            enr_total
-            ))
-
-# single student list!  (6+ million rows, beware)
-single_students_2016_17 <-
-  school_enroll_rough_2016_17 %>% 
-  gather(  # make each grade of student their own row
-    kdgn,
-    gr_1,
-    gr_2,
-    gr_3,
-    gr_4,
-    gr_5,
-    gr_6,
-    gr_7,
-    gr_8,
-    gr_9,
-    gr_10,
-    gr_11,
-    gr_12,
-    ungr_elm,
-    ungr_sec, 
-    adult, 
-    key = "grade",
-    value = "students"
-  ) %>% 
-  uncount(students)  # make each student a unique row
-
-save(
- school_counts_2016_17_sf, 
-  file = 
-    file.path(
-      "intermediate_data", 
-      "school_counts_2016_17_sf.rdata"
-    )
-)
-
-save(
- single_students_2016_17, 
-  file = 
-    file.path(
-      "intermediate_data", 
-      "single_students_2016_17.rdata"
-    )
-)
-
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
+# save it in main folder
+save(causal_inference_preliminary_dataset, 
+     file = file.path("causal_inference_preliminary_dataset.rdata"))
+  
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -1634,24 +1234,7 @@ rm(list = ls(all.names = TRUE))
 load(
   file =
     file.path(
-      "intermediate_data",
-      "single_students_2016_17.rdata"
-    )
-)
-
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "all_monitors_no_duplicates_sf.rdata"
-    )
-)
-
-load(
-  file =
-    file.path(
-      "intermediate_data",
-      "school_air_2016_17_sf.rdata"
+      "causal_inference_preliminary_dataset.rdata"
     )
 )
 
@@ -1663,221 +1246,40 @@ load(
     )
 )
 
-# single students recode eth
-single_students_2016_17 <-
-single_students_2016_17 %>% 
-  mutate(ethnic_category = ethnic,
-         ethnic_category = 
-           recode(
-             ethnic_category,
-             `0` = "not reported",
-             `1` = "american_indian_alaska_native_nh",
-             `2` = "asian_nh",
-             `3` = "pacific_islander_nh",
-             `4` = "filipino_nh",
-             `5` = "hispanic_latino",
-             `6` = "african_american",
-             `7` = "white_nh",
-             `9` = "two_plus_nh")
-  )
-
-percent_students_by_ethnic_pm <- 
-  single_students_2016_17 %>% 
-  group_by(pm25_12_plus, ethnic_category) %>% 
-  summarise(number=n()) %>% 
-  group_by(ethnic_category) %>% 
-  mutate(percentage = number/sum(number)*100)
-
-
-write_csv(
-  percent_students_by_ethnic_pm, 
-  path = 
-    file.path(
-      "output_for_writeups", 
-      "percent_students_by_ethnic_pm.csv"
-    )
-)
-
-percent_students_by_ethnic <- 
-  single_students_2016_17 %>% 
-  group_by(ethnic_category) %>% 
-  summarise(number=n()) %>% 
-  group_by() %>% 
-  mutate(percentage = number/sum(number)*100)
-
-write_csv(
-  percent_students_by_ethnic, 
-  path = 
-    file.path(
-      "output_for_writeups", 
-      "percent_students_by_ethnic.csv"
-    )
-)
-
-
-# plot(air_cropped)
-
-# plot monitors on top of air pollution levels
+# plot air data
 plot(air_cropped)
-plot(all_monitors_no_duplicates_sf, pch=16, cex=0.5, col="red", add=TRUE)
-plot(all_monitors_no_duplicates_sf["modeled_air_at_monitor"], pch=16, cex=1)
 
 # make plot of modeled air at each school
-plot(school_air_2016_17_sf["modeled_air_at_school"], pch=16, cex=0.4)
+plot(causal_inference_preliminary_dataset["modeled_air_at_school"], pch=16, cex=0.4)
 
-# plot all 3!
+# plot both!
 plot(air_cropped)
-plot(school_air_2016_17_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
-plot(all_monitors_no_duplicates_sf, pch=16, cex=0.2, col="red", add=TRUE)
+plot(causal_inference_preliminary_dataset, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
 
 # number of students
-number_of_students <- 
-  single_students_2016_17 %>% 
-  group_by(pm25_12_plus) %>% 
-  summarise(number = n())
-
-
 
 # number of schools by pm
 number_of_schools <- 
-  school_air_2016_17_sf %>% 
+  causal_inference_preliminary_dataset %>% 
   group_by(pm25_12_plus) %>% 
   summarise(number = n())
 
-
-# distance of schools by pm
-school_distance <- 
-  single_students_2016_17 %>% 
-  select(pm25_12_plus, cds_code_16_17, distance) %>% 
-  unique() %>% 
-  group_by(pm25_12_plus) %>% 
-  summarise(median_distance = median(distance))
-  
 # students by grade
-number_of_students_by_grade <- 
-  single_students_2016_17 %>% 
-  group_by(grade) %>% 
-  summarise(number = n())
 
 # students by grade, pm
-number_of_students_by_grade_pm <- 
-  single_students_2016_17 %>% 
-  group_by(pm25_12_plus, grade) %>% 
-  summarise(number = n(), 
-            percent = n()/sum(number))
 
 # percent by gender, pm
-percent_students_by_gender_pm <- 
-  single_students_2016_17 %>% 
-  group_by(pm25_12_plus, gender) %>% 
-  summarise(number=n()) %>% 
-  group_by(gender) %>% 
-  mutate(percentage = number/sum(number)*100)
 
 # percent by grade, pm
-percent_students_by_grade_pm <- 
-  single_students_2016_17 %>% 
-  group_by(pm25_12_plus, grade) %>% 
-  summarise(number=n()) %>% 
-  group_by(grade) %>% 
-  mutate(percentage = number/sum(number)*100)
 
-# distance by pm
-distance_by_pm <- 
-  single_students_2016_17 %>% 
-  group_by(pm25_12_plus) %>% 
-  summarise(median_distance = median(distance)) 
-
-median_distance <- 
-single_students_2016_17 %>% 
-  summarise(median_distance = median(distance))
-
-# distance by ethnicity, pm
-distance_by_pm_ethnic <- 
-  single_students_2016_17 %>% 
-  group_by(pm25_12_plus, ethnic_category) %>% 
-  summarise(median_distance = median(distance)) 
-
-# distance by gender, pm
-distance_by_pm_gender <- 
-  single_students_2016_17 %>% 
-  group_by(pm25_12_plus, gender) %>% 
-  summarise(median_distance = median(distance)) 
-
-# distance by grade, pm
-distance_by_pm_grade <- 
-  single_students_2016_17 %>% 
-  group_by(pm25_12_plus, grade) %>% 
-  summarise(median_distance = median(distance))
-
-write_csv(
-  distance_by_pm_grade, 
-  path = 
-    file.path(
-      "output_for_writeups", 
-      "distance_by_pm_grade.csv"
-    )
-)
-
-
-write_csv(
-  distance_by_pm_ethnic, 
-  path = 
-    file.path(
-      "output_for_writeups", 
-      "distance_by_pm_ethnic.csv"
-    )
-)
-
-
-write_csv(
-  percent_students_by_grade_pm, 
-  path = 
-    file.path(
-      "output_for_writeups", 
-      "percent_students_by_grade_pm.csv"
-    )
-)
-
-# 
-write_csv(
-  number_of_students_by_grade, 
-  path = 
-    file.path(
-      "output_for_writeups", 
-      "students_by_grade.csv"
-    )
-)
-
-# 
-write_csv(
-  number_of_students_by_grade_pm, 
-  path = 
-    file.path(
-      "output_for_writeups", 
-      "students_by_grade_pm.csv"
-    )
-)
-
-# 
-
-
-
-no_pm_values <- 
-  single_students_2016_17 %>% 
-  filter(is.na(pm25_12_plus))
-
-cds_codes_no_pm_values <- 
-  no_pm_values %>% 
-  pull(cds_code_16_17) %>% 
-  unique()
-  
-schools_without_pm_sf <- 
-  school_air_2016_17_sf %>% 
-  filter(cds_code_16_17 %in% cds_codes_no_pm_values)
-
-
-
+# cds_codes_no_pm_values <- 
+#   no_pm_values %>% 
+#   pull(cds_code_18_19) %>% 
+#   unique()
+#   
+# schools_without_pm_sf <- 
+#   causal_inference_preliminary_dataset %>% 
+#   filter(cds_code_18_19 %in% cds_codes_no_pm_values)
 
 ```
 
