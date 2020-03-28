@@ -1,7 +1,7 @@
 ---
 title: "Causal Inference Final Project Code"
 author: "Katherine Rose Wolf"
-date: `r format(Sys.time(), "%d %B, %Y")`
+date: "March 27, 2020"
 output: html_document
 ---
 
