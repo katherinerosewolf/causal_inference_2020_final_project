@@ -354,6 +354,8 @@ download.file(
 ```
 
 
+## free and reduced price lunch data
+
 ```{r download free and reduced price lunch data}
 
 # download poverty data 2018-19
@@ -376,6 +378,147 @@ if(!file.exists(file.path("raw_data",
 }
 
 ```
+
+## testing assessment data
+
+```{r download english and mathematics testing assessment data}
+
+# download english and mathematics individual student? data 2018-19
+if(!file.exists(file.path("raw_data", 
+                          "sb_ca2019_1_csv_v4.zip"))) {
+
+  download.file(
+    url = "http://caaspp-elpac.cde.ca.gov/caaspp/researchfiles/sb_ca2019_1_csv_v4.zip", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "sb_ca2019_1_csv_v4.zip"
+      ), 
+    mode = 'wb'
+    )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+
+}
+
+
+# download english and mathematics group? data 2018-19
+if(!file.exists(file.path("raw_data", 
+                          "sb_ca2019_all_csv_v4.zip"))) {
+
+  download.file(
+    url = "http://caaspp-elpac.cde.ca.gov/caaspp/researchfiles/sb_ca2019_all_csv_v4.zip", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "sb_ca2019_all_csv_v4.zip"
+      ), 
+    mode = 'wb'
+    )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+
+}
+
+```
+
+
+```{r download science testing assessment data}
+
+
+# download science individual student? data 2018-19
+if(!file.exists(file.path("raw_data", 
+                          "cast_ca2019_1_csv_v1.zip"))) {
+
+  download.file(
+    url = "http://caaspp-elpac.cde.ca.gov/caaspp/researchfiles/cast_ca2019_1_csv_v1.zip", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "cast_ca2019_1_csv_v1.zip"
+      ), 
+    mode = 'wb'
+    )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+
+}
+
+
+# download science group? data 2018-19
+if(!file.exists(file.path("raw_data", 
+                          "cast_ca2019_all_csv_v1.zip"))) {
+
+  download.file(
+    url = "http://caaspp-elpac.cde.ca.gov/caaspp/researchfiles/cast_ca2019_all_csv_v1.zip", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "cast_ca2019_all_csv_v1.zip"
+      ), 
+    mode = 'wb'
+    )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+
+}
+
+
+```
+
+
+## chronic absenteeism data
+
+```{r download chronic absenteeism data}
+
+# download chronic absenteeism data 2018-19
+if(!file.exists(file.path("raw_data", 
+                          "chrabs1819.txt"))) {
+download.file(
+  url = "ftp://ftp.cde.ca.gov/demo/attendance/chrabs1819.txt", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "chrabs1819.txt"
+    ), 
+  method = 'libcurl'
+  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+}
+
+```
+
+
+
+## suspension data
+
+```{r download suspension data}
+
+# download suspension data 2018-19
+if(!file.exists(file.path("raw_data", 
+                          "susp1819.txt"))) {
+download.file(
+  url = "ftp://ftp.cde.ca.gov/demo/discipline/susp1819.txt", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "susp1819.txt"
+    ), 
+  method = 'libcurl'
+  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+}
+
+```
+
 
 
 # data preparation
@@ -786,6 +929,119 @@ save(
 rm(list = ls(all.names = TRUE))
 
 ```
+
+
+```{r read and save english and language arts testing data}
+
+# unzip the english and language arts testing single data file
+unzip(
+  zipfile = 
+    file.path(
+      "raw_data", 
+      "sb_ca2019_1_csv_v4.zip"
+    ), 
+  exdir = 
+    file.path(
+      "intermediate_data"
+    )
+  )
+
+# unzip the english and language arts testing full data file
+unzip(
+  zipfile = 
+    file.path(
+      "raw_data", 
+      "sb_ca2019_all_csv_v4.zip"
+    ), 
+  exdir = 
+    file.path(
+      "intermediate_data"
+    )
+  )
+
+ela_testing_single_data_from_raw <-
+  read_csv(file = file.path("intermediate_data",
+                            "sb_ca2019_1_csv_v4.txt"))
+
+colnames(ela_testing_single_data_from_raw)
+table(ela_testing_single_data_from_raw$`Subgroup ID`)
+
+write_csv(ela_testing_single_data_from_raw, 
+           path = "ela_testing_single_data_from_raw.csv" )
+
+ela_testing_group_data_from_raw <-
+  read_csv(file = file.path("intermediate_data",
+                            "sb_ca2019_all_csv_v4.txt"))
+
+colnames(ela_testing_group_data_from_raw)
+table(ela_testing_group_data_from_raw$`Subgroup ID`)
+
+write_csv(ela_testing_group_data_from_raw, 
+           path = "ela_testing_group_data_from_raw.csv" )
+
+
+
+```
+
+
+```{r read and save science testing data}
+
+# unzip the science testing single data file
+unzip(
+  zipfile = 
+    file.path(
+      "raw_data", 
+      "cast_ca2019_1_csv_v1.zip"
+    ), 
+  exdir = 
+    file.path(
+      "intermediate_data"
+    )
+  )
+
+# unzip the science testing full data file
+unzip(
+  zipfile = 
+    file.path(
+      "raw_data", 
+      "cast_ca2019_all_csv_v1.zip"
+    ), 
+  exdir = 
+    file.path(
+      "intermediate_data"
+    )
+  )
+
+# read into tibbles
+science_testing_single_data_from_raw <-
+  read_csv(file = file.path("intermediate_data",
+                            "cast_ca2019_1_csv_v1.txt"))
+
+write_csv(science_testing_single_data_from_raw, 
+           path = "science_testing_group_data_from_raw.csv" )
+
+science_testing_group_data_from_raw <-
+  read_csv(file = file.path("intermediate_data",
+                            "cast_ca2019_all_csv_v1.txt"))
+
+write_csv(science_testing_group_data_from_raw, 
+           path = "science_testing_group_data_from_raw.csv" )
+
+
+```
+
+
+```{r read and save chronic absenteeism data}
+
+```
+
+
+
+```{r read and save suspension data}
+
+```
+
+
 
 
 ```{r make school sf and non-sf files 2018-2019}
