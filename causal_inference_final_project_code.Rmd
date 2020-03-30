@@ -808,7 +808,7 @@ school_enrollment_tab_reader <-
             "raw_data", 
             file_name),
         delim = "\t", 
-        col_types = cols(.default = "?", CDS_CODE = col_double())
+        col_types = cols(.default = "?", CDS_CODE = col_character())
         )
     
     assign(variable_name, 
@@ -851,29 +851,36 @@ rm(list = ls(all.names = TRUE))
 
 ```{r read free and reduced price lunch data and save as .rdata files}
 
+# load column name fixer
+load(file = file.path("functions", "column_name_fixer.rdata"))
+
 # read data 2018-19
-free_red_lunch_2018_19 <-
+free_reduced_lunch_from_raw <-
   readxl::read_excel(
     file.path(
       "raw_data", 
-      "frpm1819.xlsx"
-    )
-  )
+      "frpm1819.xlsx"), 
+    sheet = 2, 
+    skip = 1)
+
+free_reduced_lunch <- 
+  free_reduced_lunch_from_raw %>% 
+  column_name_fixer() %>% 
+  mutate(cds_code = paste0(county_code, district_code, school_code)) %>% 
+  rename(free_lunch_percent = "percent_(%)_\r\neligible_free_\r\n(k-12)", 
+         frpm_percent = "percent_(%)_\r\neligible_frpm_\r\n(k-12)") %>% 
+  select(cds_code, 
+         free_lunch_percent,
+         frpm_percent)
 
 # save .rdata file to intermediate data
-save(
-  free_red_lunch_2018_19,
-  file = 
-    file.path(
-      "intermediate_data", 
-      "free_red_lunch_2018_19.rdata"
-    )
-)
+save(free_reduced_lunch,
+     file = file.path("intermediate_data", 
+                      "free_reduced_lunch.rdata"))
 
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
 
-  
 ```
 
 
@@ -912,7 +919,7 @@ public_school_directory_working_from_raw <-
                  ),
              delim = "\t", 
              col_types = cols(.default = "c", 
-                              CDSCode = col_double())
+                              CDSCode = col_character())
              )
 
 # save school addresses
@@ -931,7 +938,9 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-```{r read and save english and language arts testing data}
+```{r read and save standardized testing data}
+
+load(file = file.path("functions", "column_name_fixer.rdata"))
 
 # unzip the english and language arts testing single data file
 unzip(
@@ -946,46 +955,6 @@ unzip(
     )
   )
 
-# unzip the english and language arts testing full data file
-unzip(
-  zipfile = 
-    file.path(
-      "raw_data", 
-      "sb_ca2019_all_csv_v4.zip"
-    ), 
-  exdir = 
-    file.path(
-      "intermediate_data"
-    )
-  )
-
-ela_testing_single_data_from_raw <-
-  read_csv(file = file.path("intermediate_data",
-                            "sb_ca2019_1_csv_v4.txt"))
-
-colnames(ela_testing_single_data_from_raw)
-table(ela_testing_single_data_from_raw$`Subgroup ID`)
-
-write_csv(ela_testing_single_data_from_raw, 
-           path = "ela_testing_single_data_from_raw.csv" )
-
-ela_testing_group_data_from_raw <-
-  read_csv(file = file.path("intermediate_data",
-                            "sb_ca2019_all_csv_v4.txt"))
-
-colnames(ela_testing_group_data_from_raw)
-table(ela_testing_group_data_from_raw$`Subgroup ID`)
-
-write_csv(ela_testing_group_data_from_raw, 
-           path = "ela_testing_group_data_from_raw.csv" )
-
-
-
-```
-
-
-```{r read and save science testing data}
-
 # unzip the science testing single data file
 unzip(
   zipfile = 
@@ -999,45 +968,120 @@ unzip(
     )
   )
 
-# unzip the science testing full data file
-unzip(
-  zipfile = 
-    file.path(
-      "raw_data", 
-      "cast_ca2019_all_csv_v1.zip"
-    ), 
-  exdir = 
-    file.path(
-      "intermediate_data"
-    )
-  )
-
 # read into tibbles
+ela_testing_single_data_from_raw <-
+  read_csv(file = file.path("intermediate_data",
+                            "sb_ca2019_1_csv_v4.txt"), 
+           col_types = cols(.default = "c"))
+
 science_testing_single_data_from_raw <-
   read_csv(file = file.path("intermediate_data",
                             "cast_ca2019_1_csv_v1.txt"))
 
-write_csv(science_testing_single_data_from_raw, 
-           path = "science_testing_group_data_from_raw.csv" )
+english_aggregate <- 
+  ela_testing_single_data_from_raw %>% 
+  column_name_fixer() %>% 
+  filter(subgroup_id == "1") %>%   # only all student data, not subgrouped
+  filter(test_id == "1") %>%  # only english
+  mutate(cds_code = paste0(county_code, district_code, school_code)) %>% 
+  filter(!(school_code == "0000000")) %>%  # take out districts
+  filter(grade == "13") %>%  # all-student total
+  select(cds_code,
+         english_n_scores = total_tested_with_scores,
+         english_standard_met = percentage_standard_met_and_above)
 
-science_testing_group_data_from_raw <-
-  read_csv(file = file.path("intermediate_data",
-                            "cast_ca2019_all_csv_v1.txt"))
+math_aggregate <- 
+  ela_testing_single_data_from_raw %>% 
+  column_name_fixer() %>% 
+  filter(subgroup_id == "1") %>%   # only all student data, not subgrouped
+  filter(test_id == "2") %>%  # only math
+  mutate(cds_code = paste0(county_code, district_code, school_code)) %>% 
+  filter(!(school_code == "0000000")) %>%  # take out districts
+  filter(grade == "13") %>%  # all-student total 
+  select(cds_code,
+         math_n_scores = total_tested_with_scores,
+         math_standard_met =  percentage_standard_met_and_above)
 
-write_csv(science_testing_group_data_from_raw, 
-           path = "science_testing_group_data_from_raw.csv" )
+science_aggregate <- 
+  science_testing_single_data_from_raw %>% 
+  column_name_fixer() %>% 
+  filter(demographic_id == "1") %>%   # only all student data, not subgrouped
+  filter(test_id == "17") %>%  # science
+  mutate(cds_code = paste0(county_code, district_code, school_code)) %>% 
+  filter(!(school_code == "0000000")) %>%  # take out districts
+  filter(grade == "13") %>%  # all-student total 
+  select(cds_code,
+         science_n_scores = total_number_tested_at_this_demographic_with_valid_scores,
+         science_standard_met =  percentage_standard_met_and_above)
 
+save(english_aggregate, 
+     file = file.path("intermediate_data",
+                      "english_aggregate.rdata"))
+
+save(math_aggregate, 
+     file = file.path("intermediate_data",
+                      "math_aggregate.rdata"))
+
+save(science_aggregate, 
+     file = file.path("intermediate_data",
+                      "science_aggregate.rdata"))
 
 ```
 
 
+
 ```{r read and save chronic absenteeism data}
+
+# load column name fixer
+load(file = file.path("functions", "column_name_fixer.rdata"))
+
+# read into tibble
+absentee_from_raw <-
+  read_delim(file = file.path("raw_data", "chrabs1819.txt"), 
+             delim = "\t", 
+             col_types = "cccccccccccccc")
+
+absentee <- absentee_from_raw %>% 
+  column_name_fixer() %>% 
+    filter(aggregatelevel == "S") %>%  # school-level data
+  filter(reportingcategory == "TA") %>%  # pull ungrouped totals
+  filter(charteryn == "All") %>%  # get all schools regardless of charter status
+  mutate(cds_code = paste0(countycode, districtcode, schoolcode)) %>% 
+  rename(chronic_absenteeism_rate = chronicabsenteeismrate) %>% 
+  select(cds_code, chronic_absenteeism_rate)
+
+save(absentee, 
+     file = file.path("intermediate_data", 
+                      "absentee.rdata"))
 
 ```
 
 
 
 ```{r read and save suspension data}
+
+# load column name fixer
+load(file = file.path("functions", "column_name_fixer.rdata"))
+
+# read into tibble
+suspensions_from_raw <-
+  read_delim(file = file.path("raw_data", "susp1819.txt"), 
+             delim = "\t", 
+             col_types = "ccccccccccccccccccccc")
+
+suspensions <- suspensions_from_raw %>% 
+  column_name_fixer() %>% 
+  filter(aggregatelevel == "S") %>%  # school-level data
+  filter(reportingcategory == "TA") %>%  # pull ungrouped totals
+  filter(charteryn == "All") %>%  # get all schools regardless of charter status
+  mutate(cds_code = paste0(countycode, districtcode, schoolcode)) %>% 
+  rename(suspension_rate = "suspension_rate_(total)") %>% 
+  select(cds_code, 
+         suspension_rate)
+
+save(suspensions, 
+     file = file.path("intermediate_data", 
+                      "suspensions.rdata"))
 
 ```
 
@@ -1402,12 +1446,8 @@ school_air_2018_19_sf <-
 # save new sf with air at school
 save(
   school_air_2018_19_sf,
-  file =
-       file.path(
-         "intermediate_data",
-         "school_air_2018_19_sf.rdata"
-       )
-     )
+  file = file.path("intermediate_data",
+                   "school_air_2018_19_sf.rdata"))
 
 # # make plot
 # plot(school_air_2018_19_sf["modeled_air_at_school"], pch=16, cex=0.4)
@@ -1426,21 +1466,30 @@ save(
 
 ```{r making the final dataset}
 
-load(
-  file = 
-    file.path(
-      "intermediate_data", 
-      "school_air_2018_19_sf.rdata"
-    )
-)
+load(file = file.path("intermediate_data", 
+                      "school_air_2018_19_sf.rdata"))
 
-load(
-  file = 
-    file.path(
-      "intermediate_data",
-      "school_enrollment_2018_19_no_nonsec.rdata"
-    )
-)
+load(file = file.path("intermediate_data",
+                      "school_enrollment_2018_19_no_nonsec.rdata"))
+
+load(file = file.path("intermediate_data",
+                      "absentee.rdata"))
+
+load(file = file.path("intermediate_data",
+                      "suspensions.rdata"))
+
+load(file = file.path("intermediate_data",
+                      "free_reduced_lunch.rdata"))
+
+load(file = file.path("intermediate_data",
+                      "english_aggregate.rdata"))
+
+load(file = file.path("intermediate_data",
+                      "math_aggregate.rdata"))
+
+load(file = file.path("intermediate_data",
+                      "science_aggregate.rdata"))
+
 
 # aggregate counts by ethnicity and gender
 ethnicity_grade_by_school <- 
@@ -1470,12 +1519,46 @@ ethnicity_grade_by_school <-
   select(cds_code_18_19, school_k_12_enrollment, sort(names(.)))  # sort columns
   
 # make the final dataset
-causal_inference_preliminary_dataset <- 
+school_air_ethnicity_gender <- 
   school_air_2018_19_sf %>% 
   left_join(ethnicity_grade_by_school, 
             by = "cds_code_18_19") %>% 
-  select(-c(cds_school_code_18_19, cds_school_code_dir, county_dir))
+  select(-c(cds_school_code_18_19, cds_school_code_dir, county_dir)) %>% 
+  rename(cds_code = cds_code_18_19)
 
+school_all_covariates <- 
+  school_air_ethnicity_gender %>% 
+  left_join(absentee, by = "cds_code") %>% 
+  left_join(suspensions, by = "cds_code") %>% 
+  left_join(free_reduced_lunch, by = "cds_code")
+  
+school_all_covariates_english <- 
+  school_all_covariates %>% 
+  left_join(english_aggregate, 
+            by = "cds_code")
+
+school_all_covariates_english_math <- 
+  school_all_covariates_english %>% 
+  left_join(math_aggregate, 
+            by = "cds_code")
+
+schools_all_data <- 
+  school_all_covariates_english_math %>% 
+  left_join(science_aggregate, 
+            by = "cds_code")
+
+# drop records missing exposure or outcomes
+causal_inference_preliminary_dataset <-
+  schools_all_data %>% 
+  filter(!is.na(math_standard_met)) %>% 
+  filter(!is.na(english_standard_met)) %>% 
+  filter(!is.na(science_standard_met)) %>% 
+  filter(!is.na(modeled_air_at_school)) %>% 
+  filter(!(english_standard_met == "*")) %>% 
+  filter(!(math_standard_met == "*")) %>% 
+  filter(!(science_standard_met == "*")) %>% 
+  mutate(overall_standard_met = round((as.numeric(english_standard_met) + as.numeric(math_standard_met) + as.numeric(science_standard_met))/3, 2))
+  
 # save it in main folder
 save(causal_inference_preliminary_dataset, 
      file = file.path("causal_inference_preliminary_dataset.rdata"))
@@ -1494,20 +1577,24 @@ colnames(causal_inference_preliminary_dataset)
 
 ```{r disorganized last-minute summary statistics}
 
-load(
-  file =
-    file.path(
-      "causal_inference_preliminary_dataset.rdata"
-    )
-)
+ggplot(data = causal_inference_preliminary_dataset, 
+       aes(x = modeled_air_at_school, 
+           y = overall_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method=lm, 
+              se=TRUE, 
+              color="darkred") +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Mean Percentage of Students Met or Exceeded Standard \n(English, Science, and Math) in 2018-19")
+  
+library(tableone)
 
-load(
-  file = 
-    file.path(
-      "intermediate_data",
-      "air_cropped.rdata"
-    )
-)
+
+
+
+load(file = file.path( "causal_inference_preliminary_dataset.rdata"))
+
+load(file = file.path("intermediate_data", "air_cropped.rdata"))
 
 # plot air data
 plot(air_cropped)
