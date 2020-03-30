@@ -1506,7 +1506,7 @@ school_to_get_air_2018_19_sf$modeled_air_at_school <-
 # create new binary variable for pm2.5 over/under 12 ug/m3
 school_to_get_air_2018_19_sf <- 
   school_to_get_air_2018_19_sf %>% 
-  mutate(pm25_12_plus = ifelse(modeled_air_at_school >= 12, "yes", "no"))
+  mutate(pm25_12_plus = ifelse(modeled_air_at_school > 12, "yes", "no"))
 
 # detect the air district containing each school
 school_air_district_no_basin_2018_19_sf <- 
