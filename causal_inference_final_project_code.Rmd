@@ -15,6 +15,8 @@ library(httr)
 library(tidyverse)
 library(ggmap)
 library(nngeo)
+library(tableone)
+library(kableExtra)
 
 # stop r from abbreviating doubles in school ids
 options("scipen" = 40)
@@ -352,6 +354,30 @@ download.file(
 }
 
 ```
+
+
+## english learner data
+
+```{r download english learner data}
+
+if(!file.exists(file.path("raw_data", 
+                          "fileselsch.txt"))) {
+download.file(
+  url = "http://dq.cde.ca.gov/dataquest/dlfile/dlfile.aspx?cLevel=School&cYear=2018-19&cCat=EL&cPage=fileselsch", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "fileselsch.txt"
+    ), 
+  method = 'libcurl'
+  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+}
+
+```
+
 
 
 ## free and reduced price lunch data
@@ -846,6 +872,63 @@ map(
 # remove all objects from the environment
 rm(list = ls(all.names = TRUE))
   
+```
+
+
+```{r read english learner data and save as .rdata file}
+
+# load column name fixer
+load(file = file.path("functions", "column_name_fixer.rdata"))
+
+# read in data
+english_learner_from_raw <- 
+  read_delim(file = file.path("raw_data", "fileselsch.txt"), 
+             delim = "\t") 
+
+# make dataset of english learner count
+english_learners <- 
+  english_learner_from_raw %>% 
+  column_name_fixer() %>% 
+  select(cds_code = cds, 
+         language, 
+         total_el) %>% 
+  pivot_wider(names_from = language,  # make each row a school
+              values_from = total_el, 
+              values_fill = list(total_el = 0)) %>% 
+  mutate(english_learners = rowSums(.[2:ncol(.)])) %>%  # get total enrollment
+  select(cds_code, english_learners)
+
+# save it
+save(english_learners, 
+     file = file.path("intermediate_data", 
+                      "english_learners.rdata"))
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
+```
+
+
+```{r teacher credential data}
+
+# load column name fixer
+load(file = file.path("functions", "column_name_fixer.rdata"))
+
+# read in data
+teacher_credentials_from_raw <- 
+  read_delim(file = file.path("raw_data", 
+                              "StaffCred18.txt"), 
+             delim = "\t") 
+
+# save it
+save(teacher_credentials_from_raw, 
+     file = file.path("intermediate_data", 
+                      "teacher_credentials_from_raw.rdata"))
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
+
+
 ```
 
 
@@ -1490,6 +1573,10 @@ load(file = file.path("intermediate_data",
 load(file = file.path("intermediate_data",
                       "science_aggregate.rdata"))
 
+load(file = file.path("intermediate_data",
+                      "english_learners.rdata"))
+
+library(furniture)
 
 # aggregate counts by ethnicity and gender
 ethnicity_grade_by_school <- 
@@ -1502,13 +1589,13 @@ ethnicity_grade_by_school <-
          ethnic_category =
            recode(
              ethnic_category,
-             `0` = "not reported",
+             `0` = "not_reported",
              `1` = "american_indian_alaska_native_nh",
              `2` = "asian_nh",
              `3` = "pacific_islander_nh",
              `4` = "filipino_nh",
              `5` = "hispanic_latino",
-             `6` = "african_american",
+             `6` = "african_american_nh",
              `7` = "white_nh",
              `9` = "two_plus_nh")) %>% 
   select(-c(ethnic)) %>% 
@@ -1530,7 +1617,8 @@ school_all_covariates <-
   school_air_ethnicity_gender %>% 
   left_join(absentee, by = "cds_code") %>% 
   left_join(suspensions, by = "cds_code") %>% 
-  left_join(free_reduced_lunch, by = "cds_code")
+  left_join(free_reduced_lunch, by = "cds_code") %>% 
+  left_join(english_learners, by = "cds_code")
   
 school_all_covariates_english <- 
   school_all_covariates %>% 
@@ -1548,7 +1636,7 @@ schools_all_data <-
             by = "cds_code")
 
 # drop records missing exposure or outcomes
-causal_inference_preliminary_dataset <-
+causal_inference_preliminary_dataset_prior <-
   schools_all_data %>% 
   filter(!is.na(math_standard_met)) %>% 
   filter(!is.na(english_standard_met)) %>% 
@@ -1557,7 +1645,59 @@ causal_inference_preliminary_dataset <-
   filter(!(english_standard_met == "*")) %>% 
   filter(!(math_standard_met == "*")) %>% 
   filter(!(science_standard_met == "*")) %>% 
-  mutate(overall_standard_met = round((as.numeric(english_standard_met) + as.numeric(math_standard_met) + as.numeric(science_standard_met))/3, 2))
+  mutate(overall_standard_met = (as.numeric(english_standard_met) + 
+                                   as.numeric(math_standard_met) +
+                                   as.numeric(science_standard_met))/3)
+
+causal_inference_preliminary_dataset <- 
+  causal_inference_preliminary_dataset_prior %>% 
+  mutate(percent_female = ((african_american_nh_F +
+                             american_indian_alaska_native_nh_F +
+                             asian_nh_F + 
+                             filipino_nh_F +
+                             hispanic_latino_F +
+                             not_reported_F +
+                             pacific_islander_nh_F +
+                             two_plus_nh_F +
+                             white_nh_F)/school_k_12_enrollment),
+         percent_afr_am = ((african_american_nh_F + african_american_nh_M)/
+                             school_k_12_enrollment), 
+         percent_aian = ((american_indian_alaska_native_nh_F +
+                            american_indian_alaska_native_nh_M)/
+                             school_k_12_enrollment), 
+         percent_asian = ((asian_nh_F +
+                            asian_nh_M)/
+                            school_k_12_enrollment), 
+         percent_filipino = ((filipino_nh_F +
+                            filipino_nh_M)/
+                            school_k_12_enrollment), 
+         percent_hispanic_latino = ((hispanic_latino_F +
+                            hispanic_latino_M)/
+                            school_k_12_enrollment), 
+         percent_pacific_islander = ((pacific_islander_nh_F +
+                            pacific_islander_nh_M)/
+                            school_k_12_enrollment), 
+         percent_white  = ((white_nh_F +
+                            white_nh_M)/
+                            school_k_12_enrollment), 
+         percent_two_plus = ((two_plus_nh_F +
+                            two_plus_nh_M)/
+                            school_k_12_enrollment),
+         percent_not_reported = ((not_reported_F +
+                            not_reported_M)/
+                            school_k_12_enrollment), 
+         pm25_12_plus = factor(pm25_12_plus), 
+         chronic_absenteeism_rate = as.numeric(chronic_absenteeism_rate), 
+         suspension_rate = as.numeric(suspension_rate), 
+         free_lunch_percent = free_lunch_percent*100,
+         frpm_percent = frpm_percent*100,
+         english_learner_percent = english_learners/school_k_12_enrollment,
+         english_n_scores = as.numeric(english_n_scores), 
+         english_standard_met = as.numeric(english_standard_met),
+         math_n_scores = as.numeric(math_n_scores),
+         math_standard_met = as.numeric(math_standard_met),
+         science_n_scores = as.numeric(science_n_scores),
+         science_standard_met = as.numeric(science_standard_met))
   
 # save it in main folder
 save(causal_inference_preliminary_dataset, 
@@ -1567,28 +1707,149 @@ save(causal_inference_preliminary_dataset,
 write_csv(causal_inference_preliminary_dataset, 
           path = "causal_inference_preliminary_dataset.csv")
 
-colnames(causal_inference_preliminary_dataset)
-
 # # remove all objects from the environment
 # rm(list = ls(all.names = TRUE))
 
 ```
 
 
-```{r disorganized last-minute summary statistics}
+```{r preliminary data analysis}
 
+# load data
+load(file = file.path("causal_inference_preliminary_dataset.rdata"))
+
+# relabel variables
+data_for_table_one <- 
+  causal_inference_preliminary_dataset %>% 
+  mutate("PM25" = factor(pm25_12_plus),
+         "School enrollment (n)" = school_k_12_enrollment,
+         "Female (%)" = round(percent_female*100, 2),
+         "African American (%)" = round(percent_afr_am*100, 2),
+         "American Indian or Alaska Native (%)" = round(percent_aian*100, 2),
+         "Asian (%)" = round(percent_asian*100, 2),
+         "Filipino (%)" = round(percent_filipino*100, 2),
+         "Hispanic/Latino (any race) (%)" = round(percent_hispanic_latino*100, 2),
+         "Pacific Islander (%)" = round(percent_pacific_islander*100, 2),
+         "White (%)" = round(percent_white*100, 2),
+         "Two or more races (not Hispanic/Latino) (%)" = round(percent_two_plus*100, 2),
+         "Race/ethnicity not reported (%)" = round(percent_not_reported*100, 2),
+         "Chronic absenteeism (%)" = as.numeric(chronic_absenteeism_rate),
+         "Suspension rate (%)" = as.numeric(suspension_rate), 
+         "Free meal eligibility (%)" = free_lunch_percent, 
+         "Free/reduced-price meal eligibility (%)" = frpm_percent, 
+         "English learners (%)" = round(english_learner_percent*100, 2),
+         "English standard met or exceeded (%)" = as.numeric(english_standard_met), 
+         "Math standard met or exceeded (%)" = as.numeric(math_standard_met), 
+         "Science standard met or exceeded (%)" = as.numeric(science_standard_met), 
+         "Overall mean of standards met or exceeded (%)" = round(as.numeric(overall_standard_met), 2)) %>% 
+  select("PM25",
+         "School enrollment (n)",
+         "Female (%)",
+         "African American (%)",
+         "American Indian or Alaska Native (%)",
+         "Asian (%)",
+         "Filipino (%)",
+         "Hispanic/Latino (any race) (%)",
+         "Pacific Islander (%)",
+         "White (%)",
+         "Two or more races (not Hispanic/Latino) (%)",
+         "Race/ethnicity not reported (%)",
+         "Chronic absenteeism (%)",
+         "Suspension rate (%)", 
+         "Free meal eligibility (%)", 
+         "Free/reduced-price meal eligibility (%)", 
+         "English learners (%)",
+         "English standard met or exceeded (%)", 
+         "Math standard met or exceeded (%)", 
+         "Science standard met or exceeded (%)", 
+         "Overall mean of standards met or exceeded (%)") %>% 
+  st_drop_geometry() %>% 
+  as.data.frame()
+
+
+
+# create a list of variables for the table
+# (not including the stratification variable)
+table_one_variables <- 
+  c(     "School enrollment (n)",
+         "Female (%)",
+         "African American (%)",
+         "American Indian or Alaska Native (%)",
+         "Asian (%)",
+         "Filipino (%)",
+         "Hispanic/Latino (any race) (%)",
+         "Pacific Islander (%)",
+         "White (%)",
+         "Two or more races (not Hispanic/Latino) (%)",
+         "Race/ethnicity not reported (%)",
+         "Chronic absenteeism (%)",
+         "Suspension rate (%)", 
+         "Free meal eligibility (%)", 
+         "Free/reduced-price meal eligibility (%)", 
+         "English learners (%)",
+         "English standard met or exceeded (%)", 
+         "Math standard met or exceeded (%)", 
+         "Science standard met or exceeded (%)", 
+         "Overall mean of standards met or exceeded (%)")
+
+table_one <- CreateTableOne(vars = table_one_variables,
+                            # factorVars = factor_variables,
+                            strata = "PM25",
+                            data = data_for_table_one,
+                            test = FALSE,
+                            includeNA = TRUE)
+
+save(table_one, 
+     file = "table_one.rdata")
+
+# Creates a formatted table, using kable from the knitr package
+# Would want to clean this up for publication purposes:
+hi <- kable(print(table_one,
+                  showAllLevels = TRUE,
+                  printToggle = FALSE,
+                  noSpaces = TRUE,
+                  catDigits = 1,
+                  contDigits = 1),
+            col.names = c("", "Mean PM2.5 <= 12 ug/m3", "Mean PM2.5 > 12 ug/m3"),
+            caption=paste(".  Descriptive statistics for California public schools in 2018-19, stratified by 2018 mean PM2.5 concentration.")) %>% 
+  kable_styling("striped")
+
+hi
+
+
+expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))
+
+# make plots
+
+# histogram for test scores
+ggplot(data = data_for_table_one, 
+       aes(x = `Overall mean of standards met or exceeded (%)`)) +
+  geom_histogram(binwidth = 1) +
+  xlab("Mean percentage of students who met or exceeded standard across \nEnglish, science, and math in 2018-19") +
+  ylab("Count")
+
+# histogram for air pollution
+ggplot(data = causal_inference_preliminary_dataset, 
+       aes(x = modeled_air_at_school)) +
+  geom_histogram(binwidth = 0.1) +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Count")
+
+# make basic scatterplot with line through it
 ggplot(data = causal_inference_preliminary_dataset, 
        aes(x = modeled_air_at_school, 
            y = overall_standard_met)) +
   geom_point(color = "blue", alpha = 0.5) +
-  geom_smooth(method=lm, 
+  geom_smooth(method=loess, 
               se=TRUE, 
               color="darkred") +
   xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
-  ylab("Mean Percentage of Students Met or Exceeded Standard \n(English, Science, and Math) in 2018-19")
-  
-library(tableone)
+  ylab("Mean Percentage of Students Who Met or Exceeded Standard \n(English, Science, and Math) in 2018-19")
 
+# get basic summary statistics
+mean(causal_inference_preliminary_dataset$overall_standard_met)
+summary(causal_inference_preliminary_dataset$overall_standard_met)
+sd(causal_inference_preliminary_dataset$overall_standard_met)
 
 
 
@@ -1599,37 +1860,26 @@ load(file = file.path("intermediate_data", "air_cropped.rdata"))
 # plot air data
 plot(air_cropped)
 
+dev.off()
+
+load(file = file.path("intermediate_data", "california_shapefile.rdata"))
+
 # make plot of modeled air at each school
-plot(causal_inference_preliminary_dataset["modeled_air_at_school"], pch=16, cex=0.4)
+plot.new()
 
-# plot both!
-plot(air_cropped)
-plot(causal_inference_preliminary_dataset, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
+library(RColorBrewer)
 
-# number of students
+plot(california_shapefile[1], main=NULL, color=rgb(1, 1, 1, alpha = 1), border = "black", add=TRUE)
+plot(causal_inference_preliminary_dataset["modeled_air_at_school"], pch=16, cex=0.4, 
+     xlab=NULL, ylab=NULL, main=NULL)
+title(main = expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018")))
 
-# number of schools by pm
-number_of_schools <- 
-  causal_inference_preliminary_dataset %>% 
-  group_by(pm25_12_plus) %>% 
-  summarise(number = n())
+# plot test scores
+plot(causal_inference_preliminary_dataset["overall_standard_met"], pch=16, cex=0.4, 
+     xlab=NULL, ylab=NULL, main=NULL, pal=brewer.pal(10, "RdYlGn"))
 
-# students by grade
-
-# students by grade, pm
-
-# percent by gender, pm
-
-# percent by grade, pm
-
-# cds_codes_no_pm_values <- 
-#   no_pm_values %>% 
-#   pull(cds_code_18_19) %>% 
-#   unique()
-#   
-# schools_without_pm_sf <- 
-#   causal_inference_preliminary_dataset %>% 
-#   filter(cds_code_18_19 %in% cds_codes_no_pm_values)
+mean(causal_inference_preliminary_dataset$modeled_air_at_school)
+sd(causal_inference_preliminary_dataset$modeled_air_at_school)
 
 ```
 
