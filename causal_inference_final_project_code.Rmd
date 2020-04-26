@@ -17,6 +17,8 @@ library(ggmap)
 library(nngeo)
 library(tableone)
 library(kableExtra)
+library(furniture)
+library(RColorBrewer)
 
 # stop r from abbreviating doubles in school ids
 options("scipen" = 40)
@@ -850,6 +852,33 @@ rm(list = ls(all.names = TRUE))
 
 ## school data
 
+```{r make county code name concordance from frpm data}
+
+# load column name fixer
+load(file = file.path("functions", "column_name_fixer.rdata"))
+
+# read data 2018-19
+free_reduced_lunch_from_raw <-
+  readxl::read_excel(
+    file.path(
+      "raw_data", 
+      "frpm1819.xlsx"), 
+    sheet = 2, 
+    skip = 1)
+
+county_code_concordance <-
+  free_reduced_lunch_from_raw %>% 
+  column_name_fixer() %>% 
+  select(county_name, county_code) %>% 
+  unique()
+
+save(county_code_concordance, 
+     file = file.path("intermediate_data", 
+                      "county_code_concordance.rdata"))
+
+```
+
+
 ```{r read school enrollment data and save as .rdata files}
 
 # make function to read them all into r from tab-delimited files
@@ -919,8 +948,8 @@ map(
   .x = start_years
 )
 
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
   
 ```
 
@@ -982,7 +1011,7 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-```{r read and save expense per pupil data}
+```{r read and save expense per pupil funding data}
 
 # load column name fixer
 load(file = file.path("functions", "column_name_fixer.rdata"))
@@ -993,12 +1022,17 @@ expense_per_pupil_from_raw <-
     file.path(
       "raw_data", 
       "currentexpense1819.xlsx"), 
-    sheet = 2, 
-    skip = 1)
+    sheet = 1, 
+    skip = 10)
 
+# make final set for inclusion into school dataset
 expense_per_pupil <- 
   expense_per_pupil_from_raw %>% 
-  column_name_fixer() 
+  column_name_fixer() %>% 
+  select(cds_county_code_from_expense_per_pupil = co, 
+         cds_district_code = cds, 
+         district_from_expense_per_pupil = district, 
+         cost_per_pupil = "current\r\nexpense_per_ada")
 
 # save .rdata file to intermediate data
 save(expense_per_pupil,
@@ -1011,11 +1045,15 @@ save(expense_per_pupil,
 ```
 
 
-
 ```{r read and save school fte data}
 
 # load column name fixer
-load(file = file.path("functions", "column_name_fixer.rdata"))
+load(file = file.path("functions", 
+                      "column_name_fixer.rdata"))
+
+# load county code concordance
+load(file = file.path("intermediate_data", 
+                      "county_code_concordance.rdata"))
 
 # read in data
 school_fte_from_raw <- 
@@ -1023,13 +1061,39 @@ school_fte_from_raw <-
                               "StaffSchoolFTE18.txt"), 
              delim = "\t") 
 
-# save it
+individual_fte <- 
+  school_fte_from_raw %>% 
+  column_name_fixer() %>% 
+  rename(district_code = districtcode, 
+         school_code = schoolcode, 
+         county_name = countyname) %>% 
+  left_join(county_code_concordance, 
+            by = "county_name") %>% 
+  mutate(cds_code = paste0(district_code, school_code))
+
+# total teacher fte by school
+school_teacher_fte <- 
+  individual_fte %>% 
+  filter(stafftype == "T") %>%  # filter to teachers
+  group_by(cds_code) %>% 
+  summarise(fte_school = sum(fte)) %>% 
+  mutate(teachers = fte_school/40)
+  
+# save files
 save(school_fte_from_raw, 
      file = file.path("intermediate_data", 
                       "school_fte_from_raw.rdata"))
 
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
+save(individual_fte, 
+     file = file.path("intermediate_data", 
+                      "school_fte_from_raw.rdata"))
+
+save(school_teacher_fte, 
+     file = file.path("intermediate_data", 
+                      "school_teacher_fte.rdata"))
+
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -1313,24 +1377,18 @@ load(
 )
 
 # fix variable names for school enrollment
-school_enrollment_2018_19_working <- 
+school_enrollment_working <- 
   column_name_fixer(school_enrollment_2018_19_working_from_raw) %>%
-  rename(
-    cds_code_18_19 = cds_code,
-    county_18_19 = county, 
-    district_18_19 = district, 
-    school_18_19 = school
-  ) %>% 
    mutate(
-     cds_school_code_18_19 = str_sub(cds_code_18_19, 
-                                     start = -7), 
+     cds_school_code = str_sub(cds_code, 
+                               start = -7), 
      
      )
 
 # fix school enrollment data to eliminate nonpublic nonsec schools
-school_enrollment_2018_19_no_nonsec <- 
-  school_enrollment_2018_19_working %>% 
-  filter(school_18_19 != "Nonpublic, Nonsectarian Schools")
+school_enrollment_no_nonsec <- 
+  school_enrollment_working %>% 
+  filter(school != "Nonpublic, Nonsectarian Schools")
 
 # public school directory
 public_school_directory_working <- 
@@ -1344,13 +1402,13 @@ public_school_directory_working <-
                                        start = -7))
 
 # get unique schools in 2018-19
-unique_schools_2018_19 <- 
-  school_enrollment_2018_19_working %>% 
-  select(cds_code_18_19, 
-         cds_school_code_18_19, 
-         county_18_19, 
-         district_18_19, 
-         school_18_19) %>% 
+unique_schools <- 
+  school_enrollment_working %>% 
+  select(cds_code, 
+         cds_school_code, 
+         county, 
+         district, 
+         school) %>% 
   unique()  # each of these has a unique cds code
 
 # get lat/longs from public school directory
@@ -1372,25 +1430,25 @@ school_directory_lat_long <-
 # # note, this is not zero!  beware!
 
 # get cds codes for schools 2018-19
-schools_2018_19 <- 
-  school_enrollment_2018_19_working %>% 
+schools_from_enroll <- 
+  school_enrollment_working %>% 
   dplyr::select(
-    cds_code_18_19, 
-    cds_school_code_18_19, 
-    county_18_19,
-    district_18_19,
-    school_18_19) %>% 
+    cds_code, 
+    cds_school_code, 
+    county,
+    district,
+    school) %>% 
   unique()
 
 # merge two
-school_lat_long_2018_19_first_try <- 
-  schools_2018_19 %>% 
+school_lat_long_first_try <- 
+  schools_from_enroll %>% 
   left_join(school_directory_lat_long, 
-            by = c("cds_code_18_19" =  "cds_code_dir"))
+            by = c("cds_code" =  "cds_code_dir"))
 
 # filter missing latitudes and longitudes
-school_lat_long_2018_19_no_missing <- 
-  school_lat_long_2018_19_first_try %>% 
+school_lat_long_no_missing <- 
+  school_lat_long_first_try %>% 
   filter(!is.na(latitude)) %>% 
   filter(!is.na(longitude)) %>% 
   filter(longitude != "No Data") %>% 
@@ -1400,20 +1458,20 @@ school_lat_long_2018_19_no_missing <-
 # get cds codes of schools in 2018-19 dataset without lat_longs
 cds_codes_no_lat_long <- 
   setdiff(
-    unique(schools_2018_19$cds_code_18_19), 
-    unique(school_lat_long_2018_19_no_missing$cds_code_18_19)
+    unique(schools_from_enroll$cds_code), 
+    unique(school_lat_long_no_missing$cds_code)
   )
 
 # isolate schools with no lat/long
 # (cds_code, cds_school_code, county, district, school)
-schools_2018_19_lat_long_missing <- 
-  schools_2018_19 %>% 
-  filter(cds_code_18_19 %in% cds_codes_no_lat_long) 
+schools_from_enroll_lat_long_missing <- 
+  schools_from_enroll %>% 
+  filter(cds_code %in% cds_codes_no_lat_long) 
 
 # exclude nonpublic and nonsectarian schools
-schools_2018_19_lat_long_missing_no_nonsec <- 
-  schools_2018_19_lat_long_missing %>% 
-  filter(!(school_18_19 == "Nonpublic, Nonsectarian Schools"))
+schools_from_enroll_lat_long_missing_no_nonsec <- 
+  schools_from_enroll_lat_long_missing %>% 
+  filter(!(school == "Nonpublic, Nonsectarian Schools"))
 
 # find which schools missing lat/longs are in the directory
 school_directory_no_lat_long <- 
@@ -1423,22 +1481,22 @@ school_directory_no_lat_long <-
 # match on cds code
 schools_no_lat_long_matched_by_cds_school_code_only <- 
   left_join(
-    schools_2018_19_lat_long_missing_no_nonsec, 
+    schools_from_enroll_lat_long_missing_no_nonsec, 
     school_directory_lat_long, 
-    by = c("cds_school_code_18_19" = "cds_school_code_dir")
+    by = c("cds_school_code" = "cds_school_code_dir")
     ) 
 
 # pull long valley longitude
 long_valley_longitude <- 
   schools_no_lat_long_matched_by_cds_school_code_only %>% 
-  filter(cds_school_code_18_19 == "6010763" &  # remove no-data long view record
+  filter(cds_school_code == "6010763" &  # remove no-data long view record
            !(longitude == "No Data")) %>% 
   pull(longitude)
 
 # pull long valley latitude
 long_valley_latitude <- 
   schools_no_lat_long_matched_by_cds_school_code_only %>% 
-  filter(cds_school_code_18_19 == "6010763" &  # remove no-data long view record
+  filter(cds_school_code == "6010763" &  # remove no-data long view record
            !(latitude == "No Data")) %>% 
   pull(latitude)
   
@@ -1446,29 +1504,29 @@ long_valley_latitude <-
 schools_missing_lat_long_fixed <- 
   schools_no_lat_long_matched_by_cds_school_code_only %>% 
   # remove long view record that doesn't correspond to 18-19 data
-  filter(!(cds_school_code_18_19 == "6010763" &  
+  filter(!(cds_school_code == "6010763" &  
              latitude != "No Data")) %>% 
-  mutate(man_longitude = ifelse(cds_school_code_18_19 == "6010763", 
+  mutate(man_longitude = ifelse(cds_school_code == "6010763", 
                                 long_valley_longitude,
                                 longitude), 
-         man_latitude = ifelse(cds_school_code_18_19 == "6010763", 
+         man_latitude = ifelse(cds_school_code == "6010763", 
                                long_valley_latitude,
                                latitude)) %>% 
-  select(c(cds_code_18_19,
+  select(c(cds_code,
            man_longitude, 
            man_latitude))  # remove latitude and longitude columns
 
 # merge with prior dataset
 schools_lat_long_merge <-
-  school_lat_long_2018_19_first_try %>%
+  school_lat_long_first_try %>%
   left_join(schools_missing_lat_long_fixed,
-            by = "cds_code_18_19")
+            by = "cds_code")
 
 # make final school dataset
 schools_lat_long_complete <-
   schools_lat_long_merge %>%
   # remove 397 nonpublic, nonsectarian schools
-  filter(!(school_18_19 == "Nonpublic, Nonsectarian Schools")) %>%
+  filter(!(school == "Nonpublic, Nonsectarian Schools")) %>%
   mutate(longitude = ifelse(longitude == "No Data",
                             man_longitude,
                             longitude),
@@ -1482,43 +1540,44 @@ schools_lat_long_complete <-
          latitude = ifelse(is.na(latitude),
                             man_latitude,
                             latitude),
-         latitude = as.numeric(latitude)) %>%
+         latitude = as.numeric(latitude), 
+         cds_county_code = substr(cds_code, 1, 2),
+         cds_district_code = substr(cds_code, 3, 7)) %>%
   select(-c(district_dir,  # note that some of these differ
             school_dir,  # note that some of these differ
             man_longitude,
             man_latitude)) # drop directory and manual columns
 
 # make into sf format for mapping
-schools_2018_19_sf <-
+schools_sf <-
   st_as_sf(
     schools_lat_long_complete,
     coords =
       c("longitude",
         "latitude"),
-    crs = st_crs(air_cropped)
-  )
+    crs = st_crs(air_cropped))
 
 # join school files with rest of data
-school_enroll_2018_19_sf <-
+school_enroll_sf <-
   right_join(
-    schools_2018_19_sf,
-    school_enrollment_2018_19_no_nonsec,
+    schools_sf,
+    school_enrollment_no_nonsec,
     by = c(
-      "cds_code_18_19",
-      "cds_school_code_18_19",
-      "county_18_19",
-      "district_18_19",
-      "school_18_19"
+      "cds_code",
+      "cds_school_code",
+      "county",
+      "district",
+      "school"
       )
   )
 
 # save created files
 save(
-  school_enrollment_2018_19_no_nonsec,
+  school_enrollment_no_nonsec,
   file =
     file.path(
       "intermediate_data",
-      "school_enrollment_2018_19_no_nonsec.rdata"
+      "school_enrollment_no_nonsec.rdata"
       )
   )
 
@@ -1532,20 +1591,20 @@ save(
   )
 
 save(
-  schools_2018_19_sf,
+  schools_sf,
   file =
     file.path(
       "intermediate_data",
-      "schools_2018_19_sf.rdata"
+      "schools_sf.rdata"
       )
   )
 
 save(
-  school_enroll_2018_19_sf,
+  school_enroll_sf,
   file =
     file.path(
       "intermediate_data",
-      "school_enroll_2018_19_sf.rdata"
+      "school_enroll_sf.rdata"
       )
   )
 
@@ -1591,28 +1650,28 @@ load(
   file =
     file.path(
       "intermediate_data",
-      "schools_2018_19_sf.rdata")
+      "schools_sf.rdata")
     )
 
 # rename school thing
-school_to_get_air_2018_19_sf <-
-  schools_2018_19_sf
+school_to_get_air_sf <-
+  schools_sf
 
 # extract values of air data at schools
-school_to_get_air_2018_19_sf$modeled_air_at_school <-
+school_to_get_air_sf$modeled_air_at_school <-
   raster::extract(
     air_cropped,
-    school_to_get_air_2018_19_sf
+    school_to_get_air_sf
   )
 
 # create new binary variable for pm2.5 over/under 12 ug/m3
-school_to_get_air_2018_19_sf <- 
-  school_to_get_air_2018_19_sf %>% 
+school_to_get_air_sf <- 
+  school_to_get_air_sf %>% 
   mutate(pm25_12_plus = ifelse(modeled_air_at_school > 12, "yes", "no"))
 
 # detect the air district containing each school
-school_air_district_no_basin_2018_19_sf <- 
-  school_to_get_air_2018_19_sf %>% 
+school_air_district_no_basin_sf <- 
+  school_to_get_air_sf %>% 
   st_join(
     air_districts["NAME"], 
     left = TRUE
@@ -1620,8 +1679,8 @@ school_air_district_no_basin_2018_19_sf <-
   rename(air_district = NAME)
 
 # detect the air basin containing each school
-school_air_2018_19_sf <- 
-  school_air_district_no_basin_2018_19_sf %>% 
+school_air_sf <- 
+  school_air_district_no_basin_sf %>% 
   st_join(
     air_basins["NAME"],
     left = TRUE
@@ -1630,16 +1689,25 @@ school_air_2018_19_sf <-
 
 # save new sf with air at school
 save(
-  school_air_2018_19_sf,
+  school_air_sf,
   file = file.path("intermediate_data",
-                   "school_air_2018_19_sf.rdata"))
+                   "school_air_sf.rdata"))
+
+school_air_na <- 
+  school_air_sf %>% 
+  filter(is.na(modeled_air_at_school))
+
+plot(air_cropped)
+plot(school_air_sf_nas, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
+
+mapview::mapView(school_air_na)
 
 # # make plot
-# plot(school_air_2018_19_sf["modeled_air_at_school"], pch=16, cex=0.4)
+# plot(school_air_sf["modeled_air_at_school"], pch=16, cex=0.4)
 
 # # plot all 3!
 # plot(air_cropped)
-# plot(school_air_2018_19_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
+# plot(school_air_sf, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
 # plot(all_monitors_no_duplicates_sf, pch=16, cex=0.2, col="red", add=TRUE)
  
 # # remove all objects from the environment
@@ -1652,10 +1720,10 @@ save(
 ```{r making the final dataset}
 
 load(file = file.path("intermediate_data", 
-                      "school_air_2018_19_sf.rdata"))
+                      "school_air_sf.rdata"))
 
 load(file = file.path("intermediate_data",
-                      "school_enrollment_2018_19_no_nonsec.rdata"))
+                      "school_enrollment_no_nonsec.rdata"))
 
 load(file = file.path("intermediate_data",
                       "absentee.rdata"))
@@ -1678,12 +1746,16 @@ load(file = file.path("intermediate_data",
 load(file = file.path("intermediate_data",
                       "english_learners.rdata"))
 
-library(furniture)
+load(file = file.path("intermediate_data", 
+                      "expense_per_pupil.rdata"))
+
+load(file = file.path("intermediate_data", 
+                      "school_teacher_fte.rdata"))
 
 # aggregate counts by ethnicity and gender
 ethnicity_grade_by_school <- 
-  school_enrollment_2018_19_no_nonsec %>% 
-  select(c(cds_code_18_19, 
+  school_enrollment_no_nonsec %>% 
+  select(c(cds_code, 
            ethnic, 
            gender,
            enr_total)) %>% 
@@ -1705,23 +1777,30 @@ ethnicity_grade_by_school <-
               values_from = enr_total, 
               values_fill = list(enr_total = 0)) %>% 
   mutate(school_k_12_enrollment = rowSums(.[2:ncol(.)])) %>%   # get total enrollment
-  select(cds_code_18_19, school_k_12_enrollment, sort(names(.)))  # sort columns
-  
+  select(cds_code, school_k_12_enrollment, sort(names(.)))  # sort columns
+
 # make the final dataset
 school_air_ethnicity_gender <- 
-  school_air_2018_19_sf %>% 
+  school_air_sf %>% 
   left_join(ethnicity_grade_by_school, 
-            by = "cds_code_18_19") %>% 
-  select(-c(cds_school_code_18_19, cds_school_code_dir, county_dir)) %>% 
-  rename(cds_code = cds_code_18_19)
+            by = "cds_code") %>% 
+  select(-c(cds_school_code, 
+            cds_school_code_dir, 
+            county_dir))
 
 school_all_covariates <- 
   school_air_ethnicity_gender %>% 
   left_join(absentee, by = "cds_code") %>% 
   left_join(suspensions, by = "cds_code") %>% 
   left_join(free_reduced_lunch, by = "cds_code") %>% 
-  left_join(english_learners, by = "cds_code")
-  
+  left_join(english_learners, by = "cds_code") %>% 
+  left_join(expense_per_pupil, by = "cds_district_code") %>% 
+  left_join(school_teacher_fte, by = "cds_code")
+
+save(school_all_covariates, 
+     file = file.path("intermediate_data", 
+                      "school_all_covariates.rdata"))
+
 school_all_covariates_english <- 
   school_all_covariates %>% 
   left_join(english_aggregate, 
@@ -1736,6 +1815,33 @@ schools_all_data <-
   school_all_covariates_english_math %>% 
   left_join(science_aggregate, 
             by = "cds_code")
+
+save(schools_all_data, 
+     file = file.path("intermediate_data", 
+                      "schools_all_data.rdata"))
+
+# look rows with nas
+View(schools_all_data)
+
+sum(is.na(schools_all_data$modeled_air_at_school))
+sum(is.na(schools_all_data$air_district))
+sum(is.na(schools_all_data$air_basin))
+sum(is.na(schools_all_data$school_k_12_enrollment))
+sum(is.na(schools_all_data$chronic_absenteeism_rate))
+sum(is.na(schools_all_data$suspension_rate))
+sum(is.na(schools_all_data$frpm_percent))
+sum(is.na(schools_all_data$english_learners))
+sum(is.na(schools_all_data$cost_per_pupil))
+sum(is.na(schools_all_data$fte_school))
+sum(is.na(schools_all_data$english_standard_met))
+sum(is.na(schools_all_data$math_standard_met))
+sum(is.na(schools_all_data$science_standard_met))
+
+
+colnames(schools_all_data)
+
+
+
 
 # drop records missing exposure or outcomes
 causal_inference_preliminary_dataset_prior <-
@@ -1968,8 +2074,6 @@ load(file = file.path("intermediate_data", "california_shapefile.rdata"))
 
 # make plot of modeled air at each school
 plot.new()
-
-library(RColorBrewer)
 
 plot(california_shapefile[1], main=NULL, color=rgb(1, 1, 1, alpha = 1), border = "black", add=TRUE)
 plot(causal_inference_preliminary_dataset["modeled_air_at_school"], pch=16, cex=0.4, 
