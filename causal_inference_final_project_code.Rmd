@@ -332,6 +332,31 @@ if(!file.exists(file.path("raw_data",
 ```
 
 
+## school full-time equivalents
+
+```{r download school fte data}
+
+# download teaching credential data 2018-19
+if(!file.exists(file.path("raw_data", 
+                          "StaffSchoolFTE18.txt"))) {
+download.file(
+  url = "ftp://ftp.cde.ca.gov/demo/staffclass/StaffSchoolFTE18.txt", 
+  destfile = 
+    file.path(
+      "raw_data", 
+      "StaffSchoolFTE18.txt"
+    ), 
+  method = 'libcurl'
+  )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+}
+
+```
+
+
+
 ## teaching credentials
 
 ```{r download teaching credential data}
@@ -351,6 +376,31 @@ download.file(
   
   # remove all objects from the environment
   rm(list = ls(all.names = TRUE))
+}
+
+```
+
+## per-pupil funding
+
+```{r download per-pupil funding data}
+
+# download poverty data 2018-19
+if(!file.exists(file.path("raw_data", 
+                          "currentexpense1819.xlsx"))) {
+
+  download.file(
+    url = "https://www.cde.ca.gov/ds/fd/ec/documents/currentexpense1819.xlsx", 
+    destfile = 
+      file.path(
+        "raw_data", 
+        "currentexpense1819.xlsx"
+      ), 
+    mode = 'wb'
+    )
+  
+  # remove all objects from the environment
+  rm(list = ls(all.names = TRUE))
+
 }
 
 ```
@@ -909,7 +959,7 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-```{r teacher credential data}
+```{r read and save teacher credential data}
 
 # load column name fixer
 load(file = file.path("functions", "column_name_fixer.rdata"))
@@ -928,6 +978,58 @@ save(teacher_credentials_from_raw,
 # remove all objects from the environment
 rm(list = ls(all.names = TRUE))
 
+
+```
+
+
+```{r read and save expense per pupil data}
+
+# load column name fixer
+load(file = file.path("functions", "column_name_fixer.rdata"))
+
+# read data 2018-19
+expense_per_pupil_from_raw <-
+  readxl::read_excel(
+    file.path(
+      "raw_data", 
+      "currentexpense1819.xlsx"), 
+    sheet = 2, 
+    skip = 1)
+
+expense_per_pupil <- 
+  expense_per_pupil_from_raw %>% 
+  column_name_fixer() 
+
+# save .rdata file to intermediate data
+save(expense_per_pupil,
+     file = file.path("intermediate_data", 
+                      "expense_per_pupil.rdata"))
+
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
+
+```
+
+
+
+```{r read and save school fte data}
+
+# load column name fixer
+load(file = file.path("functions", "column_name_fixer.rdata"))
+
+# read in data
+school_fte_from_raw <- 
+  read_delim(file = file.path("raw_data", 
+                              "StaffSchoolFTE18.txt"), 
+             delim = "\t") 
+
+# save it
+save(school_fte_from_raw, 
+     file = file.path("intermediate_data", 
+                      "school_fte_from_raw.rdata"))
+
+# remove all objects from the environment
+rm(list = ls(all.names = TRUE))
 
 ```
 
@@ -1173,6 +1275,15 @@ save(suspensions,
 
 ```{r make school sf and non-sf files 2018-2019}
 
+# load function to make variable names snake case
+load(
+  file = 
+    file.path(
+      "functions", 
+      "column_name_fixer.rdata"
+    )
+)
+
 # load relevant files
 # 2018-19 enrollment
 load(
@@ -1189,15 +1300,6 @@ load(
     file.path(
       "intermediate_data", 
       "public_school_directory_working_from_raw.rdata"
-    )
-)
-
-# load function to make variable names snake case
-load(
-  file = 
-    file.path(
-      "functions", 
-      "column_name_fixer.rdata"
     )
 )
 
