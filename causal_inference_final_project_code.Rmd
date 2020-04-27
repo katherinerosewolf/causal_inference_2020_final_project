@@ -828,9 +828,7 @@ air_cropped <-
   raster::crop(
     asc_air_data, 
     california_sp) %>%  # crop air data to the bounding box
-  raster::mask(
-    california_sp
-  )
+  raster::mask(california_sp)
 
 # save cropped air data
 save(
@@ -1641,7 +1639,7 @@ load(
   file = 
     file.path(
       "intermediate_data", 
-      "air_cropped.rdata"
+      "asc_air_data.rdata"
     )
 )
 
@@ -1654,15 +1652,32 @@ load(
     )
 
 # rename school thing
-school_to_get_air_sf <-
+schools_to_get_air_sf <-
   schools_sf
 
 # extract values of air data at schools
-school_to_get_air_sf$modeled_air_at_school <-
-  raster::extract(
-    air_cropped,
-    school_to_get_air_sf
-  )
+schools_to_get_air_sf$modeled_air_at_school <-
+  raster::extract(asc_air_data,
+                  school_to_get_air_sf)
+
+save(schools_to_get_air, 
+     file = file.path("intermediate_data", 
+                      "schools_to_get_air.rdata"))
+
+# filter to nas
+school_holdouts_to_get_air <- filter(schools_to_get_air_sf, 
+                                     is.na(modeled_air_at_school))
+
+# extract values for three that didn't get them the first time
+school_holdouts_to_get_air$modeled_air_at_school <- 
+  raster::extract(asc_air_data,
+                  school_to_get_air_sf, 
+                  buffer = 100, 
+                  fun = mean, 
+                  na.rm = TRUE)
+
+nas <- filter(school_air_sf, 
+              is.na(modeled_air_at_school))
 
 # create new binary variable for pm2.5 over/under 12 ug/m3
 school_to_get_air_sf <- 
@@ -1697,10 +1712,8 @@ school_air_na <-
   school_air_sf %>% 
   filter(is.na(modeled_air_at_school))
 
-plot(air_cropped)
-plot(school_air_sf_nas, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
-
-mapview::mapView(school_air_na)
+# plot(air_cropped)
+# plot(school_air_na, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
 
 # # make plot
 # plot(school_air_sf["modeled_air_at_school"], pch=16, cex=0.4)
@@ -1819,9 +1832,6 @@ schools_all_data <-
 save(schools_all_data, 
      file = file.path("intermediate_data", 
                       "schools_all_data.rdata"))
-
-# look rows with nas
-View(schools_all_data)
 
 sum(is.na(schools_all_data$modeled_air_at_school))
 sum(is.na(schools_all_data$air_district))
