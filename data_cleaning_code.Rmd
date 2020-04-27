@@ -1880,32 +1880,72 @@ full_data <-
                              pacific_islander_nh_F +
                              two_plus_nh_F +
                              white_nh_F)/school_k_12_enrollment)*100,
-         percent_afr_am = ((african_american_nh_F + african_american_nh_M)/
+         afr_am_percent = ((african_american_nh_F + 
+                              african_american_nh_M)/
                              school_k_12_enrollment)*100, 
-         percent_aian = ((american_indian_alaska_native_nh_F +
+         aian_percent = ((american_indian_alaska_native_nh_F +
                             american_indian_alaska_native_nh_M)/
                              school_k_12_enrollment)*100, 
-         percent_asian = ((asian_nh_F +
+         asian_percent = ((asian_nh_F +
                             asian_nh_M)/
                             school_k_12_enrollment)*100, 
-         percent_filipino = ((filipino_nh_F +
+         filipino_percent = ((filipino_nh_F +
                             filipino_nh_M)/
                             school_k_12_enrollment)*100, 
-         percent_hispanic_latino = ((hispanic_latino_F +
+         hisp_latinx_percent = ((hispanic_latino_F +
                             hispanic_latino_M)/
                             school_k_12_enrollment)*100, 
-         percent_pacific_islander = ((pacific_islander_nh_F +
+         pacific_islander_percent = ((pacific_islander_nh_F +
                             pacific_islander_nh_M)/
                             school_k_12_enrollment)*100, 
-         percent_white  = ((white_nh_F +
+         white_percent  = ((white_nh_F +
                             white_nh_M)/
                             school_k_12_enrollment)*100, 
-         percent_two_plus = ((two_plus_nh_F +
+         two_plus_percent = ((two_plus_nh_F +
                             two_plus_nh_M)/
                             school_k_12_enrollment)*100,
-         percent_not_reported = ((not_reported_F +
+         not_reported_percent = ((not_reported_F +
                             not_reported_M)/
                             school_k_12_enrollment)*100, 
+         asian_filipino_percent = ((asian_nh_F +
+                                         asian_nh_M +
+                                         filipino_nh_F +
+                                         filipino_nh_M)/
+                                        school_k_12_enrollment)*100,
+         aian_pi_percent = ((american_indian_alaska_native_nh_F +
+                               american_indian_alaska_native_nh_M +
+                               pacific_islander_nh_F +
+                               pacific_islander_nh_M)/
+                              school_k_12_enrollment)*100, 
+         two_none_percent = ((two_plus_nh_F +
+                                   two_plus_nh_M +
+                                   not_reported_F +
+                                   not_reported_M)/
+                                  school_k_12_enrollment)*100,
+         two_none_aian_pi_percent = ((two_plus_nh_F +
+                                        two_plus_nh_M +
+                                        not_reported_F +
+                                        not_reported_M +
+                                        american_indian_alaska_native_nh_F +
+                                        american_indian_alaska_native_nh_M +
+                                        pacific_islander_nh_F +
+                                        pacific_islander_nh_M)/
+                                       school_k_12_enrollment)*100,
+         not_white_latinx_percent = ((two_plus_nh_F +
+                                          two_plus_nh_M +
+                                          not_reported_F +
+                                          not_reported_M +
+                                          american_indian_alaska_native_nh_F +
+                                          american_indian_alaska_native_nh_M +
+                                          pacific_islander_nh_F +
+                                          pacific_islander_nh_M +
+                                          african_american_nh_F +
+                                          african_american_nh_M + 
+                                          asian_nh_F +
+                                          asian_nh_M +
+                                          filipino_nh_F +
+                                          filipino_nh_M)/
+                                       school_k_12_enrollment)*100,
          pm25_12_plus = factor(pm25_12_plus), 
          chronic_absenteeism_rate = as.numeric(chronic_absenteeism_rate), 
          suspension_rate = as.numeric(suspension_rate), 
@@ -1940,15 +1980,20 @@ full_data_analysis_variables <-
          air_basin, 
          school_k_12_enrollment, 
          percent_female, 
-         percent_afr_am, 
-         percent_aian, 
-         percent_asian, 
-         percent_filipino, 
-         percent_hispanic_latino, 
-         percent_pacific_islander, 
-         percent_white, 
-         percent_two_plus, 
-         percent_not_reported,
+         afr_am_percent, 
+         aian_percent, 
+         asian_percent, 
+         filipino_percent, 
+         hisp_latinx_percent, 
+         pacific_islander_percent, 
+         white_percent, 
+         two_plus_percent, 
+         not_reported_percent,
+         asian_filipino_percent,
+         aian_pi_percent, 
+         two_none_percent,
+         two_none_aian_pi_percent,
+         not_white_latinx_percent,
          english_learners,
          english_learner_percent,
          chronic_absenteeism_rate, 
@@ -1966,28 +2011,6 @@ full_data_analysis_variables <-
          overall_standard_met) %>% 
   st_drop_geometry()
 
-# just analysis variables
-analysis_bare_bones <- 
-  full_data_analysis_variables %>% 
-  select(cds_code, 
-         overall_standard_met, 
-         pm25_12_plus, 
-         air_district, 
-         air_basin, 
-         percent_afr_am, 
-         percent_aian, 
-         percent_asian, 
-         percent_filipino, 
-         percent_hispanic_latino, 
-         percent_pacific_islander, 
-         percent_white, 
-         percent_two_plus, 
-         percent_not_reported,
-         english_learner_percent,
-         frpm_percent, 
-         district_cost_per_pupil, 
-         student_teacher_ratio)
-
 save(full_data, 
      file = file.path("intermediate_data", 
                       "full_data.rdata"))
@@ -1995,10 +2018,6 @@ save(full_data,
 save(full_data_analysis_variables, 
      file = file.path("intermediate_data", 
                       "full_data_analysis_variables.rdata"))
-
-save(analysis_bare_bones, 
-     file = file.path("intermediate_data", 
-                      "analysis_bare_bones.rdata"))
 
 dataset_full <- 
   full_data_analysis_variables
@@ -2023,15 +2042,15 @@ sum(is.na(dataset_full$air_district))
 sum(is.na(dataset_full$air_basin))
 
 sum(is.na(dataset_full$overall_standard_met))
-sum(is.na(dataset_full$percent_afr_am))
-sum(is.na(dataset_full$percent_aian))
-sum(is.na(dataset_full$percent_asian))
-sum(is.na(dataset_full$percent_filipino))
-sum(is.na(dataset_full$percent_hispanic_latino))
-sum(is.na(dataset_full$percent_pacific_islander))
-sum(is.na(dataset_full$percent_white))
-sum(is.na(dataset_full$percent_two_plus))
-sum(is.na(dataset_full$percent_not_reported))
+sum(is.na(dataset_full$afr_am_percent))
+sum(is.na(dataset_full$aian_percent))
+sum(is.na(dataset_full$asian_percent))
+sum(is.na(dataset_full$filipino_percent))
+sum(is.na(dataset_full$hisp_latinx_percent))
+sum(is.na(dataset_full$pacific_islander_percent))
+sum(is.na(dataset_full$white_percent))
+sum(is.na(dataset_full$two_plus_percent))
+sum(is.na(dataset_full$not_reported_percent))
 
 sum(is.na(dataset_full$english_learner_percent))
 sum(is.na(dataset_full$frpm_percent))
@@ -2041,114 +2060,126 @@ sum(is.na(dataset_full$english_standard_met))
 sum(is.na(dataset_full$math_standard_met))
 sum(is.na(dataset_full$science_standard_met))
 
+
 # drop zero-enrollment school (one, now count 10130)
 schools_with_enrollment <- 
   dataset_full %>% 
   filter(school_k_12_enrollment != 0)
 
+
+# check NA counts
+sum(is.na(schools_with_enrollment$overall_standard_met))
+sum(is.na(schools_with_enrollment$pm25_12_plus))
+sum(is.na(schools_with_enrollment$modeled_air_at_school))
+sum(is.na(schools_with_enrollment$air_district))
+sum(is.na(schools_with_enrollment$air_basin))
+
+sum(is.na(schools_with_enrollment$overall_standard_met))
+sum(is.na(schools_with_enrollment$afr_am_percent))
+sum(is.na(schools_with_enrollment$aian_percent))
+sum(is.na(schools_with_enrollment$asian_percent))
+sum(is.na(schools_with_enrollment$filipino_percent))
+sum(is.na(schools_with_enrollment$hisp_latinx_percent))
+sum(is.na(schools_with_enrollment$pacific_islander_percent))
+sum(is.na(schools_with_enrollment$white_percent))
+sum(is.na(schools_with_enrollment$two_plus_percent))
+sum(is.na(schools_with_enrollment$not_reported_percent))
+
+sum(is.na(schools_with_enrollment$english_learner_percent))
+sum(is.na(schools_with_enrollment$frpm_percent))
+sum(is.na(schools_with_enrollment$district_cost_per_pupil))
+sum(is.na(schools_with_enrollment$student_teacher_ratio))
+sum(is.na(schools_with_enrollment$english_standard_met))
+sum(is.na(schools_with_enrollment$math_standard_met))
+sum(is.na(schools_with_enrollment$science_standard_met))
+
 # drop schools without complete outcome data
-schools_exposure_some_outcome <- 
+schools_with_math <- 
   dataset_full %>% 
-  filter(!(is.na(english_standard_met) & 
-           is.na(science_standard_met) & 
-           is.na(math_standard_met)))
+  filter(!is.na(math_standard_met))
+
+nrow(schools_with_math)
 
 # check NA counts
-sum(is.na(schools_exposure_some_outcome$overall_standard_met))
-sum(is.na(schools_exposure_some_outcome$pm25_12_plus))
-sum(is.na(schools_exposure_some_outcome$modeled_air_at_school))
-sum(is.na(schools_exposure_some_outcome$air_district))
-sum(is.na(schools_exposure_some_outcome$air_basin))
+sum(is.na(schools_with_math$overall_standard_met))
+sum(is.na(schools_with_math$pm25_12_plus))
+sum(is.na(schools_with_math$modeled_air_at_school))
+sum(is.na(schools_with_math$air_district))
+sum(is.na(schools_with_math$air_basin))
 
-sum(is.na(schools_exposure_some_outcome$overall_standard_met))
-sum(is.na(schools_exposure_some_outcome$percent_afr_am))
-sum(is.na(schools_exposure_some_outcome$percent_aian))
-sum(is.na(schools_exposure_some_outcome$percent_asian))
-sum(is.na(schools_exposure_some_outcome$percent_filipino))
-sum(is.na(schools_exposure_some_outcome$percent_hispanic_latino))
-sum(is.na(schools_exposure_some_outcome$percent_pacific_islander))
-sum(is.na(schools_exposure_some_outcome$percent_white))
-sum(is.na(schools_exposure_some_outcome$percent_two_plus))
-sum(is.na(schools_exposure_some_outcome$percent_not_reported))
+sum(is.na(schools_with_math$overall_standard_met))
+sum(is.na(schools_with_math$afr_am_percent))
+sum(is.na(schools_with_math$aian_percent))
+sum(is.na(schools_with_math$asian_percent))
+sum(is.na(schools_with_math$filipino_percent))
+sum(is.na(schools_with_math$hisp_latinx_percent))
+sum(is.na(schools_with_math$pacific_islander_percent))
+sum(is.na(schools_with_math$white_percent))
+sum(is.na(schools_with_math$two_plus_percent))
+sum(is.na(schools_with_math$not_reported_percent))
 
-sum(is.na(schools_exposure_some_outcome$english_learner_percent))
-sum(is.na(schools_exposure_some_outcome$frpm_percent))
-sum(is.na(schools_exposure_some_outcome$district_cost_per_pupil))
-sum(is.na(schools_exposure_some_outcome$student_teacher_ratio))
-sum(is.na(schools_exposure_some_outcome$english_standard_met))
-sum(is.na(schools_exposure_some_outcome$math_standard_met))
-sum(is.na(schools_exposure_some_outcome$science_standard_met))
-
-# keep only those with all 3 exam results
-dataset_complete_outcome <- 
-  schools_with_enrollment %>% 
-  filter(!is.na(overall_standard_met))
-
-nrow(dataset_complete_outcome)
-
-# check NA counts
-sum(is.na(dataset_complete_outcome$overall_standard_met))
-sum(is.na(dataset_complete_outcome$pm25_12_plus))
-sum(is.na(dataset_complete_outcome$modeled_air_at_school))
-sum(is.na(dataset_complete_outcome$air_district))
-sum(is.na(dataset_complete_outcome$air_basin))
-
-sum(is.na(dataset_complete_outcome$overall_standard_met))
-sum(is.na(dataset_complete_outcome$percent_afr_am))
-sum(is.na(dataset_complete_outcome$percent_aian))
-sum(is.na(dataset_complete_outcome$percent_asian))
-sum(is.na(dataset_complete_outcome$percent_filipino))
-sum(is.na(dataset_complete_outcome$percent_hispanic_latino))
-sum(is.na(dataset_complete_outcome$percent_pacific_islander))
-sum(is.na(dataset_complete_outcome$percent_white))
-sum(is.na(dataset_complete_outcome$percent_two_plus))
-sum(is.na(dataset_complete_outcome$percent_not_reported))
-
-sum(is.na(dataset_complete_outcome$english_learner_percent))
-sum(is.na(dataset_complete_outcome$frpm_percent))
-sum(is.na(dataset_complete_outcome$district_cost_per_pupil))
-sum(is.na(dataset_complete_outcome$student_teacher_ratio))
-sum(is.na(dataset_complete_outcome$english_standard_met))
-sum(is.na(dataset_complete_outcome$math_standard_met))
-sum(is.na(dataset_complete_outcome$science_standard_met))
+sum(is.na(schools_with_math$english_learner_percent))
+sum(is.na(schools_with_math$frpm_percent))
+sum(is.na(schools_with_math$district_cost_per_pupil))
+sum(is.na(schools_with_math$student_teacher_ratio))
+sum(is.na(schools_with_math$english_standard_met))
+sum(is.na(schools_with_math$math_standard_met))
+sum(is.na(schools_with_math$science_standard_met))
 
 # complete cases dataset
-dataset_complete_cases <- 
-  dataset_complete_outcome %>% 
+dataset_complete_cases_all_data <- 
+  schools_with_math %>% 
   filter(!is.na(english_learner_percent)) %>% 
   filter(!is.na(district_cost_per_pupil)) %>% 
   filter(!is.na(student_teacher_ratio)) %>% 
-  filter(!is.na(air_basin)) %>% 
   filter(!is.na(air_district))
 
+nrow(dataset_complete_cases_all_data)  # 8838 schools
+
 # check NA counts
-sum(is.na(dataset_complete_cases$overall_standard_met))
-sum(is.na(dataset_complete_cases$pm25_12_plus))
-sum(is.na(dataset_complete_cases$modeled_air_at_school))
-sum(is.na(dataset_complete_cases$air_district))
-sum(is.na(dataset_complete_cases$air_basin))
+sum(is.na(dataset_complete_cases_all_data$overall_standard_met))
+sum(is.na(dataset_complete_cases_all_data$pm25_12_plus))
+sum(is.na(dataset_complete_cases_all_data$modeled_air_at_school))
+sum(is.na(dataset_complete_cases_all_data$air_district))
+sum(is.na(dataset_complete_cases_all_data$air_basin))
 
-sum(is.na(dataset_complete_cases$overall_standard_met))
-sum(is.na(dataset_complete_cases$percent_afr_am))
-sum(is.na(dataset_complete_cases$percent_aian))
-sum(is.na(dataset_complete_cases$percent_asian))
-sum(is.na(dataset_complete_cases$percent_filipino))
-sum(is.na(dataset_complete_cases$percent_hispanic_latino))
-sum(is.na(dataset_complete_cases$percent_pacific_islander))
-sum(is.na(dataset_complete_cases$percent_white))
-sum(is.na(dataset_complete_cases$percent_two_plus))
-sum(is.na(dataset_complete_cases$percent_not_reported))
+sum(is.na(dataset_complete_cases_all_data$overall_standard_met))
+sum(is.na(dataset_complete_cases_all_data$afr_am_percent))
+sum(is.na(dataset_complete_cases_all_data$aian_percent))
+sum(is.na(dataset_complete_cases_all_data$asian_percent))
+sum(is.na(dataset_complete_cases_all_data$filipino_percent))
+sum(is.na(dataset_complete_cases_all_data$hisp_latinx_percent))
+sum(is.na(dataset_complete_cases_all_data$pacific_islander_percent))
+sum(is.na(dataset_complete_cases_all_data$white_percent))
+sum(is.na(dataset_complete_cases_all_data$two_plus_percent))
+sum(is.na(dataset_complete_cases_all_data$not_reported_percent))
 
-sum(is.na(dataset_complete_cases$english_learner_percent))
-sum(is.na(dataset_complete_cases$frpm_percent))
-sum(is.na(dataset_complete_cases$district_cost_per_pupil))
-sum(is.na(dataset_complete_cases$student_teacher_ratio))
-sum(is.na(dataset_complete_cases$english_standard_met))
-sum(is.na(dataset_complete_cases$math_standard_met))
-sum(is.na(dataset_complete_cases$science_standard_met))
+sum(is.na(dataset_complete_cases_all_data$english_learner_percent))
+sum(is.na(dataset_complete_cases_all_data$frpm_percent))
+sum(is.na(dataset_complete_cases_all_data$district_cost_per_pupil))
+sum(is.na(dataset_complete_cases_all_data$student_teacher_ratio))
+sum(is.na(dataset_complete_cases_all_data$english_standard_met))
+sum(is.na(dataset_complete_cases_all_data$math_standard_met))
+sum(is.na(dataset_complete_cases_all_data$science_standard_met))
 
-# number of records in complete cases (8584)
-nrow(dataset_complete_cases)
+# remove unneeded variables
+colnames(dataset_complete_cases_all_data)
+
+dataset_complete_cases <- 
+  dataset_complete_cases_all_data %>% 
+  select(cds_code, 
+         math_standard_met,
+         pm25_12_plus, 
+         air_district,
+         afr_am_percent, 
+         asian_filipino_percent, 
+         two_none_aian_pi_percent, 
+         hisp_latinx_percent, 
+         white_percent, 
+         english_learner_percent, 
+         frpm_percent, 
+         district_cost_per_pupil, 
+         student_teacher_ratio)
 
 save(dataset_complete_cases, 
      file = file.path("dataset_complete_cases.rdata"))
@@ -2167,15 +2198,15 @@ data_for_table_one <-
   mutate("PM25" = factor(pm25_12_plus),
          "School enrollment (n)" = school_k_12_enrollment,
          "Female (%)" = round(percent_female*100, 2),
-         "African American (%)" = round(percent_afr_am*100, 2),
-         "American Indian or Alaska Native (%)" = round(percent_aian*100, 2),
-         "Asian (%)" = round(percent_asian*100, 2),
-         "Filipino (%)" = round(percent_filipino*100, 2),
-         "Hispanic/Latino (any race) (%)" = round(percent_hispanic_latino*100, 2),
-         "Pacific Islander (%)" = round(percent_pacific_islander*100, 2),
-         "White (%)" = round(percent_white*100, 2),
-         "Two or more races (not Hispanic/Latino) (%)" = round(percent_two_plus*100, 2),
-         "Race/ethnicity not reported (%)" = round(percent_not_reported*100, 2),
+         "African American (%)" = round(afr_am_percent*100, 2),
+         "American Indian or Alaska Native (%)" = round(aian_percent*100, 2),
+         "Asian (%)" = round(asian_percent*100, 2),
+         "Filipino (%)" = round(filipino_percent*100, 2),
+         "Hispanic/Latino (any race) (%)" = round(hisp_latinx_percent*100, 2),
+         "Pacific Islander (%)" = round(pacific_islander_percent*100, 2),
+         "White (%)" = round(white_percent*100, 2),
+         "Two or more races (not Hispanic/Latino) (%)" = round(two_plus_percent*100, 2),
+         "Race/ethnicity not reported (%)" = round(not_reported_percent*100, 2),
          "Chronic absenteeism (%)" = as.numeric(chronic_absenteeism_rate),
          "Suspension rate (%)" = as.numeric(suspension_rate), 
          "Free meal eligibility (%)" = free_lunch_percent, 
