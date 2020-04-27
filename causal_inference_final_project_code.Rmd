@@ -1658,11 +1658,11 @@ schools_to_get_air_sf <-
 # extract values of air data at schools
 schools_to_get_air_sf$modeled_air_at_school <-
   raster::extract(asc_air_data,
-                  school_to_get_air_sf)
+                  schools_to_get_air_sf)
 
-save(schools_to_get_air, 
+save(schools_to_get_air_sf, 
      file = file.path("intermediate_data", 
-                      "schools_to_get_air.rdata"))
+                      "schools_to_get_air_sf.rdata"))
 
 # filter to nas
 school_holdouts_to_get_air <- filter(schools_to_get_air_sf, 
@@ -1671,46 +1671,75 @@ school_holdouts_to_get_air <- filter(schools_to_get_air_sf,
 # extract values for three that didn't get them the first time
 school_holdouts_to_get_air$modeled_air_at_school <- 
   raster::extract(asc_air_data,
-                  school_to_get_air_sf, 
-                  buffer = 100, 
+                  school_holdouts_to_get_air, 
+                  buffer = 725,  # note: one has two values that get averaged
+                  small = TRUE, 
                   fun = mean, 
                   na.rm = TRUE)
 
-nas <- filter(school_air_sf, 
-              is.na(modeled_air_at_school))
+# add them back into the dataset
+schools_with_air <- 
+  schools_to_get_air_sf %>% 
+  filter(!is.na(modeled_air_at_school)) %>% 
+  rbind(school_holdouts_to_get_air)
 
 # create new binary variable for pm2.5 over/under 12 ug/m3
-school_to_get_air_sf <- 
-  school_to_get_air_sf %>% 
+schools_with_air <- 
+  schools_with_air %>% 
   mutate(pm25_12_plus = ifelse(modeled_air_at_school > 12, "yes", "no"))
 
 # detect the air district containing each school
 school_air_district_no_basin_sf <- 
-  school_to_get_air_sf %>% 
+  schools_with_air %>% 
   st_join(
     air_districts["NAME"], 
     left = TRUE
     ) %>% 
   rename(air_district = NAME)
 
-# detect the air basin containing each school
-school_air_sf <- 
+# investigate those without assignments
+# one is in Nevada, the other is actually in the Bay Area
+orphan_schools_no_air_district <- 
   school_air_district_no_basin_sf %>% 
+  filter(is.na(air_district)) %>% 
+  mutate(air_district = ifelse(county == "Solano", 
+                               "Bay Area", 
+                               NA))
+
+# join them back
+schools_with_air_districts <- 
+  school_air_district_no_basin_sf %>% 
+  filter(!is.na(air_district)) %>% 
+  rbind(orphan_schools_no_air_district)
+
+# detect the air basin containing each school
+school_air_basin_district <- 
+  schools_with_air_districts %>% 
   st_join(
     air_basins["NAME"],
     left = TRUE
     ) %>% 
   rename(air_basin = NAME)
 
+# investigate those without assignments
+orphan_schools_no_air_basin <- 
+  school_air_basin_district %>% 
+  filter(is.na(air_basin)) %>% 
+  mutate(air_basin = ifelse(county == "Solano", 
+                               "San Francisco Bay", 
+                               NA))
+
+# add them back
+school_air_sf <- 
+  school_air_basin_district %>% 
+  filter(!is.na(air_basin)) %>% 
+  rbind(orphan_schools_no_air_basin)
+
 # save new sf with air at school
 save(
   school_air_sf,
   file = file.path("intermediate_data",
                    "school_air_sf.rdata"))
-
-school_air_na <- 
-  school_air_sf %>% 
-  filter(is.na(modeled_air_at_school))
 
 # plot(air_cropped)
 # plot(school_air_na, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
@@ -1833,42 +1862,15 @@ save(schools_all_data,
      file = file.path("intermediate_data", 
                       "schools_all_data.rdata"))
 
-sum(is.na(schools_all_data$modeled_air_at_school))
-sum(is.na(schools_all_data$air_district))
-sum(is.na(schools_all_data$air_basin))
-sum(is.na(schools_all_data$school_k_12_enrollment))
-sum(is.na(schools_all_data$chronic_absenteeism_rate))
-sum(is.na(schools_all_data$suspension_rate))
-sum(is.na(schools_all_data$frpm_percent))
-sum(is.na(schools_all_data$english_learners))
-sum(is.na(schools_all_data$cost_per_pupil))
-sum(is.na(schools_all_data$fte_school))
-sum(is.na(schools_all_data$english_standard_met))
-sum(is.na(schools_all_data$math_standard_met))
-sum(is.na(schools_all_data$science_standard_met))
+```
 
+```{r calculating final values}
 
-colnames(schools_all_data)
+load(file = file.path("intermediate_data", 
+                      "schools_all_data.rdata"))
 
-
-
-
-# drop records missing exposure or outcomes
-causal_inference_preliminary_dataset_prior <-
+full_data <- 
   schools_all_data %>% 
-  filter(!is.na(math_standard_met)) %>% 
-  filter(!is.na(english_standard_met)) %>% 
-  filter(!is.na(science_standard_met)) %>% 
-  filter(!is.na(modeled_air_at_school)) %>% 
-  filter(!(english_standard_met == "*")) %>% 
-  filter(!(math_standard_met == "*")) %>% 
-  filter(!(science_standard_met == "*")) %>% 
-  mutate(overall_standard_met = (as.numeric(english_standard_met) + 
-                                   as.numeric(math_standard_met) +
-                                   as.numeric(science_standard_met))/3)
-
-causal_inference_preliminary_dataset <- 
-  causal_inference_preliminary_dataset_prior %>% 
   mutate(percent_female = ((african_american_nh_F +
                              american_indian_alaska_native_nh_F +
                              asian_nh_F + 
@@ -1877,61 +1879,284 @@ causal_inference_preliminary_dataset <-
                              not_reported_F +
                              pacific_islander_nh_F +
                              two_plus_nh_F +
-                             white_nh_F)/school_k_12_enrollment),
+                             white_nh_F)/school_k_12_enrollment)*100,
          percent_afr_am = ((african_american_nh_F + african_american_nh_M)/
-                             school_k_12_enrollment), 
+                             school_k_12_enrollment)*100, 
          percent_aian = ((american_indian_alaska_native_nh_F +
                             american_indian_alaska_native_nh_M)/
-                             school_k_12_enrollment), 
+                             school_k_12_enrollment)*100, 
          percent_asian = ((asian_nh_F +
                             asian_nh_M)/
-                            school_k_12_enrollment), 
+                            school_k_12_enrollment)*100, 
          percent_filipino = ((filipino_nh_F +
                             filipino_nh_M)/
-                            school_k_12_enrollment), 
+                            school_k_12_enrollment)*100, 
          percent_hispanic_latino = ((hispanic_latino_F +
                             hispanic_latino_M)/
-                            school_k_12_enrollment), 
+                            school_k_12_enrollment)*100, 
          percent_pacific_islander = ((pacific_islander_nh_F +
                             pacific_islander_nh_M)/
-                            school_k_12_enrollment), 
+                            school_k_12_enrollment)*100, 
          percent_white  = ((white_nh_F +
                             white_nh_M)/
-                            school_k_12_enrollment), 
+                            school_k_12_enrollment)*100, 
          percent_two_plus = ((two_plus_nh_F +
                             two_plus_nh_M)/
-                            school_k_12_enrollment),
+                            school_k_12_enrollment)*100,
          percent_not_reported = ((not_reported_F +
                             not_reported_M)/
-                            school_k_12_enrollment), 
+                            school_k_12_enrollment)*100, 
          pm25_12_plus = factor(pm25_12_plus), 
          chronic_absenteeism_rate = as.numeric(chronic_absenteeism_rate), 
          suspension_rate = as.numeric(suspension_rate), 
          free_lunch_percent = free_lunch_percent*100,
          frpm_percent = frpm_percent*100,
-         english_learner_percent = english_learners/school_k_12_enrollment,
+         english_learner_percent = english_learners/school_k_12_enrollment*100,
+         student_teacher_ratio = school_k_12_enrollment/teachers,
+         district_cost_per_pupil = cost_per_pupil,
          english_n_scores = as.numeric(english_n_scores), 
          english_standard_met = as.numeric(english_standard_met),
          math_n_scores = as.numeric(math_n_scores),
          math_standard_met = as.numeric(math_standard_met),
          science_n_scores = as.numeric(science_n_scores),
-         science_standard_met = as.numeric(science_standard_met))
-  
-# save it in main folder
-save(causal_inference_preliminary_dataset, 
-     file = file.path("causal_inference_preliminary_dataset.rdata"))
+         science_standard_met = as.numeric(science_standard_met), 
+         overall_standard_met = (english_standard_met +
+                                   math_standard_met +
+                                   science_standard_met)/3) %>%
+  select(-c(district_from_expense_per_pupil, 
+            cds_county_code_from_expense_per_pupil))
 
-# write csv to main folder
-write_csv(causal_inference_preliminary_dataset, 
-          path = "causal_inference_preliminary_dataset.csv")
+full_data_analysis_variables <- 
+  full_data %>% 
+  select(cds_code, 
+         county, 
+         district, 
+         school, 
+         cds_county_code, 
+         cds_district_code, 
+         modeled_air_at_school, 
+         pm25_12_plus, 
+         air_district, 
+         air_basin, 
+         school_k_12_enrollment, 
+         percent_female, 
+         percent_afr_am, 
+         percent_aian, 
+         percent_asian, 
+         percent_filipino, 
+         percent_hispanic_latino, 
+         percent_pacific_islander, 
+         percent_white, 
+         percent_two_plus, 
+         percent_not_reported,
+         english_learners,
+         english_learner_percent,
+         chronic_absenteeism_rate, 
+         suspension_rate, 
+         frpm_percent, 
+         fte_school,
+         district_cost_per_pupil, 
+         student_teacher_ratio,
+         english_n_scores, 
+         english_standard_met, 
+         math_n_scores, 
+         math_standard_met, 
+         science_n_scores, 
+         science_standard_met, 
+         overall_standard_met) %>% 
+  st_drop_geometry()
 
-# # remove all objects from the environment
-# rm(list = ls(all.names = TRUE))
+# just analysis variables
+analysis_bare_bones <- 
+  full_data_analysis_variables %>% 
+  select(cds_code, 
+         overall_standard_met, 
+         pm25_12_plus, 
+         air_district, 
+         air_basin, 
+         percent_afr_am, 
+         percent_aian, 
+         percent_asian, 
+         percent_filipino, 
+         percent_hispanic_latino, 
+         percent_pacific_islander, 
+         percent_white, 
+         percent_two_plus, 
+         percent_not_reported,
+         english_learner_percent,
+         frpm_percent, 
+         district_cost_per_pupil, 
+         student_teacher_ratio)
+
+save(full_data, 
+     file = file.path("intermediate_data", 
+                      "full_data.rdata"))
+
+save(full_data_analysis_variables, 
+     file = file.path("intermediate_data", 
+                      "full_data_analysis_variables.rdata"))
+
+save(analysis_bare_bones, 
+     file = file.path("intermediate_data", 
+                      "analysis_bare_bones.rdata"))
+
+dataset_full <- 
+  full_data_analysis_variables
+
+save(dataset_full, 
+     file = file.path("dataset_full.rdata"))
 
 ```
 
 
-```{r preliminary data analysis}
+
+```{r checking missings}
+
+# load file
+load(file = file.path("dataset_full.rdata"))
+
+# check NA counts
+sum(is.na(dataset_full$overall_standard_met))
+sum(is.na(dataset_full$pm25_12_plus))
+sum(is.na(dataset_full$modeled_air_at_school))
+sum(is.na(dataset_full$air_district))
+sum(is.na(dataset_full$air_basin))
+
+sum(is.na(dataset_full$overall_standard_met))
+sum(is.na(dataset_full$percent_afr_am))
+sum(is.na(dataset_full$percent_aian))
+sum(is.na(dataset_full$percent_asian))
+sum(is.na(dataset_full$percent_filipino))
+sum(is.na(dataset_full$percent_hispanic_latino))
+sum(is.na(dataset_full$percent_pacific_islander))
+sum(is.na(dataset_full$percent_white))
+sum(is.na(dataset_full$percent_two_plus))
+sum(is.na(dataset_full$percent_not_reported))
+
+sum(is.na(dataset_full$english_learner_percent))
+sum(is.na(dataset_full$frpm_percent))
+sum(is.na(dataset_full$district_cost_per_pupil))
+sum(is.na(dataset_full$student_teacher_ratio))
+sum(is.na(dataset_full$english_standard_met))
+sum(is.na(dataset_full$math_standard_met))
+sum(is.na(dataset_full$science_standard_met))
+
+# drop zero-enrollment school (one, now count 10130)
+schools_with_enrollment <- 
+  dataset_full %>% 
+  filter(school_k_12_enrollment != 0)
+
+# drop schools without complete outcome data
+schools_exposure_some_outcome <- 
+  dataset_full %>% 
+  filter(!(is.na(english_standard_met) & 
+           is.na(science_standard_met) & 
+           is.na(math_standard_met)))
+
+# check NA counts
+sum(is.na(schools_exposure_some_outcome$overall_standard_met))
+sum(is.na(schools_exposure_some_outcome$pm25_12_plus))
+sum(is.na(schools_exposure_some_outcome$modeled_air_at_school))
+sum(is.na(schools_exposure_some_outcome$air_district))
+sum(is.na(schools_exposure_some_outcome$air_basin))
+
+sum(is.na(schools_exposure_some_outcome$overall_standard_met))
+sum(is.na(schools_exposure_some_outcome$percent_afr_am))
+sum(is.na(schools_exposure_some_outcome$percent_aian))
+sum(is.na(schools_exposure_some_outcome$percent_asian))
+sum(is.na(schools_exposure_some_outcome$percent_filipino))
+sum(is.na(schools_exposure_some_outcome$percent_hispanic_latino))
+sum(is.na(schools_exposure_some_outcome$percent_pacific_islander))
+sum(is.na(schools_exposure_some_outcome$percent_white))
+sum(is.na(schools_exposure_some_outcome$percent_two_plus))
+sum(is.na(schools_exposure_some_outcome$percent_not_reported))
+
+sum(is.na(schools_exposure_some_outcome$english_learner_percent))
+sum(is.na(schools_exposure_some_outcome$frpm_percent))
+sum(is.na(schools_exposure_some_outcome$district_cost_per_pupil))
+sum(is.na(schools_exposure_some_outcome$student_teacher_ratio))
+sum(is.na(schools_exposure_some_outcome$english_standard_met))
+sum(is.na(schools_exposure_some_outcome$math_standard_met))
+sum(is.na(schools_exposure_some_outcome$science_standard_met))
+
+# keep only those with all 3 exam results
+dataset_complete_outcome <- 
+  schools_with_enrollment %>% 
+  filter(!is.na(overall_standard_met))
+
+nrow(dataset_complete_outcome)
+
+# check NA counts
+sum(is.na(dataset_complete_outcome$overall_standard_met))
+sum(is.na(dataset_complete_outcome$pm25_12_plus))
+sum(is.na(dataset_complete_outcome$modeled_air_at_school))
+sum(is.na(dataset_complete_outcome$air_district))
+sum(is.na(dataset_complete_outcome$air_basin))
+
+sum(is.na(dataset_complete_outcome$overall_standard_met))
+sum(is.na(dataset_complete_outcome$percent_afr_am))
+sum(is.na(dataset_complete_outcome$percent_aian))
+sum(is.na(dataset_complete_outcome$percent_asian))
+sum(is.na(dataset_complete_outcome$percent_filipino))
+sum(is.na(dataset_complete_outcome$percent_hispanic_latino))
+sum(is.na(dataset_complete_outcome$percent_pacific_islander))
+sum(is.na(dataset_complete_outcome$percent_white))
+sum(is.na(dataset_complete_outcome$percent_two_plus))
+sum(is.na(dataset_complete_outcome$percent_not_reported))
+
+sum(is.na(dataset_complete_outcome$english_learner_percent))
+sum(is.na(dataset_complete_outcome$frpm_percent))
+sum(is.na(dataset_complete_outcome$district_cost_per_pupil))
+sum(is.na(dataset_complete_outcome$student_teacher_ratio))
+sum(is.na(dataset_complete_outcome$english_standard_met))
+sum(is.na(dataset_complete_outcome$math_standard_met))
+sum(is.na(dataset_complete_outcome$science_standard_met))
+
+# complete cases dataset
+dataset_complete_cases <- 
+  dataset_complete_outcome %>% 
+  filter(!is.na(english_learner_percent)) %>% 
+  filter(!is.na(district_cost_per_pupil)) %>% 
+  filter(!is.na(student_teacher_ratio)) %>% 
+  filter(!is.na(air_basin)) %>% 
+  filter(!is.na(air_district))
+
+# check NA counts
+sum(is.na(dataset_complete_cases$overall_standard_met))
+sum(is.na(dataset_complete_cases$pm25_12_plus))
+sum(is.na(dataset_complete_cases$modeled_air_at_school))
+sum(is.na(dataset_complete_cases$air_district))
+sum(is.na(dataset_complete_cases$air_basin))
+
+sum(is.na(dataset_complete_cases$overall_standard_met))
+sum(is.na(dataset_complete_cases$percent_afr_am))
+sum(is.na(dataset_complete_cases$percent_aian))
+sum(is.na(dataset_complete_cases$percent_asian))
+sum(is.na(dataset_complete_cases$percent_filipino))
+sum(is.na(dataset_complete_cases$percent_hispanic_latino))
+sum(is.na(dataset_complete_cases$percent_pacific_islander))
+sum(is.na(dataset_complete_cases$percent_white))
+sum(is.na(dataset_complete_cases$percent_two_plus))
+sum(is.na(dataset_complete_cases$percent_not_reported))
+
+sum(is.na(dataset_complete_cases$english_learner_percent))
+sum(is.na(dataset_complete_cases$frpm_percent))
+sum(is.na(dataset_complete_cases$district_cost_per_pupil))
+sum(is.na(dataset_complete_cases$student_teacher_ratio))
+sum(is.na(dataset_complete_cases$english_standard_met))
+sum(is.na(dataset_complete_cases$math_standard_met))
+sum(is.na(dataset_complete_cases$science_standard_met))
+
+# number of records in complete cases (8584)
+nrow(dataset_complete_cases)
+
+save(dataset_complete_cases, 
+     file = file.path("dataset_complete_cases.rdata"))
+
+```
+
+
+```{r preliminary data analysis, eval=FALSE, include=FALSE}
 
 # load data
 load(file = file.path("causal_inference_preliminary_dataset.rdata"))
