@@ -32,8 +32,7 @@ praise()  # self-esteem boost
 
 load(file = file.path("dataset_full.rdata"))
 
-save(dataset_complete_cases, 
-     file = file.path("dataset_complete_cases.rdata"))
+load(file = file.path("dataset_complete_cases.rdata"))
 
 ```
 
