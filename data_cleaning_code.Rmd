@@ -1075,7 +1075,7 @@ school_teacher_fte <-
   filter(stafftype == "T") %>%  # filter to teachers
   group_by(cds_code) %>% 
   summarise(fte_school = sum(fte)) %>% 
-  mutate(teachers = fte_school/40)
+  mutate(teachers = fte_school/100)
   
 # save files
 save(school_fte_from_raw, 

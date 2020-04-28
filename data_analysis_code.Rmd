@@ -37,6 +37,7 @@ load(file = file.path("dataset_full.rdata"))
 
 load(file = file.path("dataset_complete_cases.rdata"))
 
+<<<<<<< HEAD
 ```
 
 
@@ -206,6 +207,9 @@ plot(causal_inference_preliminary_dataset["overall_standard_met"], pch=16, cex=0
 
 mean(causal_inference_preliminary_dataset$modeled_air_at_school)
 sd(causal_inference_preliminary_dataset$modeled_air_at_school)
+=======
+View(dataset_complete_cases)
+>>>>>>> fb6e4f0c35f405fb73a4de63a6cad2f95d54113f
 
 ```
 
