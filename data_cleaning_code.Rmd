@@ -1068,13 +1068,23 @@ individual_fte <-
   left_join(county_code_concordance, 
             by = "county_name") %>% 
   mutate(cds_code = paste0(district_code, school_code))
-
+         
+# count records with ftes <= 1
+individual_fte %>% 
+  filter(fte <= 1) %>% 
+  nrow()
+  
+# correct records where fte is <= to 1 by multiplying by 100       
+individual_fte_corrected <- 
+  individual_fte %>% 
+  mutate(fte_corrected = ifelse(fte <= 1, fte*100, fte))
+  
 # total teacher fte by school
 school_teacher_fte <- 
-  individual_fte %>% 
+  individual_fte_corrected %>% 
   filter(stafftype == "T") %>%  # filter to teachers
   group_by(cds_code) %>% 
-  summarise(fte_school = sum(fte)) %>% 
+  summarise(fte_school = sum(fte_corrected)) %>% 
   mutate(teachers = fte_school/100)
   
 # save files
