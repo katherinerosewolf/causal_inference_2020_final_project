@@ -1077,7 +1077,9 @@ individual_fte %>%
 # correct records where fte is <= to 1 by multiplying by 100       
 individual_fte_corrected <- 
   individual_fte %>% 
-  mutate(fte_corrected = ifelse(fte <= 1, fte*100, fte))
+  mutate(fte_corrected = ifelse(fte <= 1 & jobclassification %in% c(12, 26), 
+                                fte*100, 
+                                fte))
   
 # total teacher fte by school
 school_teacher_fte <- 
