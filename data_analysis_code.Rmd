@@ -37,7 +37,7 @@ load(file = file.path("dataset_full.rdata"))
 
 load(file = file.path("dataset_complete_cases.rdata"))
 
-<<<<<<< HEAD
+#<<<<<<< HEAD
 ```
 
 
@@ -236,17 +236,112 @@ View(dataset_complete_cases)
     cost_hist <- hist(dataset_complete_cases$district_cost_per_pupil,breaks=20,plot=FALSE)
     plot(cost_hist$counts,log="x",type="h",lwd=10,lend=2)
     
-    dataset_complete_cases[dataset_complete_cases$student_teacher_ratio>25,]
+    dataset_complete_cases[dataset_complete_cases$student_teacher_ratio>50,]
     table(dataset_complete_cases$air_district) # 70 schools in Feather River. why STR so high??
     
   round(prop.table(table(dataset_complete_cases$air_district)),3)
 ```
 
 ```{r iptw & tmle BY STEPHEN, eval=FALSE, include=FALSE}
+set.seed(252)
 # specify SL library
-  SL.library <- c()
-
-
+  listWrappers()
+  SL.library <- c("SL.mean","SL.glm")
+  other_options <- c("SL.glm.interaction","SL.randomForest","SL.polymars","SL.rpartPrune","SL.biglasso")
+# SS, IPTW, & TMLE function
+  run.tmle <- function(Y,ObsData, SL.library, id=NULL) {
+   
+    #------------------------------------------
+    # Estimate the conditional mean outcome Qbar(A,W)
+    #------------------------------------------
+   
+      # dataframe X with baseline covariates and exposure
+        X <- ObsData[,names(ObsData) != Y]
+      # settheA=1inX1andtheA=0inX0
+        X1 <- X0<-X
+        X1$A <- 1 # under exposure
+        X0$A <- 0 # under control
+    
+       # call Super Learner for estimation of QbarAW
+        QbarSL<- SuperLearner(Y=ObsData[,Y], X=X, SL.library=SL.library, family="gaussian", id=id)
+        # QbarSL
+        
+       # initial estimates of the outcome, given the observed exposure & covariates
+        QbarAW <- predict(QbarSL, newdata=ObsData)$pred
+       # estimates of the outcome, given A=1 and covariates
+        Qbar1W<- predict(QbarSL, newdata=X1)$pred
+       # estimates of the outcome, given A=0 and covariates
+        Qbar0W<- predict(QbarSL, newdata=X0)$pred
+    
+       # simple substitution estimator:
+        PsiHat.SS<-mean(Qbar1W - Qbar0W)
+    
+    #------------------------------------------
+    # Estimate the exposure mechanism g(A|W)
+    #------------------------------------------
+  
+     # call Super Learner for the exposure mechanism
+      gHatSL<- SuperLearner(Y=ObsData$A, X=subset(ObsData, select= -c(A,Y,id)),SL.library=SL.library, family="binomial", id=id)
+     # generate predicted prob being exposed, given baseline covariates
+      gHat1W<- gHatSL$SL.predict
+     # predicted prob of not being exposed, given baseline covariates
+      gHat0W<- 1- gHat1W
+  
+     # # predicted prob of observed exposure, given baseline cov
+     # gHatAW<- rep(NA, n)
+     # gHatAW[ObsData$A==1]<- gHat1W[ObsData$A==1]
+     # gHatAW[ObsData$A==0]<- gHat0W[ObsData$A==0]
+  
+    #-------------------------------------------------
+    # Clever covariate H(A,W) for each subject
+    #-------------------------------------------------
+      H.AW<- as.numeric(ObsData$A==1)/gHat1W - as.numeric(ObsData$A==0)/gHat0W
+  
+     # also want to evaluate the clever covariates at A=1 and A=0 for all subjects
+       H.1W<- 1/gHat1W
+       H.0W<- -1/gHat0W
+       
+     # IPTW estimator of the G-computation formula:
+      PsiHat.IPTW <-mean( H.AW*ObsData$Y)
+  
+    #------------------------------------------
+    # Update the initial estimator of Qbar_0(A,W)
+    #------------------------------------------
+      logitUpdate<- glm(ObsData$Y ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='binomial')
+      epsilon <- logitUpdate$coef
+  
+      QbarAW.star<- plogis(qlogis(QbarAW)+ epsilon*H.AW)
+      Qbar1W.star<- plogis(qlogis(Qbar1W)+ epsilon*H.1W)
+      Qbar0W.star<- plogis(qlogis(Qbar0W)+ epsilon*H.0W)
+  
+    #------------------------------------------
+    # Estimate Psi(P_0)
+    #------------------------------------------
+  
+      PsiHat.TMLE <- mean(Qbar1W.star - Qbar0W.star)
+  
+    #------------------------------------------
+    # Return point estimates, targeted estimates of Qbar_0(A,W),
+    # and thevector of clever covariates
+    #------------------------------------------
+  
+      estimates <- data.frame(cbind(PsiHat.SS=PsiHat.SS, PsiHat.IPTW, PsiHat.TMLE))
+      Qbar.star <- data.frame(cbind(QbarAW.star, Qbar1W.star, Qbar0W.star))
+      names(Qbar.star)<- c('QbarAW.star', 'Qbar1W.star', 'Qbar0W.star')
+      list(estimates=estimates, Qbar.star=Qbar.star, H.AW=H.AW)
+  }
+# practice run of function
+  # subset of rows
+    sub_data <- dataset_complete_cases[sample(1:n,500,replace=F),]
+    nrow(sub_data)
+    duplicated(sub_data$cds_code)
+  # run function
+    out <- run.tmle(Y="math_standard_met", ObsData=sub_data[,c(2,3,12,13)], SL.library=SL.library) 
+      # generating a ton of errors. removing algorithms from SuperLearner
+      # think interaction algorithms will be super problematic bc number of covariates is really high from all the districts
+      # FIGURED OUT ISSUE: When we resample, not all districts are in each sample and predictions are generated for non-existent districts and not generated for extisting districts
+    est <- out$estimates
+    est*100
  
 
 
