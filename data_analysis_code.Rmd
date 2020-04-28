@@ -19,6 +19,9 @@ library(tableone)
 library(kableExtra)
 library(furniture)
 library(RColorBrewer)
+library(psych)
+library(SuperLearner)
+library(ltmle)
 
 # stop r from abbreviating doubles in school ids
 options("scipen" = 40)
@@ -38,7 +41,7 @@ load(file = file.path("dataset_complete_cases.rdata"))
 
 
 
-```{r preliminary data analysis, eval=FALSE, include=FALSE}
+```{r preliminary data analysis BY KATIE, eval=FALSE, include=FALSE}
 
 # load data
 load(file = file.path("causal_inference_preliminary_dataset.rdata"))
@@ -205,4 +208,84 @@ mean(causal_inference_preliminary_dataset$modeled_air_at_school)
 sd(causal_inference_preliminary_dataset$modeled_air_at_school)
 
 ```
+
+```{r preliminary data analysis BY STEPHEN, eval=FALSE, include=FALSE}
+# basic bits about data
+  names(dataset_complete_cases)
+  (n <- nrow(dataset_complete_cases)) # checks out with Katie's description -> yay, using correct dataset
+  describe(dataset_complete_cases)
+    unique(dataset_complete_cases$air_district)
+    unique(dataset_complete_cases$pm25_12_plus)
+    unique(dataset_complete_cases$cds_code)
+# descriptives for numeric columns    
+  num_cols <- c(2,5:13)
+  describe(dataset_complete_cases[,num_cols])
+  by(dataset_complete_cases[,num_cols],list(dataset_complete_cases$pm25_12_plus),describe)
+  aggregate(dataset_complete_cases[,num_cols],list(dataset_complete_cases$pm25_12_plus),
+            function(x) {round(c(length(x),mean(x,na.rm=T),sd(x,na.rm=T)),2)})
+    
+  for (i in 1:length(num_cols)) {hist(dataset_complete_cases[,num_cols[i]],
+                                      main=colnames(dataset_complete_cases[num_cols[i]]),breaks=20)}  
+    # looks like there are some outlier for student-teacher ratio and cost per pupil (one school spending $346k per student?)
+    dataset_complete_cases[dataset_complete_cases$district_cost_per_pupil>50000,] # ok so the Bay Area has $$$$
+    unique(dataset_complete_cases[dataset_complete_cases$district_cost_per_pupil>50000,c("air_district","district_cost_per_pupil")])
+    cost_hist <- hist(dataset_complete_cases$district_cost_per_pupil,breaks=20,plot=FALSE)
+    plot(cost_hist$counts,log="x",type="h",lwd=10,lend=2)
+    
+    dataset_complete_cases[dataset_complete_cases$student_teacher_ratio>25,]
+    table(dataset_complete_cases$air_district) # 70 schools in Feather River. why STR so high??
+    
+  round(prop.table(table(dataset_complete_cases$air_district)),3)
+```
+
+```{r iptw & tmle BY STEPHEN, eval=FALSE, include=FALSE}
+# specify SL library
+  SL.library <- c()
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
