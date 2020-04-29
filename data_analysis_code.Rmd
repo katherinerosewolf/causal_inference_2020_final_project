@@ -81,6 +81,23 @@ plain_glm <- glm(math_standard_met ~
 
 summary(plain_glm)
 
+# full linear glm drop weirds
+plain_glm_drop_per_pupil <- glm(math_standard_met ~ 
+                   pm25_12_plus + 
+                   air_basin + 
+                   afr_am_percent + 
+                   asian_filipino_percent + 
+                   two_none_aian_pi_percent + 
+                   hisp_latinx_percent + 
+                   english_learner_percent + 
+                   frpm_percent + 
+                   school_k_12_enrollment, 
+                 data = dataset_complete_cases_working)
+
+summary(plain_glm_drop_per_pupil)
+
+summary(dataset_complete_cases_working$student_teacher_ratio)
+
 # make working dataset without funding data
 dataset_complete_cases_forget_funding_working <- 
   dataset_complete_cases_forget_funding
@@ -328,31 +345,31 @@ ggplot(data = simulated_full_only_complete_cases,
 # Student-teacher ratio
 #------------------------------------------
 
-# scatterplot cost per pupil air pollution
+# scatterplot student-teacher ratio air pollution
 ggplot(data = simulated_full_only_complete_cases, 
        aes(x = student_teacher_ratio, 
            y = modeled_air_at_school)) +
   geom_point(color = "blue", alpha = 0.5) +
   geom_smooth() +
-  xlab("Student-Teacher Ratio") +
+  xlab("Student-teacher ratio") +
   ylab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
   ggtitle("Complete Cases Only")
 
-# boxplot cost per pupil pm
+# boxplot student-teacher ratio pm
 ggplot(data = dataset_complete_cases_working, 
        aes(x = pm25_12_plus, 
            y = student_teacher_ratio)) +
   geom_boxplot() +
   xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
-  ylab("Student-Teacher Ratio") +
+  ylab("Student-teacher ratio") +
   ggtitle("Complete Cases Only")
 
-# scatterplot district cost per pupil math standard met
+# scatterplot district student-teacher ratio math standard met
 ggplot(data = simulated_full_only_complete_cases, 
        aes(x = student_teacher_ratio, 
            y = math_standard_met)) +
   geom_point(color = "blue", alpha = 0.5) +
-  geom_smooth() +
+  geom_smooth(method = "loess") +
   xlab("Student-teacher ratio") +
   ylab("Math standard met (%)") +
   ggtitle("Complete Cases Only")
