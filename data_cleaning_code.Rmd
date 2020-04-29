@@ -2182,6 +2182,7 @@ dataset_complete_cases <-
   select(cds_code, 
          math_standard_met,
          pm25_12_plus, 
+         air_basin,
          air_district,
          afr_am_percent, 
          asian_filipino_percent, 
@@ -2191,10 +2192,40 @@ dataset_complete_cases <-
          english_learner_percent, 
          frpm_percent, 
          district_cost_per_pupil, 
-         student_teacher_ratio)
+         student_teacher_ratio, 
+         school_k_12_enrollment)
+
+dataset_complete_cases_forget_funding <- 
+  schools_with_math %>% 
+  filter(!is.na(english_learner_percent)) %>% 
+  filter(!is.na(student_teacher_ratio)) %>% 
+  filter(!is.na(air_district)) %>% 
+  select(cds_code, 
+         math_standard_met,
+         pm25_12_plus, 
+         air_basin,
+         air_district,
+         afr_am_percent, 
+         asian_filipino_percent, 
+         two_none_aian_pi_percent, 
+         hisp_latinx_percent, 
+         white_percent, 
+         english_learner_percent, 
+         frpm_percent, 
+         district_cost_per_pupil, 
+         student_teacher_ratio, 
+         school_k_12_enrollment)
+  
 
 save(dataset_complete_cases, 
      file = file.path("dataset_complete_cases.rdata"))
+
+save(dataset_complete_cases_forget_funding, 
+     file = file.path("dataset_complete_cases_forget_funding.rdata"))
+
+nrow(dataset_complete_cases_forget_funding)
+
+nrow(schools_with_math)
 
 ```
 

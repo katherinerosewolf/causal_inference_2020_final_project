@@ -8,13 +8,7 @@ output: html_document
 ```{r setup load libraries}
 
 library(praise)
-library(raster)
-library(tigris)
-library(sf)
-library(httr)
 library(tidyverse)
-library(ggmap)
-library(nngeo)
 library(tableone)
 library(kableExtra)
 library(furniture)
@@ -22,6 +16,7 @@ library(RColorBrewer)
 library(psych)
 library(SuperLearner)
 library(ltmle)
+library(arm)
 
 # stop r from abbreviating doubles in school ids
 options("scipen" = 40)
@@ -33,185 +28,365 @@ praise()  # self-esteem boost
 
 ```{r load datasets}
 
-load(file = file.path("dataset_full.rdata"))
+load(file = "dataset_full.rdata")
 
-load(file = file.path("dataset_complete_cases.rdata"))
+load(file = "dataset_complete_cases.rdata")
 
-#<<<<<<< HEAD
+load(file = "dataset_complete_cases_forget_funding.rdata")
+
 ```
 
 
+# BELOW LIES KATIE'S PLAYGROUND
 
-```{r preliminary data analysis BY KATIE, eval=FALSE, include=FALSE}
+```{r KATIE code pre-SuperLearner}
 
-# load data
-load(file = file.path("causal_inference_preliminary_dataset.rdata"))
+dataset_complete_cases_working <- 
+  dataset_complete_cases %>% 
+  mutate(math_proportion = math_standard_met/100,
+         pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0), 
+         air_district = factor(air_district), 
+         air_basin = factor(air_basin))
 
-# relabel variables
-data_for_table_one <- 
-  causal_inference_preliminary_dataset %>% 
-  mutate("PM25" = factor(pm25_12_plus),
-         "School enrollment (n)" = school_k_12_enrollment,
-         "Female (%)" = round(percent_female*100, 2),
-         "African American (%)" = round(percent_afr_am*100, 2),
-         "American Indian or Alaska Native (%)" = round(percent_aian*100, 2),
-         "Asian (%)" = round(percent_asian*100, 2),
-         "Filipino (%)" = round(percent_filipino*100, 2),
-         "Hispanic/Latino (any race) (%)" = round(percent_hispanic_latino*100, 2),
-         "Pacific Islander (%)" = round(percent_pacific_islander*100, 2),
-         "White (%)" = round(percent_white*100, 2),
-         "Two or more races (not Hispanic/Latino) (%)" = round(percent_two_plus*100, 2),
-         "Race/ethnicity not reported (%)" = round(percent_not_reported*100, 2),
-         "Chronic absenteeism (%)" = as.numeric(chronic_absenteeism_rate),
-         "Suspension rate (%)" = as.numeric(suspension_rate), 
-         "Free meal eligibility (%)" = free_lunch_percent, 
-         "Free/reduced-price meal eligibility (%)" = frpm_percent, 
-         "English learners (%)" = round(english_learner_percent*100, 2),
-         "English standard met or exceeded (%)" = as.numeric(english_standard_met), 
-         "Math standard met or exceeded (%)" = as.numeric(math_standard_met), 
-         "Science standard met or exceeded (%)" = as.numeric(science_standard_met), 
-         "Overall mean of standards met or exceeded (%)" = round(as.numeric(overall_standard_met), 2)) %>% 
-  select("PM25",
-         "School enrollment (n)",
-         "Female (%)",
-         "African American (%)",
-         "American Indian or Alaska Native (%)",
-         "Asian (%)",
-         "Filipino (%)",
-         "Hispanic/Latino (any race) (%)",
-         "Pacific Islander (%)",
-         "White (%)",
-         "Two or more races (not Hispanic/Latino) (%)",
-         "Race/ethnicity not reported (%)",
-         "Chronic absenteeism (%)",
-         "Suspension rate (%)", 
-         "Free meal eligibility (%)", 
-         "Free/reduced-price meal eligibility (%)", 
-         "English learners (%)",
-         "English standard met or exceeded (%)", 
-         "Math standard met or exceeded (%)", 
-         "Science standard met or exceeded (%)", 
-         "Overall mean of standards met or exceeded (%)") %>% 
-  st_drop_geometry() %>% 
-  as.data.frame()
+# histogram of math percentage (weird, lots of zeroes)
+hist(dataset_complete_cases_working$math_standard_met, 
+     breaks = 20)
 
+# simple mean: areas with pm above 12 lose 2.03 percentage points of passage
+mean(dataset_complete_cases_working$math_proportion[
+  dataset_complete_cases_working$pm25_12_plus == 1
+  ] - 
+    dataset_complete_cases_working$math_proportion[
+      dataset_complete_cases_working$pm25_12_plus == 0])
 
+# this code just fits the exposure linearly by the outcome
+plain_glm_one_variable <- glm(math_standard_met ~ pm25_12_plus, 
+                              data = dataset_complete_cases_working)
+summary(plain_glm_one_variable)
 
-# create a list of variables for the table
-# (not including the stratification variable)
-table_one_variables <- 
-  c(     "School enrollment (n)",
-         "Female (%)",
-         "African American (%)",
-         "American Indian or Alaska Native (%)",
-         "Asian (%)",
-         "Filipino (%)",
-         "Hispanic/Latino (any race) (%)",
-         "Pacific Islander (%)",
-         "White (%)",
-         "Two or more races (not Hispanic/Latino) (%)",
-         "Race/ethnicity not reported (%)",
-         "Chronic absenteeism (%)",
-         "Suspension rate (%)", 
-         "Free meal eligibility (%)", 
-         "Free/reduced-price meal eligibility (%)", 
-         "English learners (%)",
-         "English standard met or exceeded (%)", 
-         "Math standard met or exceeded (%)", 
-         "Science standard met or exceeded (%)", 
-         "Overall mean of standards met or exceeded (%)")
+# full linear glm no interactions
+plain_glm <- glm(math_standard_met ~ 
+                   pm25_12_plus + 
+                   air_basin + 
+                   afr_am_percent + 
+                   asian_filipino_percent + 
+                   two_none_aian_pi_percent + 
+                   hisp_latinx_percent + 
+                   english_learner_percent + 
+                   frpm_percent + 
+                   district_cost_per_pupil + 
+                   student_teacher_ratio + 
+                   school_k_12_enrollment, 
+                 data = dataset_complete_cases_working)
 
-table_one <- CreateTableOne(vars = table_one_variables,
-                            # factorVars = factor_variables,
-                            strata = "PM25",
-                            data = data_for_table_one,
-                            test = FALSE,
-                            includeNA = TRUE)
+summary(plain_glm)
 
-save(table_one, 
-     file = "table_one.rdata")
+# make working dataset without funding data
+dataset_complete_cases_forget_funding_working <- 
+  dataset_complete_cases_forget_funding
 
-# Creates a formatted table, using kable from the knitr package
-# Would want to clean this up for publication purposes:
-hi <- kable(print(table_one,
-                  showAllLevels = TRUE,
-                  printToggle = FALSE,
-                  noSpaces = TRUE,
-                  catDigits = 1,
-                  contDigits = 1),
-            col.names = c("", "Mean PM2.5 <= 12 ug/m3", "Mean PM2.5 > 12 ug/m3"),
-            caption=paste(".  Descriptive statistics for California public schools in 2018-19, stratified by 2018 mean PM2.5 concentration.")) %>% 
-  kable_styling("striped")
+# simple glm without funding data
+glm_forget_funding <- 
+  glm(math_standard_met ~ 
+                   pm25_12_plus + 
+                   air_basin + 
+                   afr_am_percent + 
+                   asian_filipino_percent + 
+                   two_none_aian_pi_percent + 
+                   hisp_latinx_percent + 
+                   english_learner_percent + 
+                   frpm_percent + 
+                   student_teacher_ratio + 
+                   school_k_12_enrollment, 
+                 data = dataset_complete_cases_forget_funding_working)
 
-hi
+summary(glm_forget_funding)
 
-
-expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))
-
-# make plots
-
-# histogram for test scores
-ggplot(data = data_for_table_one, 
-       aes(x = `Overall mean of standards met or exceeded (%)`)) +
-  geom_histogram(binwidth = 1) +
-  xlab("Mean percentage of students who met or exceeded standard across \nEnglish, science, and math in 2018-19") +
-  ylab("Count")
-
-# histogram for air pollution
-ggplot(data = causal_inference_preliminary_dataset, 
-       aes(x = modeled_air_at_school)) +
-  geom_histogram(binwidth = 0.1) +
-  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
-  ylab("Count")
-
-# make basic scatterplot with line through it
-ggplot(data = causal_inference_preliminary_dataset, 
+# make basic scatterplot with loess line through it
+ggplot(data = dataset_full, 
        aes(x = modeled_air_at_school, 
-           y = overall_standard_met)) +
+           y = math_standard_met)) +
   geom_point(color = "blue", alpha = 0.5) +
   geom_smooth(method=loess, 
               se=TRUE, 
               color="darkred") +
   xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
-  ylab("Mean Percentage of Students Who Met or Exceeded Standard \n(English, Science, and Math) in 2018-19")
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19")
 
-# get basic summary statistics
-mean(causal_inference_preliminary_dataset$overall_standard_met)
-summary(causal_inference_preliminary_dataset$overall_standard_met)
-sd(causal_inference_preliminary_dataset$overall_standard_met)
+# make basic scatterplot with plain line through it
+ggplot(data = dataset_full, 
+       aes(x = modeled_air_at_school, 
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_abline() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19")
+
+colnames(dataset_full)
+
+# scatterplot enrollment and pm2.5
+ggplot(data = dataset_full, 
+       aes(x = modeled_air_at_school, 
+           y = school_k_12_enrollment)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("School Enrollment 2018-19")
 
 
 
-load(file = file.path( "causal_inference_preliminary_dataset.rdata"))
-
-load(file = file.path("intermediate_data", "air_cropped.rdata"))
-
-# plot air data
-plot(air_cropped)
-
-dev.off()
-
-load(file = file.path("intermediate_data", "california_shapefile.rdata"))
-
-# make plot of modeled air at each school
-plot.new()
-
-plot(california_shapefile[1], main=NULL, color=rgb(1, 1, 1, alpha = 1), border = "black", add=TRUE)
-plot(causal_inference_preliminary_dataset["modeled_air_at_school"], pch=16, cex=0.4, 
-     xlab=NULL, ylab=NULL, main=NULL)
-title(main = expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018")))
-
-# plot test scores
-plot(causal_inference_preliminary_dataset["overall_standard_met"], pch=16, cex=0.4, 
-     xlab=NULL, ylab=NULL, main=NULL, pal=brewer.pal(10, "RdYlGn"))
-
-mean(causal_inference_preliminary_dataset$modeled_air_at_school)
-sd(causal_inference_preliminary_dataset$modeled_air_at_school)
-=======
-View(dataset_complete_cases)
->>>>>>> fb6e4f0c35f405fb73a4de63a6cad2f95d54113f
+# scatterplot enrollment and test scores
+ggplot(data = dataset_full, 
+       aes(x = school_k_12_enrollment, 
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab(expression(paste("School Enrollment 2018-19"))) +
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19")
 
 ```
+
+
+```{r KATIE attempt at simple substitution}
+
+dataset_complete_cases_working <- 
+  dataset_complete_cases %>% 
+  mutate(math_proportion = math_standard_met/100,
+         pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0), 
+         air_district = factor(air_district), 
+         air_basin = factor(air_basin))
+
+ObsData <- 
+  dataset_complete_cases_working %>% 
+  mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
+  dplyr::select(Y = math_proportion,
+                A = pm25_12_plus, 
+                air_basin, 
+                afr_am_percent, 
+                asian_filipino_percent, 
+                two_none_aian_pi_percent, 
+                hisp_latinx_percent, 
+                english_learner_percent, 
+                frpm_percent, 
+                district_cost_per_pupil, 
+                student_teacher_ratio, 
+                school_k_12_enrollment)
+
+ObsData <- as.data.frame(ObsData)
+
+set.seed(252)
+
+# reduce runs of biglasso from 100 to 5 to save time
+new.algorithm.1 = create.Learner("SL.biglasso", 
+                                params = list(nlambda = 5))
+
+new.algorithm.2 = create.Learner("SL.randomForest", 
+                                params = list(ntrees = 10))
+
+# specify SL library
+listWrappers()
+katie.SL.library <- c("SL.mean", 
+                      "SL.glm", 
+                      "SL.glm.interaction", 
+                      "SL.bayesglm"
+                      # new.algorithm.2$names
+                      # "SL.rpartPrune"
+                      )
+
+#------------------------------------------
+# 2. Estimate Qbar_0(A,W) with Super Learner
+#------------------------------------------
+# dataframe X with baseline covariates and exposure
+X<-subset(ObsData, 
+          select=c(A, 
+                   air_basin, 
+                   afr_am_percent, 
+                   asian_filipino_percent, 
+                   two_none_aian_pi_percent, 
+                   hisp_latinx_percent, 
+                   english_learner_percent, 
+                   frpm_percent, 
+                   district_cost_per_pupil, 
+                   student_teacher_ratio, 
+                   school_k_12_enrollment))
+
+# set the exposure=1 in X1 and the exposure=0 in X0
+X1 <- X0 <- X
+X1$A <- 1 # under exposure
+X0$A <- 0 # under control
+
+# call Super Learner
+QbarSL <- SuperLearner(Y = ObsData$Y, 
+                       X = X, 
+                       SL.library = katie.SL.library,
+                       family = "binomial")
+QbarSL
+summary(QbarSL)
+
+# get the expected PM2.5 , given the observed exposure and covariates
+QbarAW <- predict(QbarSL, newdata=ObsData)$pred
+# expected injury severity, given A=1 and covariates
+Qbar1W <- predict(QbarSL, newdata=X1)$pred
+# expected injury severity, given A=0 and covariates
+Qbar0W <- predict(QbarSL, newdata=X0)$pred
+# the fitted value at the observed exposure should equal the fitted value
+# under when A=a
+tail(data.frame(A=ObsData$A, QbarAW, Qbar1W, Qbar0W))
+
+# note the simple substitution estimator would be
+PsiHat.SS <- mean(Qbar1W - Qbar0W)
+PsiHat.SS
+
+```
+
+
+```{r KATIE evaluating positivity}
+
+# call Super Learner for the exposure mechanism
+gHatSL <- SuperLearner(Y=ObsData$A, 
+                       X=subset(ObsData, 
+                                select= -c(Y, A)),
+                       SL.library = katie.SL.library, 
+                       family="binomial")
+
+# generate predicted prob being exposed, given baseline covariates
+gHat1W <- gHatSL$SL.predict
+
+# predicted prob of not being exposed, given baseline covariates
+gHat0W <- 1- gHat1W
+
+# # predicted prob of observed exposure, given baseline cov
+gHatAW <- rep(NA, n = nrow(ObsData))
+gHatAW[ObsData$A==1] <- gHat1W[ObsData$A==1]
+gHatAW[ObsData$A==0] <- gHat0W[ObsData$A==0]
+
+# this gives a little summary of the distribution
+summary(gHatAW)
+
+# calculate weights
+wt <- 1/gHatAW
+
+summary(wt)
+
+```
+
+
+
+```{r KATIE attempt at full code set from lab 6}
+
+# run.tmle <- function(ObsData, SL.library, id = NULL){
+# 
+# #------------------------------------------
+# # Estimate the conditional mean outcome Qbar(A,W)
+# #------------------------------------------
+# 
+# # dataframe X with baseline covariates and exposure
+# X <- subset(ObsData, 
+#             select = c(pm25_12_plus, 
+#                        air_basin, 
+#                        afr_am_percent, 
+#                        asian_filipino_percent, 
+#                        two_none_aian_pi_percent, 
+#                        hisp_latinx_percent, 
+#                        english_learner_percent, 
+#                        frpm_percent, 
+#                        district_cost_per_pupil, 
+#                        student_teacher_ratio))
+# 
+# # set the A=1 in X1 and the A=0 in X0
+# X1 <- X0 <- X
+# X1$pm25_12_plus <- 1 # under exposure
+# X0$pm25_12_plus <- 0 # under control
+# 
+# # call Super Learner for estimation of QbarAW
+# QbarSL<- SuperLearner(Y = ObsData$math_standard_met, 
+#                       X = X, 
+#                       SL.library = SL.library, 
+#                       family = "gaussian", 
+#                       id = id)
+# # QbarSL
+# 
+# # initial estimates of the outcome, given the observed exposure & covariates
+# QbarAW <- predict(QbarSL, newdata=ObsData)$pred
+# # estimates of the outcome, given A=1 and covariates
+# Qbar1W<- predict(QbarSL, newdata=X1)$pred
+# # estimates of the outcome, given A=0 and covariates
+# Qbar0W<- predict(QbarSL, newdata=X0)$pred
+# 
+# # simple substitution estimator:
+# PsiHat.SS<-mean(Qbar1W - Qbar0W)
+# 
+# #------------------------------------------
+# # Estimate the exposure mechanism g(pm25_12_plus|W)
+# #------------------------------------------
+# 
+# # call Super Learner for the exposure mechanism
+# gHatSL<- SuperLearner(Y = ObsData$pm25_12_plus, 
+#                       X = subset(ObsData, select= -c(pm25_12_plus,
+#                                                      math_standard_met,
+#                                                      id)),
+# SL.library = SL.library, family="binomial", id=id)
+# # generate predicted prob being exposed, given baseline covariates
+# gHat1W <- gHatSL$SL.predict
+# # predicted prob of not being exposed, given baseline covariates
+# gHat0W <- 1- gHat1W
+# 
+# # # predicted prob of observed exposure, given baseline cov
+# # gHatAW<- rep(NA, n)
+# # gHatAW[ObsData$A==1]<- gHat1W[ObsData$A==1]
+# # gHatAW[ObsData$A==0]<- gHat0W[ObsData$A==0]
+# 
+# #-------------------------------------------------
+# # Clever covariate H(A,W) for each subject
+# #-------------------------------------------------
+# H.AW<- as.numeric(ObsData$pm25_12_plus==1)/gHat1W - as.numeric(ObsData$pm25_12_plus==0)/gHat0W
+# 
+# # also want to evaluate the clever covariates at A=1 and A=0 for all subjects
+# H.1W<- 1/gHat1W
+# H.0W<- -1/gHat0W
+# 
+# 
+# #IPTW estimator of the G-computation formula:
+# PsiHat.IPTW <-mean( H.AW*ObsData$Y)
+# 
+# #------------------------------------------
+# # Update the initial estimator of Qbar_0(A,W)
+# #------------------------------------------
+# logitUpdate<- glm(ObsData$Y ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='binomial')
+# epsilon <- logitUpdate$coef
+# 
+# QbarAW.star<- plogis(qlogis(QbarAW)+ epsilon*H.AW)
+# Qbar1W.star<- plogis(qlogis(Qbar1W)+ epsilon*H.1W)
+# Qbar0W.star<- plogis(qlogis(Qbar0W)+ epsilon*H.0W)
+# 
+# #------------------------------------------
+# # Estimate Psi(P_0)
+# #------------------------------------------
+# 
+# PsiHat.TMLE <- mean(Qbar1W.star - Qbar0W.star)
+# 
+# #------------------------------------------
+# # Return point estimates, targeted estimates of Qbar_0(A,W),
+# # and thevector of clever covariates
+# #------------------------------------------
+# 
+# estimates <- data.frame(cbind(PsiHat.SS=PsiHat.SS, PsiHat.IPTW, PsiHat.TMLE))
+# Qbar.star <- data.frame(cbind(QbarAW.star, Qbar1W.star, Qbar0W.star))
+# names(Qbar.star)<- c('QbarAW.star', 'Qbar1W.star', 'Qbar0W.star')
+# 
+# list(estimates=estimates, Qbar.star=Qbar.star, H.AW=H.AW)
+# }
+# 
+# out <- run.tmle(ObsData = ObsData, 
+#                 SL.library = katie.SL.library)
+# 
+# est <- out$estimates
+# est*100
+
+
+
+```
+
 
 
 ```{r g-computation by KATIE, eval=FALSE, include=FALSE}
@@ -232,6 +407,7 @@ set.seed(252)
 ```
 
 
+# BELOW LIES STEPHEN'S CODE
 
 
 ```{r preliminary data analysis BY STEPHEN, eval=FALSE, include=FALSE}
