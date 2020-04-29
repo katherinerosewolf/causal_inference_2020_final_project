@@ -309,7 +309,8 @@ ggplot(data = dataset_complete_cases_working,
   geom_boxplot() +
   xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
   ylab("District Cost Per Pupil ($)") +
-  ggtitle("Complete Cases Only")
+  ggtitle("Complete Cases Only") +
+  ylim(0, 150000)
 
 # scatterplot district cost per pupil math standard met
 ggplot(data = simulated_full_only_complete_cases, 
@@ -319,8 +320,42 @@ ggplot(data = simulated_full_only_complete_cases,
   geom_smooth() +
   xlab("District Cost Per Pupil ($)") +
   ylab("Math Standard Met") +
+  ggtitle("Complete Cases Only") +
+  xlim(0, 40000) +
+  ylim(0, 100)
+
+#------------------------------------------
+# Student-teacher ratio
+#------------------------------------------
+
+# scatterplot cost per pupil air pollution
+ggplot(data = simulated_full_only_complete_cases, 
+       aes(x = student_teacher_ratio, 
+           y = modeled_air_at_school)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab("Student-Teacher Ratio") +
+  ylab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
   ggtitle("Complete Cases Only")
 
+# boxplot cost per pupil pm
+ggplot(data = dataset_complete_cases_working, 
+       aes(x = pm25_12_plus, 
+           y = student_teacher_ratio)) +
+  geom_boxplot() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Student-Teacher Ratio") +
+  ggtitle("Complete Cases Only")
+
+# scatterplot district cost per pupil math standard met
+ggplot(data = simulated_full_only_complete_cases, 
+       aes(x = student_teacher_ratio, 
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab("Student-teacher ratio") +
+  ylab("Math standard met (%)") +
+  ggtitle("Complete Cases Only")
 
 
 
