@@ -249,7 +249,7 @@ View(dataset_complete_cases)
 set.seed(252)
 # specify SL library
   listWrappers()
-  SL.library <- c("SL.mean","SL.glm")
+  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.randomForest","SL.rpartPrune","SL.biglasso")
   other_options <- c("SL.glm.interaction","SL.randomForest","SL.polymars","SL.rpartPrune","SL.biglasso")
 # SS, IPTW, & TMLE function
   run.tmle <- function(Y,A,ObsData, SL.library, id=NULL) {
