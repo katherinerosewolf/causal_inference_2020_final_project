@@ -119,47 +119,6 @@ glm_forget_funding <-
 
 summary(glm_forget_funding)
 
-# make basic scatterplot with loess line through it
-ggplot(data = dataset_full, 
-       aes(x = modeled_air_at_school, 
-           y = math_standard_met)) +
-  geom_point(color = "blue", alpha = 0.5) +
-  geom_smooth(method=loess, 
-              se=TRUE, 
-              color="darkred") +
-  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
-  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19")
-
-# make basic scatterplot with plain line through it
-ggplot(data = dataset_full, 
-       aes(x = modeled_air_at_school, 
-           y = math_standard_met)) +
-  geom_point(color = "blue", alpha = 0.5) +
-  geom_abline() +
-  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
-  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19")
-
-colnames(dataset_full)
-
-# scatterplot enrollment and pm2.5
-ggplot(data = dataset_full, 
-       aes(x = modeled_air_at_school, 
-           y = school_k_12_enrollment)) +
-  geom_point(color = "blue", alpha = 0.5) +
-  geom_smooth() +
-  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
-  ylab("School Enrollment 2018-19")
-
-
-
-# scatterplot enrollment and test scores
-ggplot(data = dataset_full, 
-       aes(x = school_k_12_enrollment, 
-           y = math_standard_met)) +
-  geom_point(color = "blue", alpha = 0.5) +
-  geom_smooth() +
-  xlab(expression(paste("School Enrollment 2018-19"))) +
-  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19")
 
 ```
 
