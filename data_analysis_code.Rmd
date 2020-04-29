@@ -419,7 +419,8 @@ set.seed(252)
     unique(dataset_complete_cases$pm25_12_plus)
     unique(dataset_complete_cases$cds_code)
 # descriptives for numeric columns    
-  num_cols <- c(2,5:13)
+  num_cols <- c(2,6:15)
+  str(dataset_complete_cases[,num_cols])
   describe(dataset_complete_cases[,num_cols])
   by(dataset_complete_cases[,num_cols],list(dataset_complete_cases$pm25_12_plus),describe)
   aggregate(dataset_complete_cases[,num_cols],list(dataset_complete_cases$pm25_12_plus),
@@ -440,6 +441,9 @@ set.seed(252)
 # make A variable into numeric & Y variable proportion
   dataset_complete_cases$pm25_12_plus <- ifelse(dataset_complete_cases$pm25_12_plus=="yes",1,0)
   dataset_complete_cases$math_standard_met <- dataset_complete_cases$math_standard_met/100
+# correlations between predictors
+  predictor_corrs <- Hmisc::rcorr(as.matrix(dataset_complete_cases[,c(3,num_cols)]))$r
+  openxlsx::write.xlsx(list(predictor_corrs),"~/Desktop/PH252D/cifp/output_for_writeups/predictor_correlations.xlsx",colNames=T,rowNames=T)
   
 ```
 
