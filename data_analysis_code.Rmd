@@ -213,6 +213,27 @@ View(dataset_complete_cases)
 
 ```
 
+
+```{r g-computation by KATIE, eval=FALSE, include=FALSE}
+
+set.seed(252)
+# specify SL library
+  listWrappers()
+  SL.library <- c("SL.mean","SL.glm")
+  other_options <- c("SL.glm.interaction","SL.randomForest","SL.polymars","SL.rpartPrune","SL.biglasso")
+
+```
+
+
+```{r checking positivity assumption by KATIE, eval=FALSE, include=FALSE}
+
+
+
+```
+
+
+
+
 ```{r preliminary data analysis BY STEPHEN, eval=FALSE, include=FALSE}
 # basic bits about data
   names(dataset_complete_cases)
