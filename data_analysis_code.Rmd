@@ -374,9 +374,6 @@ ggplot(data = simulated_full_only_complete_cases,
   ylab("Math standard met (%)") +
   ggtitle("Complete Cases Only")
 
-
-
-
 #------------------------------------------
 # Air basin
 #------------------------------------------

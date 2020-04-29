@@ -1002,8 +1002,8 @@ save(teacher_credentials_from_raw,
      file = file.path("intermediate_data", 
                       "teacher_credentials_from_raw.rdata"))
 
-# remove all objects from the environment
-rm(list = ls(all.names = TRUE))
+# # remove all objects from the environment
+# rm(list = ls(all.names = TRUE))
 
 
 ```
