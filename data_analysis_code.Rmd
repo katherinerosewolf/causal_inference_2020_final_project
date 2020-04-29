@@ -261,8 +261,9 @@ set.seed(252)
     table(dataset_complete_cases$air_district) # 70 schools in Feather River. why STR so high??
     
   round(prop.table(table(dataset_complete_cases$air_district)),3)
-# make A variable into numeric
+# make A variable into numeric & Y variable proportion
   dataset_complete_cases$pm25_12_plus <- ifelse(dataset_complete_cases$pm25_12_plus=="yes",1,0)
+  dataset_complete_cases$math_standard_met <- dataset_complete_cases$math_standard_met/100
   
 ```
 
@@ -291,11 +292,11 @@ set.seed(252)
         # QbarSL
         
        # initial estimates of the outcome, given the observed exposure & covariates
-        QbarAW <- predict(QbarSL, newdata=ObsData)$pred/100
+        QbarAW <- predict(QbarSL, newdata=ObsData)$pred
        # estimates of the outcome, given A=1 and covariates
-        Qbar1W<- predict(QbarSL, newdata=X1)$pred/100
+        Qbar1W<- predict(QbarSL, newdata=X1)$pred
        # estimates of the outcome, given A=0 and covariates
-        Qbar0W<- predict(QbarSL, newdata=X0)$pred/100
+        Qbar0W<- predict(QbarSL, newdata=X0)$pred
     
        # simple substitution estimator:
         PsiHat.SS<-mean(Qbar1W - Qbar0W)
@@ -367,8 +368,11 @@ set.seed(252)
     est <- out$estimates
     est*100
  
-
-
+# run with ltmle for comparison
+  sub_data2 <- sub_data[,-c(1,4)]
+  sub_data2 <- sub_data2[,c(names(sub_data2[3:11]),"math_standard_met","pm25_12_plus")]
+  ltmle.SL<- ltmle(data=sub_data2, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library)  
+  summary(ltmle.SL)  
 
  
 
