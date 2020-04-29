@@ -288,6 +288,67 @@ ggplot(data = simulated_full_only_complete_cases,
   ylab("Math Standard Met") +
   ggtitle("Complete Cases Only")
 
+#------------------------------------------
+# Per-pupil funding
+#------------------------------------------
+
+# scatterplot cost per pupil air pollution
+ggplot(data = simulated_full_only_complete_cases, 
+       aes(x = district_cost_per_pupil, 
+           y = modeled_air_at_school)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab("District Cost Per Pupil ($)") +
+  ylab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ggtitle("Complete Cases Only")
+
+# boxplot cost per pupil pm
+ggplot(data = dataset_complete_cases_working, 
+       aes(x = pm25_12_plus, 
+           y = district_cost_per_pupil)) +
+  geom_boxplot() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("District Cost Per Pupil ($)") +
+  ggtitle("Complete Cases Only")
+
+# scatterplot district cost per pupil math standard met
+ggplot(data = simulated_full_only_complete_cases, 
+       aes(x = district_cost_per_pupil, 
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab("District Cost Per Pupil ($)") +
+  ylab("Math Standard Met") +
+  ggtitle("Complete Cases Only")
+
+
+
+
+
+#------------------------------------------
+# Air basin
+#------------------------------------------
+
+#------------------------------------------
+# Percent white
+#------------------------------------------
+
+#------------------------------------------
+# Percent Hispanic/Latinx
+#------------------------------------------
+
+#------------------------------------------
+# Percent Asian/Filipino
+#------------------------------------------
+
+#------------------------------------------
+# Percent African American
+#------------------------------------------
+
+#------------------------------------------
+# Percent other
+#------------------------------------------
+
 
 
 ```
