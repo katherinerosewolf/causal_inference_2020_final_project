@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggdag)
 ```
 
-```{r}
+```{r, Version 1 (me alone without Katie)}
 # Version 1 (me alone without Katie)
 model1 <- dagify(ScoreThreshhold ~ PM2.5 + Absenteeism + Suspension + MinorityEnrollment + FreeLunch + AirBasin,
                 Absenteeism ~ PM2.5 + Suspension + FreeLunch + AirBasin + MinorityEnrollment,
@@ -27,7 +27,7 @@ ggdag(model1,node=FALSE,text_col='black')
 ggdag_adjustment_set(model1,text_col='black')
 ```
 
-```{r}
+```{r, Version 2 (after talking to Katie)}
 # Version 2 (after talking to Katie)
   # construction rules:
   # - observed indicators entered into equations before unobserved indicators
@@ -70,7 +70,7 @@ ggdag(model2,node=FALSE,text_col="black")
 ggdag_adjustment_set(model2,text_col="black")
 ```
 
-```{r}
+```{r, Version 3 (beautifying Version 2)}
 # Version 3 (beautifying Version 2)
   # construction rules:
   # - observed indicators entered into equations before unobserved indicators
@@ -111,5 +111,49 @@ model3 <- dagify(PM2.5 ~ PolicyInfluence + LandUsePolicy + GeoFeat + AirPolicy,
                 )
 ggdag(model3,node=FALSE,text_col="black")
 ggdag_adjustment_set(model3,text_col="black")
+```
+
+```{r, Version 4 (updating Version 3)}
+# Version 4 (updating Version 3)
+  # construction rules:
+  # - observed indicators entered into equations before unobserved indicators
+  # - observed indicators grouped on separate line from unobserved indicators
+  # - after adding an unobserved indicator to an equation, immediately add it to the "latent" parameter before altering further equations
+  # - enter only *direct* causes of a variable into its equation
+  # - make equations for observed variables first, then for unobserved variables
+  # - enter associations between variables on the line following the equation for the variable and indented
+  # - observed variables = PM2.5, Scores, Absenteeism, Suspension, FreeLunch, MinorityPerc, ESL, AirBasin, PerCapEduFund
+model4 <- dagify(PM2.5 ~ PolicyInfluence + LandUsePolicy + GeoFeat + AirPolicy,
+                Scores ~ PM2.5 + Absenteeism + Suspension + FreeLunch + ESL + AirBasin + PerCapEduFund +
+                         TeacherDiscrim + TeacherQual,
+                Absenteeism ~ PM2.5 + Suspension,
+                Suspension ~ PM2.5 + 
+                             TeacherDiscrim,
+                FreeLunch ~ HouseIncome,
+                PoCPerc ~ LandUsePolicy,
+                ESL ~ FamSpeakEng,
+                AirBasin ~ GeoFeat,
+                PerCapEduFund ~ LandUsePolicy + LocalPropertyTax + FreeLunch,
+                
+                PolicyInfluence ~ PoCPerc + 
+                                  FamSpeakEng + HouseIncome,
+                #LandUsePolicy ~ ,
+                #GeoFeat ~ ,
+                AirPolicy ~ AirBasin,
+                TeacherDiscrim ~ PoCPerc,
+                TeacherQual ~ PerCapEduFund + 
+                              LandUsePolicy + HouseIncome,
+                HouseIncome ~ PoCPerc + LandUsePolicy + FamSpeakEng,
+                FamSpeakEng ~ PoCPerc,
+                LocalPropertyTax ~ HouseIncome,
+                exposure="PM2.5",outcome="Scores",
+                latent=c("PolicyInfluence","LandUsePolicy","GeoFeat","AirPolicy","TeacherDiscrim","HouseIncome","FamSpeakEng","LocalPropertyTax"),
+                coords=list(x=c(PM2.5=-5,Scores=4,Absenteeism=-1.5,Suspension=-2,FreeLunch=1.75,PoCPerc=-5,ESL=2,AirBasin=-2.35,PerCapEduFund=3.5,
+                                PolicyInfluence=-5,LandUsePolicy=-1,GeoFeat=-3,AirPolicy=-2.75,TeacherDiscrim=0,TeacherQual=3.75,HouseIncome=0.75,FamSpeakEng=1,LocalPropertyTax=1.75),
+                            y=c(PM2.5=-0.5,Scores=-2,Absenteeism=-1.5,Suspension=-2.5,FreeLunch=0.8,PoCPerc=5,ESL=3.5,AirBasin=0.75,PerCapEduFund=4,
+                                PolicyInfluence=4,LandUsePolicy=6,GeoFeat=0,AirPolicy=-0.25,TeacherDiscrim=0.25,TeacherQual=3,HouseIncome=1.3,FamSpeakEng=4.25,LocalPropertyTax=2.05))
+                )
+ggdag(model4,node=FALSE,text_col="black")
+ggdag_adjustment_set(model4,text_col="black")
 ```
 
