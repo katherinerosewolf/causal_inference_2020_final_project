@@ -2216,7 +2216,6 @@ dataset_complete_cases_forget_funding <-
          student_teacher_ratio, 
          school_k_12_enrollment)
   
-
 save(dataset_complete_cases, 
      file = file.path("dataset_complete_cases.rdata"))
 

@@ -147,6 +147,153 @@ ggplot(data = dataset_full,
 ```
 
 
+```{r plots for slides}
+
+dataset_complete_cases_working <- 
+  dataset_complete_cases %>% 
+  mutate(math_proportion = math_standard_met/100,
+         pm25_12_plus = factor(pm25_12_plus), 
+         air_district = factor(air_district), 
+         air_basin = factor(air_basin))
+
+simulated_full_only_complete_cases <- 
+  dataset_full %>% 
+  filter(!is.na(math_standard_met)) %>% 
+  filter(!is.na(english_learner_percent)) %>% 
+  filter(!is.na(student_teacher_ratio)) %>% 
+  filter(!is.na(air_district))
+
+#------------------------------------------
+# Exposure-Outcome
+#------------------------------------------
+
+# make basic scatterplot with loess line through it
+ggplot(data = simulated_full_only_complete_cases,
+       aes(x = modeled_air_at_school,
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method=loess,
+              se=TRUE,
+              color="darkred") +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") +
+  ggtitle("Complete Cases Only")
+
+# make basic scatterplot with plain line through it
+ggplot(data = simulated_full_only_complete_cases, 
+       aes(x = modeled_air_at_school, 
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_abline() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") +
+  ggtitle("Complete Cases Only")
+
+# make basic scatterplot with loess line through it
+ggplot(data = dataset_full,
+       aes(x = modeled_air_at_school,
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method=loess,
+              se=TRUE,
+              color="darkred") +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") +
+  ggtitle("Full Data")
+
+# make basic scatterplot with plain line through it
+ggplot(data = dataset_full, 
+       aes(x = modeled_air_at_school, 
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_abline() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") +
+  ggtitle("Full Data")
+
+# box plot PM2.5 versus math score
+ggplot(data = dataset_complete_cases_working, 
+       aes(x = pm25_12_plus, 
+           y = math_standard_met)) +
+  geom_boxplot() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") +
+  ggtitle("Complete Cases Only")
+
+colnames(dataset_complete_cases)
+
+#------------------------------------------
+# Enrollment
+#------------------------------------------
+
+# scatterplot enrollment and pm2.5
+ggplot(data = simulated_full_only_complete_cases, 
+       aes(x = modeled_air_at_school, 
+           y = school_k_12_enrollment)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("School Enrollment 2018-19") +
+  ggtitle("Complete Cases Only")
+
+# scatterplot enrollment and test scores
+ggplot(data = dataset_complete_cases, 
+       aes(x = school_k_12_enrollment, 
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab(expression(paste("School Enrollment 2018-19"))) +
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") +
+  ggtitle("Complete Cases Only")
+
+# box plot PM2.5 versus enrollment
+ggplot(data = dataset_complete_cases_working, 
+       aes(x = pm25_12_plus, 
+           y = school_k_12_enrollment)) +
+  geom_boxplot() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("School Enrollment 2018-19") +
+  ggtitle("Complete Cases Only")
+
+#------------------------------------------
+# FRPM
+#------------------------------------------
+
+# scatterplot frpm air pollution
+ggplot(data = simulated_full_only_complete_cases, 
+       aes(x = frpm_percent, 
+           y = modeled_air_at_school)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab("Students with Free/Reduced-Price Lunches (%)") +
+  ylab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ggtitle("Complete Cases Only")
+
+# boxplot frpm pm
+ggplot(data = dataset_complete_cases_working, 
+       aes(x = pm25_12_plus, 
+           y = frpm_percent)) +
+  geom_boxplot() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Students with Free/Reduced-Price Lunches (%)") +
+  ggtitle("Complete Cases Only")
+
+# scatterplot frpm math standard met
+ggplot(data = simulated_full_only_complete_cases, 
+       aes(x = frpm_percent, 
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab("Students with Free/Reduced-Price Lunches (%)") +
+  ylab("Math Standard Met") +
+  ggtitle("Complete Cases Only")
+
+
+
+```
+
+
+
 ```{r KATIE attempt at simple substitution}
 
 dataset_complete_cases_working <- 
