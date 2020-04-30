@@ -840,7 +840,7 @@ save(
     )
 )
 
-# plot(air_cropped)
+plot(air_cropped)
 
 # remove all objects from the environment
 rm(list = ls(all.names = TRUE))
@@ -1902,11 +1902,48 @@ save(
 ```
 
 
+```{r binning air basins}
+
+# load school air
+load(file = file.path("intermediate_data", 
+                      "school_air_sf.rdata"))
+
+# make air basin groups
+northlands <- c("Lake County", 
+                      "North Coast", 
+                      "Northeast Plateau", 
+                      "Mountain Counties", 
+                      "Lake Tahoe")
+
+southlands <- c("Great Basin Valleys", 
+                      "Mojave Desert", 
+                      "Salton Sea")
+
+# Lake/County/North Coast further.  What would you think if we binned them with Northeast Plateau/Mountain Counties/Lake Tahoe
+
+# add revised bins by air basin
+school_air_sf_binned_basins <- 
+  school_air_sf %>% 
+  mutate(air_basin_binned = air_basin) %>% 
+  mutate(air_basin_binned = if_else(air_basin_binned %in% northlands,
+                                   "Northlands", 
+                                   air_basin_binned)) %>%
+  mutate(air_basin_binned = if_else(air_basin_binned %in% southlands,
+                                    "Southlands", 
+                                    air_basin_binned))
+
+save(school_air_sf_binned_basins, 
+     file = file.path("intermediate_data", 
+                      "school_air_sf_binned_basins.rdata"))
+
+```
+
+
 
 ```{r making the final dataset}
 
 load(file = file.path("intermediate_data", 
-                      "school_air_sf.rdata"))
+                      "school_air_sf_binned_basins.rdata"))
 
 load(file = file.path("intermediate_data",
                       "school_enrollment_no_nonsec.rdata"))
@@ -1970,7 +2007,7 @@ ethnicity_grade_by_school <-
 
 # make the final dataset
 school_air_ethnicity_gender <- 
-  school_air_sf %>% 
+  school_air_sf_binned_basins %>% 
   left_join(ethnicity_grade_by_school, 
             by = "cds_code") %>% 
   select(-c(cds_school_code, 
@@ -2011,6 +2048,7 @@ save(schools_all_data,
                       "schools_all_data.rdata"))
 
 ```
+
 
 ```{r calculating final values}
 
@@ -2114,6 +2152,7 @@ full_data <-
   select(-c(district_from_expense_per_pupil, 
             cds_county_code_from_expense_per_pupil))
 
+
 full_data_analysis_variables <- 
   full_data %>% 
   select(cds_code, 
@@ -2126,6 +2165,7 @@ full_data_analysis_variables <-
          pm25_12_plus, 
          air_district, 
          air_basin, 
+         air_basin_binned,
          school_k_12_enrollment, 
          percent_female, 
          afr_am_percent, 
@@ -2281,7 +2321,7 @@ dataset_complete_cases_all_data <-
   filter(!is.na(english_learner_percent)) %>% 
   filter(!is.na(district_cost_per_pupil)) %>% 
   filter(!is.na(student_teacher_ratio)) %>% 
-  filter(!is.na(air_district))
+  filter(!is.na(air_basin_binned))
 
 nrow(dataset_complete_cases_all_data)  # 8838 schools
 
@@ -2318,8 +2358,10 @@ dataset_complete_cases <-
   dataset_complete_cases_all_data %>% 
   select(cds_code, 
          math_standard_met,
+         modeled_air_at_school,
          pm25_12_plus, 
          air_basin,
+         air_basin_binned,
          air_district,
          afr_am_percent, 
          asian_filipino_percent, 
@@ -2341,7 +2383,9 @@ dataset_complete_cases_forget_funding <-
   select(cds_code, 
          math_standard_met,
          pm25_12_plus, 
+         modeled_air_at_schoo,
          air_basin,
+         air_basin_binned,
          air_district,
          afr_am_percent, 
          asian_filipino_percent, 

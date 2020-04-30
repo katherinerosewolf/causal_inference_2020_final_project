@@ -92,6 +92,7 @@ plain_glm_drop_per_pupil <- glm(math_standard_met ~
                    hisp_latinx_percent + 
                    english_learner_percent + 
                    frpm_percent + 
+                   cred_percent +
                    school_k_12_enrollment, 
                  data = dataset_complete_cases_working)
 
@@ -140,6 +141,12 @@ simulated_full_only_complete_cases <-
   filter(!is.na(english_learner_percent)) %>% 
   filter(!is.na(student_teacher_ratio)) %>% 
   filter(!is.na(air_district))
+
+# count observations by air basin
+dataset_complete_cases_working %>% 
+  group_by(air_basin) %>% 
+  summarize(count = n()) %>% 
+  View()
 
 #------------------------------------------
 # Exposure-Outcome
@@ -336,6 +343,39 @@ ggplot(data = simulated_full_only_complete_cases,
   ggtitle("Complete Cases Only")
 
 #------------------------------------------
+# Fully-credentialed teachers
+#------------------------------------------
+
+# scatterplot credentials / air pollution
+ggplot(data = simulated_full_only_complete_cases, 
+       aes(x = cred_percent, 
+           y = modeled_air_at_school)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth() +
+  xlab("Fully credentialed teachers (%)") +
+  ylab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ggtitle("Complete Cases Only")
+
+# boxplot credentials / pm
+ggplot(data = dataset_complete_cases_working, 
+       aes(x = pm25_12_plus, 
+           y = cred_percent)) +
+  geom_boxplot() +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Fully credentialed teachers (%)") +
+  ggtitle("Complete Cases Only")
+
+# scatterplot credentials / math standard met
+ggplot(data = simulated_full_only_complete_cases, 
+       aes(x = cred_percent, 
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method = "loess") +
+  xlab("Fully credentialed teachers (%)") +
+  ylab("Math standard met (%)") +
+  ggtitle("Complete Cases Only")
+
+#------------------------------------------
 # Air basin
 #------------------------------------------
 
@@ -366,6 +406,10 @@ ggplot(data = simulated_full_only_complete_cases,
 
 
 ```{r KATIE attempt at simple substitution}
+
+# set up parallelization (my computer has 8 cores and this uses 7 of them)
+(cluster = parallel::makeCluster(7))
+parallel::clusterEvalQ(cluster, library(SuperLearner))
 
 dataset_complete_cases_working <- 
   dataset_complete_cases %>% 
@@ -408,8 +452,10 @@ katie.SL.library <- c("SL.mean",
                       "SL.glm", 
                       "SL.glm.interaction", 
                       "SL.bayesglm"
+                      # "SL.extraTrees"
+                      # "SL.glmnet"
                       # new.algorithm.2$names
-                      # "SL.rpartPrune"
+                      # "SL.rpartPrune" # this one worked
                       )
 
 #------------------------------------------
@@ -418,7 +464,7 @@ katie.SL.library <- c("SL.mean",
 # dataframe X with baseline covariates and exposure
 X<-subset(ObsData, 
           select=c(A, 
-                   air_basin, 
+                   # air_basin, 
                    afr_am_percent, 
                    asian_filipino_percent, 
                    two_none_aian_pi_percent, 
@@ -436,12 +482,15 @@ X1$A <- 1 # under exposure
 X0$A <- 0 # under control
 
 # call Super Learner
-QbarSL <- SuperLearner(Y = ObsData$Y, 
-                       X = X, 
-                       SL.library = katie.SL.library,
-                       family = "binomial")
+QbarSL <- snowSuperLearner(Y = ObsData$Y, 
+                           X = X, 
+                           SL.library = katie.SL.library,
+                           cluster = cluster, 
+                           family = "binomial")
 QbarSL
+
 summary(QbarSL)
+
 
 # get the expected PM2.5 , given the observed exposure and covariates
 QbarAW <- predict(QbarSL, newdata=ObsData)$pred
