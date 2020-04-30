@@ -882,6 +882,8 @@ set.seed(252)
 ```
 
 ```{r, Inference Curve!!!!, eval=FALSE, include=FALSE}
+# how many cores
+  parallel::detectCores(all.tests = FALSE, logical = TRUE)
 # non-parametric bootstrap
 nonparam_boot <- function(ObsData,A,Y,id,SL.library,num_boots) {
   # make output matrix
@@ -928,7 +930,7 @@ nonparam_boot <- function(ObsData,A,Y,id,SL.library,num_boots) {
     return(estimates)
 }  
 estimates <- nonparam_boot(ObsData=dataset_complete_cases[,c("cds_code",include_vars_analysis)],
-                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=5) 
+                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=500) 
 summary(estimates)  
 apply(estimates,2,hist)
 
