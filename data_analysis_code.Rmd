@@ -669,7 +669,7 @@ set.seed(252)
 set.seed(252)
 # specify SL library
   listWrappers()
-  SL.library <- c("SL.mean","SL.glm")
+  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction")
   other_options <- c("SL.glm.interaction","SL.randomForest","SL.polymars","SL.rpartPrune")
 # SS, IPTW, & TMLE function
   run.tmle <- function(Y,A,ObsData, SL.library, id=NULL) {
