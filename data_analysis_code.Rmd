@@ -115,6 +115,7 @@ glm_forget_funding <-
                    english_learner_percent + 
                    frpm_percent + 
                    student_teacher_ratio + 
+                   cred_percent + 
                    school_k_12_enrollment, 
                  data = dataset_complete_cases_forget_funding_working)
 
@@ -455,6 +456,40 @@ tail(data.frame(A=ObsData$A, QbarAW, Qbar1W, Qbar0W))
 # note the simple substitution estimator would be
 PsiHat.SS <- mean(Qbar1W - Qbar0W)
 PsiHat.SS
+
+#------------------------------------------
+# Playing with LTMLE
+#------------------------------------------
+
+# run with ltmle for comparison
+ltmle_data <- 
+  dataset_complete_cases_working %>% 
+  mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
+  dplyr::select(air_basin, 
+                afr_am_percent, 
+                asian_filipino_percent, 
+                two_none_aian_pi_percent, 
+                hisp_latinx_percent, 
+                english_learner_percent, 
+                frpm_percent, 
+                district_cost_per_pupil, 
+                student_teacher_ratio, 
+                cred_percent,
+                school_k_12_enrollment, 
+                Y = math_proportion,
+                A = pm25_12_plus)
+
+ltmle_data <- as.data.frame(ltmle_data)
+
+ltmle_result <- ltmle(data = ltmle_data, 
+                Anodes = 'A', 
+                Ynodes = 'Y', 
+                abar = list(1, 0),
+                SL.library = katie.SL.library)
+
+summary(ltmle_result)  
+
+ltmle_result$fit
 
 ```
 
