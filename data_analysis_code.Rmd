@@ -952,6 +952,87 @@ apply(estimates,2,function(x) quantile(x,probs=c(.025,.975),na.rm=T))
 
 
 
+```{r, KATIE PARALLEL Inference Curve!!!! DOES NOT RUN YET, eval=FALSE, include=FALSE}
+
+# set up parallelization (my computer has 8 cores and this uses 7 of them)
+(cluster = parallel::makeCluster(7))
+parallel::clusterEvalQ(cluster, library(SuperLearner))
+
+# load dataset
+load(file = file.path("dataset_complete_cases.rdata"))
+
+# non-parametric bootstrap
+nonparam_boot_parallel <- function(ObsData,A,Y,id,SL.library,num_boots) {
+  # make output matrix
+    estimates <- matrix(NA,nrow=num_boots,ncol=4)
+  # bootstrap data
+    for (i in 1:num_boots) {
+      # make data
+        n <- nrow(ObsData)
+        ObsData[,id] <- 1:n
+        bootIndices<- sample(1:n, replace=T)
+        bootData<- ObsData[bootIndices,]
+      # estimate target parameters
+        # simple sub
+          X <- bootData[,names(ObsData) != Y]
+          X1 <- X; X1[,A] <- 1
+          X0 <- X; X0[,A] <- 0
+          QbarSL<- snowSuperLearner(Y=bootData[,Y], X=X, SL.library=SL.library, family="binomial", id=bootData[,id], cluster = cluster)
+          QbarAW <- predict(QbarSL, newdata=bootData)$pred
+          Qbar1W<- predict(QbarSL, newdata=X1)$pred
+          Qbar0W<- predict(QbarSL, newdata=X0)$pred
+          simple_sub <- mean(Qbar1W-Qbar0W)
+        # IPTW
+          gHatSL<- snowSuperLearner(Y=bootData[,A], X=bootData[,!(names(bootData) %in% c(A,Y,id))], SL.library=SL.library, family="binomial", id=bootData[,id], cluster = cluster)
+          gHat1W <- gHatSL$SL.predict
+          gHat0W <- 1-gHatSL$SL.predict
+          gHatAW <- ifelse(bootData[,A]==1,gHat1W,gHat0W)
+          wt <- 1/gHatAW
+          H.AW <- as.numeric(bootData[,A]==1)/gHat1W - as.numeric(bootData[,A]==0)/gHat0W
+          H.1W <- as.numeric(X1[,A]==1)/gHat1W - as.numeric(X1[,A]==0)/gHat0W
+          H.0W <- as.numeric(X0[,A]==1)/gHat1W - as.numeric(X0[,A]==0)/gHat0W
+          iptw <- mean(H.AW*bootData[,Y])
+          iptw_ht <- mean(wt*as.numeric(bootData[,A]==1)*bootData[,Y])/mean(wt*as.numeric(bootData[,A]==1)) - 
+                     mean(wt*as.numeric(bootData[,A]==0)*bootData[,Y])/mean(wt*as.numeric(bootData[,A]==0))
+        # TMLE
+          logitUpdate <- glm(bootData[,Y] ~ -1 +offset(qlogis(QbarAW)) + H.AW,family='binomial')
+          epsilon <- logitUpdate$coef
+          QbarAW.star <- plogis(qlogis(QbarAW)+ epsilon*H.AW)
+          Qbar1W.star <- plogis( qlogis(Qbar1W)+ epsilon*H.1W)
+          Qbar0W.star <- plogis( qlogis(Qbar0W)+ epsilon*H.0W)
+          PsiHat.TMLE <- mean(Qbar1W.star- Qbar0W.star)
+      # save results
+        estimates[i,] <- c(simple_sub,iptw,iptw_ht,PsiHat.TMLE)
+    }
+    return(estimates)
+}  
+
+
+include_vars_analysis <- c("math_standard_met","pm25_12_plus","air_basin_binned","afr_am_percent","asian_filipino_percent","two_none_aian_pi_percent","hisp_latinx_percent", "english_learner_percent","frpm_percent","district_cost_per_pupil","student_teacher_ratio","cred_percent","school_k_12_enrollment")
+
+SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm")
+
+estimates <- nonparam_boot_parallel(ObsData=dataset_complete_cases[,c("cds_code",include_vars_analysis)],
+                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=5) 
+summary(estimates)  
+apply(estimates,2,hist)
+
+create.CI <- function(pt, boot, alpha=0.05){
+   Zquant <- qnorm(alpha/2, lower.tail=F)
+   CI.normal <- c(pt - Zquant*sd(boot), pt + Zquant*sd(boot) )
+   CI.quant  <- quantile(boot, prob=c(0.025,0.975) )
+   out<- data.frame(rbind(CI.normal, NA))*100
+ colnames(out)<- c('CI.lo', 'CI.hi')
+ out
+}
+apply(estimates,2,function(x) create.CI(pt=mean(x,na.rm=T),boot=x))
+apply(estimates,2,function(x) quantile(x,probs=c(.025,.975),na.rm=T))
+
+
+
+```
+
+
 
 
 
