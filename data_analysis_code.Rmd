@@ -487,7 +487,7 @@ ltmle_result <- ltmle(data = ltmle_data,
                 abar = list(1, 0),
                 SL.library = katie.SL.library)
 
-summary(ltmle_result)  
+summary(ltmle_result) # Stephen: OMG!!!!! good to see TMLE does the weird "basically equal means but stat sig diff" thing for both of us 
 
 ltmle_result$fit
 

@@ -152,9 +152,9 @@ model4 <- dagify(PM2.5 ~ PolicyInfluence + LandUsePolicy + GeoFeat + AirPolicy,
                 LocalPropertyTax ~ HouseIncome + HouseWealth,
                 exposure="PM2.5",outcome="MathScores",
                 latent=c("PolicyInfluence","LandUsePolicy","GeoFeat","AirPolicy","TeacherDiscrim","HouseIncome","FamSpeakEng","LocalPropertyTax","HouseWealth"),
-                coords=list(x=c(PM2.5=-5,MathScores=4,Absenteeism=-1.5,Suspension=-2,FreeLunch=1.75,PoCPerc=-5,ESL=2,AirBasin=-2.35,PerCapEduFund=3.5,StuTeachRatio=-2.4,SchoolEnroll=-2.75,
+                coords=list(x=c(PM2.5=-5,MathScores=4,Absenteeism=-1.5,Suspension=-2,FreeLunch=1.75,PoCPerc=-5,ESL=2,AirBasin=-2.35,PerCapEduFund=3.5,StuTeachRatio=-3,SchoolEnroll=-2.75,
                                 PolicyInfluence=-5,LandUsePolicy=-1,GeoFeat=-3,AirPolicy=-2.75,TeacherDiscrim=0,TeacherQual=3.75,HouseIncome=0.75,FamSpeakEng=1,LocalPropertyTax=1.75,HouseWealth=0),
-                            y=c(PM2.5=-0.5,MathScores=-2,Absenteeism=-1.5,Suspension=-2.5,FreeLunch=0.8,PoCPerc=5,ESL=3.5,AirBasin=0.75,PerCapEduFund=4,StuTeachRatio=1.4,SchoolEnroll=2,
+                            y=c(PM2.5=-0.5,MathScores=-2,Absenteeism=-1.5,Suspension=-2.5,FreeLunch=0.8,PoCPerc=5,ESL=3.5,AirBasin=0.75,PerCapEduFund=4,StuTeachRatio=1.4,SchoolEnroll=2.2,
                                 PolicyInfluence=4,LandUsePolicy=6,GeoFeat=0,AirPolicy=-0.25,TeacherDiscrim=0.25,TeacherQual=3,HouseIncome=1.3,FamSpeakEng=4.25,LocalPropertyTax=2.05,HouseWealth=2.5))
                 )
 ggdag(model4,node=FALSE,text_col="black")
