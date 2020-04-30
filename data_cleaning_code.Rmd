@@ -986,29 +986,6 @@ rm(list = ls(all.names = TRUE))
 ```
 
 
-```{r read and save teacher credential data}
-
-# load column name fixer
-load(file = file.path("functions", "column_name_fixer.rdata"))
-
-# read in data
-teacher_credentials_from_raw <- 
-  read_delim(file = file.path("raw_data", 
-                              "StaffCred18.txt"), 
-             delim = "\t") 
-
-# save it
-save(teacher_credentials_from_raw, 
-     file = file.path("intermediate_data", 
-                      "teacher_credentials_from_raw.rdata"))
-
-# # remove all objects from the environment
-# rm(list = ls(all.names = TRUE))
-
-
-```
-
-
 ```{r read and save expense per pupil funding data}
 
 # load column name fixer
@@ -1043,7 +1020,7 @@ save(expense_per_pupil,
 ```
 
 
-```{r read and save school fte data}
+```{r read and save school fte and teacher credential data}
 
 # load column name fixer
 load(file = file.path("functions", 
@@ -1059,6 +1036,18 @@ school_fte_from_raw <-
                               "StaffSchoolFTE18.txt"), 
              delim = "\t") 
 
+# read in teacher credential data
+teacher_credentials_from_raw <- 
+  read_delim(file = file.path("raw_data", 
+                              "StaffCred18.txt"), 
+             delim = "\t") 
+
+# better teacher credential data
+teacher_credentials <- 
+  teacher_credentials_from_raw %>% 
+  column_name_fixer()
+  
+# calculate individual fte
 individual_fte <- 
   school_fte_from_raw %>% 
   column_name_fixer() %>% 
@@ -1071,13 +1060,65 @@ individual_fte <-
          
 # count records with ftes <= 1
 individual_fte %>% 
+  filter(fte <= 1 & jobclassification %in% c(12, 26)) %>% 
+  nrow()
+
+individual_fte %>% 
   filter(fte <= 1) %>% 
   nrow()
-  
+
+# count records with ftes <= 1 that are duplicated
+duplicated_recids <- individual_fte$recid[duplicated(individual_fte$recid)]
+
+duplicated_low_fte_recids <- 
+  individual_fte %>% 
+  filter(fte <= 1 & recid %in% duplicated_recids) %>% 
+  pull(recid)
+
+fte_for_duplicated_recids <- 
+  individual_fte %>% 
+  filter(recid %in% duplicated_low_fte_recids) %>% 
+  group_by(recid) %>% 
+  summarize(total_fte = sum(fte), 
+            count = n())
+
+# check matches between teacher credentials and individual schools
+recids_fte <- 
+  individual_fte %>% 
+  filter(stafftype == "T") %>% 
+  pull(recid) %>% 
+  unique()
+
+# get recids
+recids_fte <- sort(unique(individual_fte %>% filter(stafftype == "T") %>% pull(recid)))
+recids_credentials <- sort(unique(teacher_credentials$recid))
+
+length(recids_fte)
+length(recids_credentials)
+
+# ids in fte that are not in credentials
+length(setdiff(recids_fte, recids_credentials))
+
+# ids in credentials that are not in fte: none
+length(setdiff(recids_credentials, recids_fte))
+
+# count total rows and unique recids
+nrow(individual_fte)
+length(unique(individual_fte$recid))
+
+# count number of records to be corrected
+individual_fte %>% 
+  filter(fte <= 1 & 
+           jobclassification %in% c(12, 26) & 
+           !(recid %in% duplicated_recids)) %>% 
+  nrow()
+
 # correct records where fte is <= to 1 by multiplying by 100       
 individual_fte_corrected <- 
   individual_fte %>% 
-  mutate(fte_corrected = ifelse(fte <= 1 & jobclassification %in% c(12, 26), 
+  mutate(fte_corrected = ifelse(fte <= 1 & 
+                                  jobclassification %in% c(12, 26) & 
+                                  !(recid %in% duplicated_recids), 
                                 fte*100, 
                                 fte))
   
@@ -1088,7 +1129,90 @@ school_teacher_fte <-
   group_by(cds_code) %>% 
   summarise(fte_school = sum(fte_corrected)) %>% 
   mutate(teachers = fte_school/100)
+
+################
+# CREDENTIALIZE
+################
+
+# get recids and schools
+teachers_and_schools <- 
+  individual_fte %>% 
+  filter(stafftype == "T") %>% 
+  dplyr::select(cds_code, recid)
+
+# combine teacher credentials with school
+teacher_credentials_with_school <- 
+  teacher_credentials %>% 
+  left_join(teachers_and_schools, 
+            by = "recid") %>% 
+  dplyr::select(cds_code, 
+                recid, 
+                credentialtype, 
+                authorizationtype) 
+
+wide_teacher_credentials_with_school <- 
+  teacher_credentials_with_school %>% 
+  pivot_wider(names_from = credentialtype, 
+              values_from = authorizationtype) 
+
+# identify unique credentials
+teacher_unique_credentials <- 
+  teacher_credentials_with_school %>% 
+  dplyr::select(-authorizationtype) %>% 
+  mutate(indicator = 1) %>% 
+  pivot_wider(names_from = credentialtype, 
+              values_from = cds_code)
+
+# check for missing recids after join
+sum(is.na(teacher_credentials_with_school$cds_code))  # none! wow!
+
+# make indicator for whether each teacher is fully credentialed
+wide_teacher_credentials <-
+  teacher_credentials %>% 
+  dplyr::select(recid, credentialtype) %>% 
+  unique() %>% 
+  mutate(indicator = 1) %>% 
+  pivot_wider(names_from = credentialtype,  # make each credential type a column
+              values_from = indicator, 
+              values_fill = list(indicator = 0))
+
+# actually make the indicator variable
+full_credential_teacher <- 
+  wide_teacher_credentials %>% 
+  mutate(full_cred = ifelse(`10` == 1, 1, 0)) %>%   # make indicator variable
+  dplyr::select(recid, full_cred)
+
+# now join with fte
+fte_with_credential <-
+  individual_fte_corrected %>% 
+  left_join(full_credential_teacher, 
+            by = "recid") %>% 
+  filter(stafftype == "T") 
+
+# count those with no credential status
+sum(is.na(fte_with_credential$full_cred))  # 2093
+
+# we'll call them zeroes for now
+fte_credentialed <- 
+  fte_with_credential %>% 
+  mutate(full_cred_no_miss = 
+           ifelse(is.na(full_cred) | 
+                    full_cred == 0, 0, 1))
+
+# percent of fte by credentialed and not!
+percent_fte_credentialed_by_school <- 
+  fte_credentialed %>% 
+  group_by(cds_code, full_cred_no_miss) %>% 
+  summarize(school_fte = sum(fte_corrected)) %>% 
+  pivot_wider(names_from = full_cred_no_miss, 
+              values_from = school_fte, 
+              names_prefix = "cred_", 
+              values_fill = list(school_fte = 0)) %>% 
+  mutate(cred_percent = cred_1/(cred_0 + cred_1)) %>% 
+  dplyr::select(cds_code, cred_percent)
   
+mean(percent_fte_credentialed_by_school$cred_percent)
+
 # save files
 save(school_fte_from_raw, 
      file = file.path("intermediate_data", 
@@ -1101,6 +1225,14 @@ save(individual_fte,
 save(school_teacher_fte, 
      file = file.path("intermediate_data", 
                       "school_teacher_fte.rdata"))
+
+save(teacher_credentials_from_raw, 
+     file = file.path("intermediate_data", 
+                      "teacher_credentials_from_raw.rdata"))
+
+save(percent_fte_credentialed_by_school, 
+     file = file.path("intermediate_data", 
+                      "percent_fte_credentialed_by_school.rdata"))
 
 # # remove all objects from the environment
 # rm(list = ls(all.names = TRUE))
@@ -1806,6 +1938,9 @@ load(file = file.path("intermediate_data",
 load(file = file.path("intermediate_data", 
                       "school_teacher_fte.rdata"))
 
+load(file = file.path("intermediate_data", 
+                      "percent_fte_credentialed_by_school.rdata"))
+
 # aggregate counts by ethnicity and gender
 ethnicity_grade_by_school <- 
   school_enrollment_no_nonsec %>% 
@@ -1849,7 +1984,8 @@ school_all_covariates <-
   left_join(free_reduced_lunch, by = "cds_code") %>% 
   left_join(english_learners, by = "cds_code") %>% 
   left_join(expense_per_pupil, by = "cds_district_code") %>% 
-  left_join(school_teacher_fte, by = "cds_code")
+  left_join(school_teacher_fte, by = "cds_code") %>% 
+  left_join(percent_fte_credentialed_by_school, by = "cds_code")
 
 save(school_all_covariates, 
      file = file.path("intermediate_data", 
@@ -2014,6 +2150,7 @@ full_data_analysis_variables <-
          fte_school,
          district_cost_per_pupil, 
          student_teacher_ratio,
+         cred_percent,
          english_n_scores, 
          english_standard_met, 
          math_n_scores, 
@@ -2193,6 +2330,7 @@ dataset_complete_cases <-
          frpm_percent, 
          district_cost_per_pupil, 
          student_teacher_ratio, 
+         cred_percent,
          school_k_12_enrollment)
 
 dataset_complete_cases_forget_funding <- 
@@ -2214,6 +2352,7 @@ dataset_complete_cases_forget_funding <-
          frpm_percent, 
          district_cost_per_pupil, 
          student_teacher_ratio, 
+         cred_percent,
          school_k_12_enrollment)
   
 save(dataset_complete_cases, 
