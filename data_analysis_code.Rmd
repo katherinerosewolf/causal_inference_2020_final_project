@@ -724,15 +724,14 @@ set.seed(252)
     unique(dataset_complete_cases$pm25_12_plus)
     unique(dataset_complete_cases$cds_code)
 # descriptives for numeric columns    
-  num_cols <- c(2,6:15)
+  num_cols <- c("math_standard_met","modeled_air_at_school","afr_am_percent","asian_filipino_percent","two_none_aian_pi_percent","hisp_latinx_percent","white_percent","english_learner_percent","frpm_percent","district_cost_per_pupil","student_teacher_ratio","cred_percent","school_k_12_enrollment")
   str(dataset_complete_cases[,num_cols])
   describe(dataset_complete_cases[,num_cols])
   by(dataset_complete_cases[,num_cols],list(dataset_complete_cases$pm25_12_plus),describe)
   aggregate(dataset_complete_cases[,num_cols],list(dataset_complete_cases$pm25_12_plus),
             function(x) {round(c(length(x),mean(x,na.rm=T),sd(x,na.rm=T)),2)})
     
-  for (i in 1:length(num_cols)) {hist(dataset_complete_cases[,num_cols[i]],
-                                      main=colnames(dataset_complete_cases[num_cols[i]]),breaks=20)}  
+  for (i in 1:length(num_cols)) {hist(dataset_complete_cases[,num_cols[i]],main=num_cols[i],breaks=20)}  
     # looks like there are some outlier for student-teacher ratio and cost per pupil (one school spending $346k per student?)
     dataset_complete_cases[dataset_complete_cases$district_cost_per_pupil>50000,] # ok so the Bay Area has $$$$
     unique(dataset_complete_cases[dataset_complete_cases$district_cost_per_pupil>50000,c("air_district","district_cost_per_pupil")])
@@ -743,11 +742,12 @@ set.seed(252)
     table(dataset_complete_cases$air_district) # 70 schools in Feather River. why STR so high??
     
   round(prop.table(table(dataset_complete_cases$air_district)),3)
+  round(prop.table(table(dataset_complete_cases$air_basin_binned)),3) # much better
 # make A variable into numeric & Y variable proportion
   dataset_complete_cases$pm25_12_plus <- ifelse(dataset_complete_cases$pm25_12_plus=="yes",1,0)
   dataset_complete_cases$math_standard_met <- dataset_complete_cases$math_standard_met/100
 # correlations between predictors
-  predictor_corrs <- Hmisc::rcorr(as.matrix(dataset_complete_cases[,c(3,num_cols)]))$r
+  predictor_corrs <- Hmisc::rcorr(as.matrix(dataset_complete_cases[,c("pm25_12_plus",num_cols)]))$r
   #openxlsx::write.xlsx(list(predictor_corrs),"~/Desktop/PH252D/cifp/output_for_writeups/predictor_correlations.xlsx",colNames=T,rowNames=T)
   
 ```
@@ -756,7 +756,7 @@ set.seed(252)
 set.seed(252)
 # specify SL library
   listWrappers()
-  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction")
+  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm")
   other_options <- c("SL.glm.interaction","SL.randomForest","SL.polymars","SL.rpartPrune")
 # SS, IPTW, & TMLE function
   run.tmle <- function(Y,A,ObsData, SL.library, id=NULL) {
@@ -797,10 +797,11 @@ set.seed(252)
      # predicted prob of not being exposed, given baseline covariates
       gHat0W<- 1- gHat1W
   
-     # # predicted prob of observed exposure, given baseline cov
-     # gHatAW<- rep(NA, n)
-     # gHatAW[ObsData[,A]==1]<- gHat1W[ObsData[,A]==1]
-     # gHatAW[ObsData[,A]==0]<- gHat0W[ObsData[,A]==0]
+     # predicted prob of observed exposure, given baseline cov
+      gHatAW<- rep(NA, n)
+      gHatAW[ObsData[,A]==1]<- gHat1W[ObsData[,A]==1]
+      gHatAW[ObsData[,A]==0]<- gHat0W[ObsData[,A]==0]
+      wt <- 1/gHatAW
   
     #-------------------------------------------------
     # Clever covariate H(A,W) for each subject
@@ -813,6 +814,10 @@ set.seed(252)
        
      # IPTW estimator of the G-computation formula: -> INCLUDE HORVITZ-THOMPSON 
       PsiHat.IPTW <-mean( H.AW*ObsData[,Y])
+      
+     # IPTW estimator of G-comp w Horvitz-Thompson adjusmtent
+      PsiHat.IPTW_HT <- mean(wt*as.numeric(ObsData[,A]==1)*ObsData[,Y])/mean(wt*as.numeric(ObsData[,A]==1)) - 
+                        mean(wt*as.numeric(ObsData[,A]==0)*ObsData[,Y])/mean(wt*as.numeric(ObsData[,A]==0))
   
     #------------------------------------------
     # Update the initial estimator of Qbar_0(A,W)
@@ -835,7 +840,7 @@ set.seed(252)
     # and thevector of clever covariates
     #------------------------------------------
   
-      estimates <- data.frame(cbind(PsiHat.SS=PsiHat.SS, PsiHat.IPTW, PsiHat.TMLE))
+      estimates <- data.frame(cbind(PsiHat.SS=PsiHat.SS, PsiHat.IPTW, PsiHat.IPTW_HT, PsiHat.TMLE))
       Qbar.star <- data.frame(cbind(QbarAW.star, Qbar1W.star, Qbar0W.star))
       names(Qbar.star)<- c('QbarAW.star', 'Qbar1W.star', 'Qbar0W.star')
       list(estimates=estimates, Qbar.star=Qbar.star, H.AW=H.AW)
@@ -848,34 +853,99 @@ set.seed(252)
     table(sub_data$pm25_12_plus)
   # run function
     names(sub_data)
-    exclude_vars_analysis <- c("cds_code","air_district","white_percent")
-    out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=sub_data[,!(names(sub_data) %in% exclude_vars_analysis)], SL.library=SL.library) 
+    include_vars_analysis <- c("math_standard_met","pm25_12_plus","air_basin_binned","afr_am_percent","asian_filipino_percent","two_none_aian_pi_percent","hisp_latinx_percent",
+                               "english_learner_percent","frpm_percent","district_cost_per_pupil","student_teacher_ratio","cred_percent","school_k_12_enrollment")
+    out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=sub_data[,include_vars_analysis], SL.library=SL.library) 
       # generating a ton of errors. removing algorithms from SuperLearner
       # think interaction algorithms will be super problematic bc number of covariates is really high from all the districts
       # FIGURED OUT ISSUE: When we resample, not all districts are in each sample and predictions are generated for non-existent districts and not generated for extisting districts
     est <- out$estimates
     est*100
 # the real thing
-  out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=dataset_complete_cases[,!(names(dataset_complete_cases) %in% exclude_vars_analysis)], SL.library=SL.library) 
+  out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=dataset_complete_cases[,include_vars_analysis], SL.library=SL.library) 
   est <- out$estimates
   est*100
+# real thing with ltmle for comparison  
+  dataset_complete_cases_ltmle <- dataset_complete_cases[,include_vars_analysis]
+  names(dataset_complete_cases_ltmle)
+  dataset_complete_cases_ltmle <- dataset_complete_cases_ltmle[,c(3:13,1:2)]
+  ltmle.SL<- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library)  
+  summary(ltmle.SL)  
    
 # run with ltmle for comparison
-  sub_data2 <- sub_data[,!(names(sub_data) %in% exclude_vars_analysis)] # remove percent white too
+  sub_data2 <- sub_data[,include_vars_analysis]
   names(sub_data2)
-  sub_data2 <- sub_data2[,c(names(sub_data2[3:12]),"math_standard_met","pm25_12_plus")]
+  sub_data2 <- sub_data2[,c(names(sub_data2[3:13]),"math_standard_met","pm25_12_plus")]
   ltmle.SL<- ltmle(data=sub_data2, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library)  
   summary(ltmle.SL)  
 
- 
+```
 
+```{r, Inference Curve!!!!, eval=FALSE, include=FALSE}
+# non-parametric bootstrap
+nonparam_boot <- function(ObsData,A,Y,id,SL.library,num_boots) {
+  # make output matrix
+    estimates <- matrix(NA,nrow=num_boots,ncol=4)
+  # bootstrap data
+    for (i in 1:num_boots) {
+      # make data
+        n <- nrow(ObsData)
+        ObsData[,id] <- 1:n
+        bootIndices<- sample(1:n, replace=T)
+        bootData<- ObsData[bootIndices,]
+      # estimate target parameters
+        # simple sub
+          X <- bootData[,names(ObsData) != Y]
+          X1 <- X; X1[,A] <- 1
+          X0 <- X; X0[,A] <- 0
+          QbarSL<- SuperLearner(Y=bootData[,Y], X=X, SL.library=SL.library, family="binomial", id=bootData[,id])
+          QbarAW <- predict(QbarSL, newdata=bootData)$pred
+          Qbar1W<- predict(QbarSL, newdata=X1)$pred
+          Qbar0W<- predict(QbarSL, newdata=X0)$pred
+          simple_sub <- mean(Qbar1W-Qbar0W)
+        # IPTW
+          gHatSL<- SuperLearner(Y=bootData[,A], X=bootData[,!(names(bootData) %in% c(A,Y,id))], SL.library=SL.library, family="binomial", id=bootData[,id])
+          gHat1W <- gHatSL$SL.predict
+          gHat0W <- 1-gHatSL$SL.predict
+          gHatAW <- ifelse(bootData[,A]==1,gHat1W,gHat0W)
+          wt <- 1/gHatAW
+          H.AW <- as.numeric(bootData[,A]==1)/gHat1W - as.numeric(bootData[,A]==0)/gHat0W
+          H.1W <- as.numeric(X1[,A]==1)/gHat1W - as.numeric(X1[,A]==0)/gHat0W
+          H.0W <- as.numeric(X0[,A]==1)/gHat1W - as.numeric(X0[,A]==0)/gHat0W
+          iptw <- mean(H.AW*bootData[,Y])
+          iptw_ht <- mean(wt*as.numeric(bootData[,A]==1)*bootData[,Y])/mean(wt*as.numeric(bootData[,A]==1)) - 
+                     mean(wt*as.numeric(bootData[,A]==0)*bootData[,Y])/mean(wt*as.numeric(bootData[,A]==0))
+        # TMLE
+          logitUpdate <- glm(bootData[,Y] ~ -1 +offset(qlogis(QbarAW)) + H.AW,family='binomial')
+          epsilon <- logitUpdate$coef
+          QbarAW.star <- plogis(qlogis(QbarAW)+ epsilon*H.AW)
+          Qbar1W.star <- plogis( qlogis(Qbar1W)+ epsilon*H.1W)
+          Qbar0W.star <- plogis( qlogis(Qbar0W)+ epsilon*H.0W)
+          PsiHat.TMLE <- mean(Qbar1W.star- Qbar0W.star)
+      # save results
+        estimates[i,] <- c(simple_sub,iptw,iptw_ht,PsiHat.TMLE)
+    }
+    return(estimates)
+}  
+estimates <- nonparam_boot(ObsData=dataset_complete_cases[,c("cds_code",include_vars_analysis)],
+                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=5) 
+summary(estimates)  
+apply(estimates,2,hist)
 
-
+create.CI <- function(pt, boot, alpha=0.05){
+   Zquant <- qnorm(alpha/2, lower.tail=F)
+   CI.normal <- c(pt - Zquant*sd(boot), pt + Zquant*sd(boot) )
+   CI.quant  <- quantile(boot, prob=c(0.025,0.975) )
+   out<- data.frame(rbind(CI.normal, NA))*100
+ colnames(out)<- c('CI.lo', 'CI.hi')
+ out
+}
+apply(estimates,2,function(x) create.CI(pt=mean(x,na.rm=T),boot=x))
+apply(estimates,2,function(x) quantile(x,probs=c(.025,.975),na.rm=T))
 
 
 
 ```
-
 
 
 
