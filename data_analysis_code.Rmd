@@ -76,7 +76,8 @@ plain_glm <- glm(math_standard_met ~
                    frpm_percent + 
                    district_cost_per_pupil + 
                    student_teacher_ratio + 
-                   school_k_12_enrollment, 
+                   school_k_12_enrollment +
+                   cred_percent, 
                  data = dataset_complete_cases_working)
 
 summary(plain_glm)
@@ -386,6 +387,7 @@ ObsData <-
                 frpm_percent, 
                 district_cost_per_pupil, 
                 student_teacher_ratio, 
+                cred_percent,
                 school_k_12_enrollment)
 
 ObsData <- as.data.frame(ObsData)
@@ -424,6 +426,7 @@ X<-subset(ObsData,
                    frpm_percent, 
                    district_cost_per_pupil, 
                    student_teacher_ratio, 
+                   cred_percent,
                    school_k_12_enrollment))
 
 # set the exposure=1 in X1 and the exposure=0 in X0
