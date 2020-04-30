@@ -145,7 +145,8 @@ simulated_full_only_complete_cases <-
 # count observations by air basin
 dataset_complete_cases_working %>% 
   group_by(air_basin) %>% 
-  summarize(count = n())
+  summarize(count = n()) %>% 
+  View()
 
 #------------------------------------------
 # Exposure-Outcome
