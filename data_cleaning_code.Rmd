@@ -2383,7 +2383,7 @@ dataset_complete_cases_forget_funding <-
   select(cds_code, 
          math_standard_met,
          pm25_12_plus, 
-         modeled_air_at_schoo,
+         modeled_air_at_school,
          air_basin,
          air_basin_binned,
          air_district,
