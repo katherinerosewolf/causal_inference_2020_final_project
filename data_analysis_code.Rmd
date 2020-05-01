@@ -671,7 +671,7 @@ PsiHat.SS
 ltmle_data <- 
   dataset_complete_cases_working %>% 
   mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
-  dplyr::select(air_basin, 
+  dplyr::select(air_basin_binned, 
                 afr_am_percent, 
                 asian_filipino_percent, 
                 two_none_aian_pi_percent, 
@@ -706,7 +706,7 @@ gHatSL <- SuperLearner(Y=ObsData$A,
                        X=subset(ObsData, 
                                 select= -c(Y, A)),
                        SL.library = katie.SL.library, 
-                       family="binomial")
+                       family="quasibinomial")
 
 # generate predicted prob being exposed, given baseline covariates
 gHat1W <- gHatSL$SL.predict
@@ -732,12 +732,36 @@ data_with_probability_of_exposure %>%
   ggplot(aes(x = afr_am_percent, y = gHat1W)) +
   geom_point()
 
+# probabilty of exposure by region
+data_with_probability_of_exposure %>% 
+  ggplot(aes(x = air_basin_binned, y = gHat1W)) +
+  geom_boxplot()
+
 # african american proportion by bin
 
 # calculate weights
 wt <- 1/gHatAW
 
 summary(wt)
+
+#######################################
+## plotting g in propensity score chart
+#######################################
+
+
+## distribution of propensity scores
+p1 <- data.frame(gHat1W[ObsData$A==1])
+colnames(p1) <- "ps1"
+p1$type <- 1
+p0 <- data.frame(gHat1W[ObsData$A==0]) 
+colnames(p0) <- "ps1"
+p0$type <- 0 
+
+plot_df <- data.frame(rbind(p1,p0))
+ggplot(data=plot_df) + geom_histogram(aes(ps1), bins=30, stat = "bin") + facet_wrap(~type) + coord_flip() + theme_bw()
+
+
+
 
 ```
 

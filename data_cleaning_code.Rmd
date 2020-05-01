@@ -1939,7 +1939,12 @@ school_air_sf_binned_basins <-
                                     air_basin_binned)) %>% 
   mutate(air_basin_binned = if_else(air_basin_binned %in% central_ca,
                                     "Central California", 
-                                    air_basin_binned))  
+                                    air_basin_binned)) %>% 
+  mutate(air_basin_4_bins = air_basin_binned) %>% 
+  mutate(air_basin_4_bins = if_else(air_basin_4_bins %in% southern_ca | 
+                                      air_basin_4_bins == "South Coast",
+                                    "Southern California", 
+                                    air_basin_4_bins))   
 
 save(school_air_sf_binned_basins, 
      file = file.path("intermediate_data", 
@@ -2186,6 +2191,7 @@ full_data_analysis_variables <-
          air_district, 
          air_basin, 
          air_basin_binned,
+         air_basin_4_bins,
          school_k_12_enrollment, 
          percent_female, 
          afr_am_percent, 
@@ -2383,6 +2389,7 @@ dataset_complete_cases <-
          pm25_12_plus, 
          air_basin,
          air_basin_binned,
+         air_basin_4_bins,
          air_district,
          afr_am_percent, 
          asian_filipino_percent, 
@@ -2409,6 +2416,7 @@ dataset_complete_cases_forget_funding <-
          modeled_air_at_school,
          air_basin,
          air_basin_binned,
+         air_basin_4_bins,
          air_district,
          afr_am_percent, 
          asian_filipino_percent, 
