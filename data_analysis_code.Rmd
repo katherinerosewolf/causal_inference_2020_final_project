@@ -408,22 +408,22 @@ ggplot(data = simulated_full_only_complete_cases,
 ```{r KATIE attempt at simple substitution}
 
 # set up parallelization (my computer has 8 cores and this uses 7 of them)
-(cluster = parallel::makeCluster(7))
-parallel::clusterEvalQ(cluster, library(SuperLearner))
+# (cluster = parallel::makeCluster(7))
+# parallel::clusterEvalQ(cluster, library(SuperLearner))
 
 dataset_complete_cases_working <- 
   dataset_complete_cases %>% 
   mutate(math_proportion = math_standard_met/100,
          pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0), 
          air_district = factor(air_district), 
-         air_basin = factor(air_basin))
+         air_basin_binned = factor(air_basin_binned))
 
 ObsData <- 
   dataset_complete_cases_working %>% 
   mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
   dplyr::select(Y = math_proportion,
                 A = pm25_12_plus, 
-                air_basin, 
+                air_basin_binned, 
                 afr_am_percent, 
                 asian_filipino_percent, 
                 two_none_aian_pi_percent, 
@@ -441,7 +441,7 @@ set.seed(252)
 
 # reduce runs of biglasso from 100 to 5 to save time
 new.algorithm.1 = create.Learner("SL.biglasso", 
-                                params = list(nlambda = 5))
+                                 params = list(nlambda = 5))
 
 new.algorithm.2 = create.Learner("SL.randomForest", 
                                 params = list(ntrees = 10))
@@ -451,7 +451,8 @@ listWrappers()
 katie.SL.library <- c("SL.mean", 
                       "SL.glm", 
                       "SL.glm.interaction", 
-                      "SL.bayesglm"
+                      "SL.bayesglm" 
+                      # "SL.biglasso"
                       # "SL.extraTrees"
                       # "SL.glmnet"
                       # new.algorithm.2$names
@@ -464,7 +465,7 @@ katie.SL.library <- c("SL.mean",
 # dataframe X with baseline covariates and exposure
 X<-subset(ObsData, 
           select=c(A, 
-                   # air_basin, 
+                   air_basin_binned, 
                    afr_am_percent, 
                    asian_filipino_percent, 
                    two_none_aian_pi_percent, 
@@ -482,15 +483,15 @@ X1$A <- 1 # under exposure
 X0$A <- 0 # under control
 
 # call Super Learner
-QbarSL <- snowSuperLearner(Y = ObsData$Y, 
+QbarSL <- SuperLearner(Y = ObsData$Y, 
                            X = X, 
                            SL.library = katie.SL.library,
-                           cluster = cluster, 
-                           family = "binomial")
+                           # cluster = cluster, 
+                           family = "quasibinomial")
 QbarSL
 
-summary(QbarSL)
-
+summary(QbarSL$SL.predict)
+length(QbarSL$SL.predict)
 
 # get the expected PM2.5 , given the observed exposure and covariates
 QbarAW <- predict(QbarSL, newdata=ObsData)$pred
@@ -699,13 +700,6 @@ set.seed(252)
   listWrappers()
   SL.library <- c("SL.mean","SL.glm")
   other_options <- c("SL.glm.interaction","SL.randomForest","SL.polymars","SL.rpartPrune","SL.biglasso")
-
-```
-
-
-```{r checking positivity assumption by KATIE, eval=FALSE, include=FALSE}
-
-
 
 ```
 
