@@ -572,7 +572,7 @@ dataset_complete_cases_working <-
          pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0),
          air_basin_4_bins = factor(air_basin_4_bins))
 
-names_of_adjustment_set_variables <- 
+adjustment_set_variables <- 
   c("air_basin_4_bins", 
     "asian_filipino_percent", 
     "two_none_aian_pi_af_am_percent",
@@ -589,16 +589,7 @@ ObsData <-
   mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
   dplyr::select(Y = math_proportion,
                 A = pm25_12_plus, 
-                air_basin_4_bins, 
-                asian_filipino_percent, 
-                two_none_aian_pi_af_am_percent, 
-                hisp_latinx_percent, 
-                english_learner_percent, 
-                frpm_percent, 
-                district_cost_per_pupil, 
-                student_teacher_ratio, 
-                cred_percent,
-                school_k_12_enrollment)
+                all_of(adjustment_set_variables))
 
 ObsData <- as.data.frame(ObsData)
 
@@ -629,18 +620,18 @@ katie.SL.library <- c("SL.mean",
 # 2. Estimate Qbar_0(A,W) with Super Learner
 #------------------------------------------
 # dataframe X with baseline covariates and exposure
-X<-subset(ObsData, 
-          select=c(A, 
-                   air_basin_4_bins, 
-                   asian_filipino_percent, 
-                   two_none_aian_pi_af_am_percent, 
-                   hisp_latinx_percent, 
-                   english_learner_percent, 
-                   frpm_percent, 
-                   district_cost_per_pupil, 
-                   student_teacher_ratio, 
-                   cred_percent,
-                   school_k_12_enrollment))
+X <- subset(ObsData, 
+            select=c(A, 
+                     air_basin_4_bins, 
+                     asian_filipino_percent, 
+                     two_none_aian_pi_af_am_percent, 
+                     hisp_latinx_percent, 
+                     english_learner_percent, 
+                     frpm_percent, 
+                     district_cost_per_pupil, 
+                     student_teacher_ratio, 
+                     cred_percent,
+                     school_k_12_enrollment))
 
 # set the exposure=1 in X1 and the exposure=0 in X0
 X1 <- X0 <- X
