@@ -677,8 +677,8 @@ data_with_probability_of_exposure <-
 
 # probability of exposure by African American
 data_with_probability_of_exposure %>% 
-  ggplot(aes(x = air_basin_binned, y = gHat1W)) +
-  geom_boxplot()
+  ggplot(aes(x = afr_am_percent, y = gHat1W)) +
+  geom_point()
 
 # calculate weights
 wt <- 1/gHatAW
