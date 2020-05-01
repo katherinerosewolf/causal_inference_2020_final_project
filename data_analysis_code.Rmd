@@ -599,7 +599,8 @@ adjustment_set_variables <-
 ObsData <- 
   dataset_complete_cases_working %>% 
   mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
-  dplyr::select(Y = math_proportion,
+  dplyr::select(id = id_cds, 
+                Y = math_proportion,
                 A = pm25_12_plus, 
                 all_of(adjustment_set_variables))
 
@@ -625,7 +626,6 @@ katie.SL.library <- c("SL.mean",
                       # "SL.extraTrees"
                       # "SL.glmnet"
                       # new.algorithm.2$names
-                      # "SL.rpartPrune" # this one worked
 
 ################################
 # SIMPLE SUBSTITUTION HARD CODED (sample data)
@@ -720,6 +720,107 @@ PsiHat.SS
 # RAW IPTW HARD CODED (sample data)
 ################################
 
+# Estimate the exposure mechanism g(A|W)
+#------------------------------------------
+
+# call Super Learner for the exposure mechanism
+gHatSL <- SuperLearner(Y = little_data$A, 
+                       X = subset(little_data, 
+                                  select = -c(A, Y, id)),
+                       SL.library = katie.SL.library, 
+                       family = "binomial")
+
+# generate predicted prob being exposed, given baseline covariates
+gHat1W <- gHatSL$SL.predict
+
+# predicted prob of not being exposed, given baseline covariates
+gHat0W <- 1- gHat1W
+
+# predicted prob of observed exposure, given baseline cov
+gHatAW <- rep(NA, nrow(little_data))
+gHatAW[little_data$A==1] <- gHat1W[little_data$A==1]
+gHatAW[little_data$A==0] <- gHat0W[little_data$A==0]
+
+#-------------------------------------------------
+# Clever covariate H(A,W) for each subject
+#-------------------------------------------------
+H.AW <- as.numeric(little_data$A==1)/gHat1W - as.numeric(little_data$A==0)/gHat0W
+
+# also want to evaluate the clever covariates at A=1 and A=0 for all subjects
+H.1W <- 1/gHat1W
+H.0W <- -1/gHat0W
+
+# IPTW estimator of the G-computation formula:
+PsiHat.IPTW <- mean(H.AW*little_data$Y)
+
+#################################
+# RAW IPTW HARD CODED (full data)
+#################################
+
+# Estimate the exposure mechanism g(A|W)
+#------------------------------------------
+
+# call Super Learner for the exposure mechanism
+gHatSL <- SuperLearner(Y = ObsData$A, 
+                       X = subset(ObsData, 
+                                  select = -c(A,Y,id)),
+                       SL.library = katie.SL.library, 
+                       family = "binomial")
+
+# generate predicted prob being exposed, given baseline covariates
+gHat1W<- gHatSL$SL.predict
+
+# predicted prob of not being exposed, given baseline covariates
+gHat0W<- 1- gHat1W
+
+# predicted prob of observed exposure, given baseline cov
+gHatAW<- rep(NA, nrow(ObsData))
+gHatAW[ObsData$A==1]<- gHat1W[ObsData$A==1]
+gHatAW[ObsData$A==0]<- gHat0W[ObsData$A==0]
+
+#-------------------------------------------------
+# Clever covariate H(A,W) for each subject
+#-------------------------------------------------
+H.AW<- as.numeric(ObsData$A==1)/gHat1W - as.numeric(ObsData$A==0)/gHat0W
+
+# also want to evaluate the clever covariates at A=1 and A=0 for all subjects
+H.1W<- 1/gHat1W
+H.0W<- -1/gHat0W
+
+# IPTW estimator of the G-computation formula:
+PsiHat.IPTW <- mean(H.AW*ObsData$Y)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -786,17 +887,17 @@ wt <- 1/gHatAW
 
 summary(wt)
 
-# variables in adjustment set
-                air_basin_4_bins, 
-                asian_filipino_percent, 
-                two_none_aian_pi_af_am_percent, 
-                hisp_latinx_percent, 
-                english_learner_percent, 
-                frpm_percent, 
-                district_cost_per_pupil, 
-                student_teacher_ratio, 
-                cred_percent,
-                school_k_12_enrollment
+# # variables in adjustment set
+#                 air_basin_4_bins, 
+#                 asian_filipino_percent, 
+#                 two_none_aian_pi_af_am_percent, 
+#                 hisp_latinx_percent, 
+#                 english_learner_percent, 
+#                 frpm_percent, 
+#                 district_cost_per_pupil, 
+#                 student_teacher_ratio, 
+#                 cred_percent,
+#                 school_k_12_enrollment
 
 # combine gHat1W with original data
 data_with_probability_of_exposure <- 
