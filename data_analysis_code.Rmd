@@ -864,6 +864,7 @@ set.seed(252)
     table(dataset_complete_cases$air_district) # 70 schools in Feather River. why STR so high??
     
   round(prop.table(table(dataset_complete_cases$air_district)),3)
+  round(prop.table(table(dataset_complete_cases$air_basin)),3)
   round(prop.table(table(dataset_complete_cases$air_basin_binned)),3) # much better
 # make A variable into numeric & Y variable proportion
   dataset_complete_cases$pm25_12_plus <- ifelse(dataset_complete_cases$pm25_12_plus=="yes",1,0)
@@ -878,8 +879,65 @@ set.seed(252)
 set.seed(252)
 # specify SL library
   listWrappers()
-  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm")
-  other_options <- c("SL.glm.interaction","SL.randomForest","SL.polymars","SL.rpartPrune")
+  
+  SL.interaction.LunchRace <- function(Y, X, newX, family, obsWeights, model = TRUE, ...) {
+    if (is.matrix(X)) {
+        X = as.data.frame(X)
+    }
+    fit.glm <- glm(Y ~ . #+ frpm_percent:two_none_aian_pi_af_am_percent 
+                         #+ frpm_percent:asian_filipino_percent 
+                         + frpm_percent:hisp_latinx_percent,
+                   , data = X, family = family, weights = obsWeights, model = model)
+    if (is.matrix(newX)) {
+        newX = as.data.frame(newX)
+    }
+    pred <- predict(fit.glm, newdata = newX, type = "response")
+    fit <- list(object = fit.glm)
+    class(fit) <- "SL.interaction.LunchRace"
+    out <- list(pred = pred, fit = fit)
+    return(out)
+  }
+  
+  SL.interaction.CostRace <- function(Y, X, newX, family, obsWeights, model = TRUE, ...) {
+    if (is.matrix(X)) {
+        X = as.data.frame(X)
+    }
+    fit.glm <- glm(Y ~ . #+ district_cost_per_pupil:two_none_aian_pi_af_am_percent 
+                         #+ district_cost_per_pupil:asian_filipino_percent 
+                         + district_cost_per_pupil:hisp_latinx_percent,
+                   , data = X, family = family, weights = obsWeights, model = model)
+    if (is.matrix(newX)) {
+        newX = as.data.frame(newX)
+    }
+    pred <- predict(fit.glm, newdata = newX, type = "response")
+    fit <- list(object = fit.glm)
+    class(fit) <- "SL.interaction.CostRace"
+    out <- list(pred = pred, fit = fit)
+    return(out)
+  }
+  
+  SL.interaction.CredRace <- function(Y, X, newX, family, obsWeights, model = TRUE, ...) {
+    if (is.matrix(X)) {
+        X = as.data.frame(X)
+    }
+    fit.glm <- glm(Y ~ . #+ cred_percent:two_none_aian_pi_af_am_percent 
+                         #+ cred_percent:asian_filipino_percent 
+                         + cred_percent:hisp_latinx_percent,
+                   , data = X, family = family, weights = obsWeights, model = model)
+    if (is.matrix(newX)) {
+        newX = as.data.frame(newX)
+    }
+    pred <- predict(fit.glm, newdata = newX, type = "response")
+    fit <- list(object = fit.glm)
+    class(fit) <- "SL.interaction.CredRace"
+    out <- list(pred = pred, fit = fit)
+    return(out)
+  }
+  
+  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm"
+                  #,"SL.interaction.LunchRace","SL.interaction.CostRace","SL.interaction.CredRace"
+                  )
+  #other_options <- c("SL.glm.interaction","SL.xgboost","SL.randomForest","SL.polymars","SL.rpartPrune")
 # SS, IPTW, & TMLE function
   run.tmle <- function(Y,A,ObsData, SL.library, id=NULL) {
    
@@ -975,7 +1033,7 @@ set.seed(252)
     table(sub_data$pm25_12_plus)
   # run function
     names(sub_data)
-    include_vars_analysis <- c("math_standard_met","pm25_12_plus","air_basin_binned","afr_am_percent","asian_filipino_percent","two_none_aian_pi_percent","hisp_latinx_percent",
+    include_vars_analysis <- c("math_standard_met","pm25_12_plus","air_basin_binned","asian_filipino_percent","two_none_aian_pi_af_am_percent","hisp_latinx_percent",
                                "english_learner_percent","frpm_percent","district_cost_per_pupil","student_teacher_ratio","cred_percent","school_k_12_enrollment")
     out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=sub_data[,include_vars_analysis], SL.library=SL.library) 
       # generating a ton of errors. removing algorithms from SuperLearner
@@ -983,6 +1041,13 @@ set.seed(252)
       # FIGURED OUT ISSUE: When we resample, not all districts are in each sample and predictions are generated for non-existent districts and not generated for extisting districts
     est <- out$estimates
     est*100
+  # run with ltmle for comparison
+    sub_data2 <- sub_data[,include_vars_analysis]
+    names(sub_data2)
+    sub_data2 <- sub_data2[,c(names(sub_data2[3:12]),"math_standard_met","pm25_12_plus")]
+    ltmle.SL<- ltmle(data=sub_data2, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library)
+    summary(ltmle.SL)    
+    
 # the real thing
   out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=dataset_complete_cases[,include_vars_analysis], SL.library=SL.library) 
   est <- out$estimates
@@ -990,20 +1055,17 @@ set.seed(252)
 # real thing with ltmle for comparison  
   dataset_complete_cases_ltmle <- dataset_complete_cases[,include_vars_analysis]
   names(dataset_complete_cases_ltmle)
-  dataset_complete_cases_ltmle <- dataset_complete_cases_ltmle[,c(3:13,1:2)]
+  dataset_complete_cases_ltmle <- dataset_complete_cases_ltmle[,c(3:12,1:2)]
   ltmle.SL<- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library)  
   summary(ltmle.SL)  
    
-# run with ltmle for comparison
-  sub_data2 <- sub_data[,include_vars_analysis]
-  names(sub_data2)
-  sub_data2 <- sub_data2[,c(names(sub_data2[3:13]),"math_standard_met","pm25_12_plus")]
-  ltmle.SL<- ltmle(data=sub_data2, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library)  
-  summary(ltmle.SL)  
+
 
 ```
 
-```{r, Inference Curve!!!!, eval=FALSE, include=FALSE}
+```{r, Non-Parametric Bootstrap!!!! Runs just really slowly, eval=FALSE, include=FALSE}
+# how many cores
+  parallel::detectCores(all.tests = FALSE, logical = TRUE)
 # non-parametric bootstrap
 nonparam_boot <- function(ObsData,A,Y,id,SL.library,num_boots) {
   # make output matrix
@@ -1046,13 +1108,15 @@ nonparam_boot <- function(ObsData,A,Y,id,SL.library,num_boots) {
           PsiHat.TMLE <- mean(Qbar1W.star- Qbar0W.star)
       # save results
         estimates[i,] <- c(simple_sub,iptw,iptw_ht,PsiHat.TMLE)
+      # periodically print i
+        if (i%%5==0) (print(i))
     }
     return(estimates)
 }  
-estimates <- nonparam_boot(ObsData=dataset_complete_cases[,c("cds_code",include_vars_analysis)],
-                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=5) 
-summary(estimates)  
-apply(estimates,2,hist)
+npb_estimates <- nonparam_boot(ObsData=dataset_complete_cases[,c("cds_code",include_vars_analysis)],
+                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=1) 
+summary(npb_estimates)  
+apply(npb_estimates,2,hist)
 
 create.CI <- function(pt, boot, alpha=0.05){
    Zquant <- qnorm(alpha/2, lower.tail=F)
@@ -1062,20 +1126,131 @@ create.CI <- function(pt, boot, alpha=0.05){
  colnames(out)<- c('CI.lo', 'CI.hi')
  out
 }
-apply(estimates,2,function(x) create.CI(pt=mean(x,na.rm=T),boot=x))
-apply(estimates,2,function(x) quantile(x,probs=c(.025,.975),na.rm=T))
+apply(npb_estimates,2,function(x) create.CI(pt=mean(x,na.rm=T),boot=x))
+apply(npb_estimates,2,function(x) quantile(x,probs=c(.025,.975),na.rm=T))
 
+
+
+```
+
+```{r, Influence Curves!!!, eval=FALSE, include=FALSE}
+# TMLE inference -> p-value + CI assuming normal distribution
+  IC <- out$H.AW*(dataset_complete_cases$math_standard_met - out$Qbar.star$QbarAW.star) + out$Qbar.star$Qbar1W.star - out$Qbar.star$Qbar0W.star - out$estimates$PsiHat.TMLE
+  var(IC)
+  (IC_se <- sqrt(var(IC)/n))
+  (Psy.LL <- out$estimates$PsiHat.TMLE-1.96*IC_se)
+  (Psy.UL <- out$estimates$PsiHat.TMLE+1.96*IC_se)
+  2*pnorm(abs(out$estimates$PsiHat.TMLE/IC_se),lower.tail=F)
+# IPTW inference -> p-value + CI assuming normal distribution
+  IC <- out$H.AW*(dataset_complete_cases$math_standard_met - out$Qbar.star$QbarAW.star) + out$Qbar.star$Qbar1W.star - out$Qbar.star$Qbar0W.star - out$estimates$PsiHat.IPTW
+  var(IC)
+  (IC_se <- sqrt(var(IC)/n))
+  (Psy.LL <- out$estimates$PsiHat.TMLE-1.96*IC_se)
+  (Psy.UL <- out$estimates$PsiHat.TMLE+1.96*IC_se)
+  2*pnorm(abs(out$estimates$PsiHat.TMLE/IC_se),lower.tail=F)  
+# IPTW_HT inference -> p-value + CI assuming normal distribution
+  IC <- out$H.AW*(dataset_complete_cases$math_standard_met - out$Qbar.star$QbarAW.star) + out$Qbar.star$Qbar1W.star - out$Qbar.star$Qbar0W.star - out$estimates$PsiHat.IPTW_HT
+  var(IC)
+  (IC_se <- sqrt(var(IC)/n))
+  (Psy.LL <- out$estimates$PsiHat.TMLE-1.96*IC_se)
+  (Psy.UL <- out$estimates$PsiHat.TMLE+1.96*IC_se)
+  2*pnorm(abs(out$estimates$PsiHat.TMLE/IC_se),lower.tail=F)  
+  
+  
+  
+  
+# CI coverage and Type 1 error rates -> NOTE TO KATIE: I DIDN'T EDIT THIS PART BECAUSE I DON'T THINK WE HAVE TO INCLUDE IT. IT'S NOT MENTIONED IN THE GUIDELINES +, MORE IMPORTANTLY, DOING IT DEPENDS ON KNOWING THE TRUE VALUE OF THE TARGET CAUSAL PARAMETER, WHICH WE DON'T KNOW
+  # extra functions
+  generateY<- function(W1, W2, W3, W4, A, U.Y){
+    prob <- plogis(-1.5+A-2*W3+0.5*W4+5*W1*W2*W4)
+    as.numeric(U.Y < prob)
+  }
+  generateData<- function(n, effect=T, get.psi.F=F){
+    W1 <- rbinom(n, size=1, prob=0.5)
+    W2 <- rbinom(n, size=1, prob=0.5)
+    W3 <- runif(n, min=0, max=1)
+    W4 <- runif(n, min=0, max=5)
+    pscore <- plogis(1+2*W1*W2-W4)
+    A<- rbinom(n, size=1, prob=pscore)
+    U.Y<- runif(n,0,1)
+    # generate the counterfactual outcome with A=0
+    Y.0<- generateY(W1=W1, W2=W2, W3=W3, W4=W4, A=0, U.Y=U.Y)
+    if(!effect){ # if there is no effect, the counterfactual under txt =
+      # the counterfactual under the control
+      Y.1<- Y.0 } else { 
+        # otherwise, generated the counterfactual outcome with A=1
+        Y.1<- generateY(W1=W1, W2=W2, W3=W3, W4=W4, A=1, U.Y=U.Y)
+      }
+    # assign the observed outcome based on the observed exposure
+    Y<- rep(NA, n)
+    Y[A==1]<- Y.1[A==1]
+    Y[A==0]<- Y.0[A==0]
+    data<- data.frame(W1, W2, W3, W4, A, Y, Y.1, Y.0)
+    if(!get.psi.F){
+      data <- subset(data,select=c(W1,W2,W3,W4,A,Y))
+    }
+    data
+  }
+  
+  Psi.0 <- 0
+  n <- nrow(dataset_complete_cases)
+  R <- 500
+
+  pt.est <- rep(NA,R)
+  ci.cov <- rep(NA,R)
+  reject <- rep(NA,R)
+
+  for (i in 1:R) {
+    # make data
+      NewData<- generateData(n, effect=F, get.psi.F=F)
+    # TMLE
+      X <- NewData[,1:5]
+      X1 <- X; X1$A <- 1
+      X0 <- X; X0$A <- 0
+      QbarSL <- SuperLearner(Y=NewData$Y, X=X, SL.library=SL.library, family="binomial")
+      QbarAW <- predict(QbarSL, newdata=NewData)$pred
+      Qbar1W<- predict(QbarSL, newdata=X1)$pred
+      Qbar0W<- predict(QbarSL, newdata=X0)$pred
+      
+      gHatSL<- SuperLearner(Y=NewData$A, X=subset(NewData, select= -c(A,Y)),SL.library=SL.library, family="binomial")
+      gHat1W <- gHatSL$SL.predict
+      gHat0W <- 1-gHatSL$SL.predict
+      gHatAW <- ifelse(NewData$A==1,gHat1W,gHat0W)
+      H.AW <- as.numeric(NewData$A==1)/gHat1W - as.numeric(NewData$A==0)/gHat0W
+      H.1W <- as.numeric(X1$A==1)/gHat1W - as.numeric(X1$A==0)/gHat0W
+      H.0W <- as.numeric(X0$A==1)/gHat1W - as.numeric(X0$A==0)/gHat0W
+      
+      logitUpdate <- glm(NewData$Y ~ -1 +offset(qlogis(QbarAW)) + H.AW,family='binomial')
+      epsilon <- logitUpdate$coef
+      QbarAW.star <- plogis(qlogis(QbarAW)+ epsilon*H.AW)
+      Qbar1W.star <- plogis( qlogis(Qbar1W)+ epsilon*H.1W)
+      Qbar0W.star <- plogis( qlogis(Qbar0W)+ epsilon*H.0W)
+      PsiHat.TMLE <- mean(Qbar1W.star- Qbar0W.star)
+      
+      IC <- H.AW*(NewData$Y - QbarAW.star) + Qbar1W.star - Qbar0W.star - PsiHat.TMLE
+      IC_se <- sqrt(var(IC)/n)
+      Psi.LL <- PsiHat.TMLE-1.96*IC_se
+      Psi.UL <- PsiHat.TMLE+1.96*IC_se
+      p.val <- 2*pnorm(abs(PsiHat.TMLE/IC_se),lower.tail=F)
+    # save output
+      pt.est[i] <- PsiHat.TMLE
+      ci.cov[i] <- Psi.0 >= Psi.LL & Psi.0 <= Psi.UL
+      reject[i] <- p.val < .05
+  }
+
+  hist(pt.est) # looks distributed around zero
+  mean(ci.cov) # 93% contain the true value (pretty close to what it should be)
+  mean(reject) # 0% were falsely rejected
 
 
 ```
 
 
 
-
 ```{r, KATIE PARALLEL Inference Curve!!!! DOES NOT RUN YET, eval=FALSE, include=FALSE}
 
 # set up parallelization (my computer has 8 cores and this uses 7 of them)
-(cluster = parallel::makeCluster(7))
+(cluster = parallel::makeCluster(3))
 parallel::clusterEvalQ(cluster, library(SuperLearner))
 
 # load dataset
