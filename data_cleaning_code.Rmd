@@ -1909,15 +1909,21 @@ load(file = file.path("intermediate_data",
                       "school_air_sf.rdata"))
 
 # make air basin groups
-northlands <- c("Lake County", 
-                      "North Coast", 
-                      "Northeast Plateau", 
-                      "Mountain Counties", 
-                      "Lake Tahoe")
+northern_ca <- c("Lake County", 
+                 "North Coast", 
+                 "Northeast Plateau", 
+                 "Mountain Counties", 
+                 "Lake Tahoe", 
+                 "Sacramento Valley")
 
-southlands <- c("Great Basin Valleys", 
-                      "Mojave Desert", 
-                      "Salton Sea")
+southern_ca <- c("Great Basin Valleys", 
+                 "Mojave Desert", 
+                 "Salton Sea", 
+                 "San Diego")
+
+central_ca <- c("North Central Coast", 
+                "South Central Coast", 
+                "San Joaquin Valley")
 
 # Lake/County/North Coast further.  What would you think if we binned them with Northeast Plateau/Mountain Counties/Lake Tahoe
 
@@ -1925,12 +1931,15 @@ southlands <- c("Great Basin Valleys",
 school_air_sf_binned_basins <- 
   school_air_sf %>% 
   mutate(air_basin_binned = air_basin) %>% 
-  mutate(air_basin_binned = if_else(air_basin_binned %in% northlands,
-                                   "Northlands", 
+  mutate(air_basin_binned = if_else(air_basin_binned %in% northern_ca,
+                                   "Northern California", 
                                    air_basin_binned)) %>%
-  mutate(air_basin_binned = if_else(air_basin_binned %in% southlands,
-                                    "Southlands", 
-                                    air_basin_binned))
+  mutate(air_basin_binned = if_else(air_basin_binned %in% southern_ca,
+                                    "Southern California", 
+                                    air_basin_binned)) %>% 
+  mutate(air_basin_binned = if_else(air_basin_binned %in% central_ca,
+                                    "Central California", 
+                                    air_basin_binned))  
 
 save(school_air_sf_binned_basins, 
      file = file.path("intermediate_data", 
@@ -1981,7 +1990,7 @@ load(file = file.path("intermediate_data",
 # aggregate counts by ethnicity and gender
 ethnicity_grade_by_school <- 
   school_enrollment_no_nonsec %>% 
-  select(c(cds_code, 
+  dplyr::select(c(cds_code, 
            ethnic, 
            gender,
            enr_total)) %>% 
@@ -1998,19 +2007,19 @@ ethnicity_grade_by_school <-
              `6` = "african_american_nh",
              `7` = "white_nh",
              `9` = "two_plus_nh")) %>% 
-  select(-c(ethnic)) %>% 
+  dplyr::select(-c(ethnic)) %>% 
   pivot_wider(names_from = c(ethnic_category, gender),  # collect by school
               values_from = enr_total, 
               values_fill = list(enr_total = 0)) %>% 
   mutate(school_k_12_enrollment = rowSums(.[2:ncol(.)])) %>%   # get total enrollment
-  select(cds_code, school_k_12_enrollment, sort(names(.)))  # sort columns
+  dplyr::select(cds_code, school_k_12_enrollment, sort(names(.)))  # sort columns
 
 # make the final dataset
 school_air_ethnicity_gender <- 
   school_air_sf_binned_basins %>% 
   left_join(ethnicity_grade_by_school, 
             by = "cds_code") %>% 
-  select(-c(cds_school_code, 
+  dplyr::select(-c(cds_school_code, 
             cds_school_code_dir, 
             county_dir))
 
