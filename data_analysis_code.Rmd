@@ -954,6 +954,7 @@ set.seed(252)
   round(prop.table(table(dataset_complete_cases$air_district)),3)
   round(prop.table(table(dataset_complete_cases$air_basin)),3)
   round(prop.table(table(dataset_complete_cases$air_basin_binned)),3) # much better
+  round(prop.table(table(dataset_complete_cases$air_basin_4_bins)),3)
 # make A variable into numeric & Y variable proportion
   dataset_complete_cases$pm25_12_plus <- ifelse(dataset_complete_cases$pm25_12_plus=="yes",1,0)
   dataset_complete_cases$math_standard_met <- dataset_complete_cases$math_standard_met/100
@@ -1041,7 +1042,7 @@ set.seed(252)
         X0[,A] <- 0 # under control
     
        # call Super Learner for estimation of QbarAW
-        QbarSL<- SuperLearner(Y=ObsData[,Y], X=X, SL.library=SL.library, family="binomial", id=id)
+        QbarSL<- SuperLearner(Y=ObsData[,Y], X=X, SL.library=SL.library, family="quasibinomial", id=id)
         # QbarSL
         
        # initial estimates of the outcome, given the observed exposure & covariates
@@ -1081,7 +1082,9 @@ set.seed(252)
        H.0W<- -1/gHat0W
        
      # IPTW estimator of the G-computation formula: -> INCLUDE HORVITZ-THOMPSON 
-      PsiHat.IPTW <-mean( H.AW*ObsData[,Y])
+      PsiHat.IPTW <- mean(H.AW*ObsData[,Y])
+      PsiHat.IPTW <- mean(wt*as.numeric(ObsData[,A]==1)*ObsData[,Y]) -
+                     mean(wt*as.numeric(ObsData[,A]==0)*ObsData[,Y])
       
      # IPTW estimator of G-comp w Horvitz-Thompson adjusmtent
       PsiHat.IPTW_HT <- mean(wt*as.numeric(ObsData[,A]==1)*ObsData[,Y])/mean(wt*as.numeric(ObsData[,A]==1)) - 
@@ -1090,7 +1093,7 @@ set.seed(252)
     #------------------------------------------
     # Update the initial estimator of Qbar_0(A,W)
     #------------------------------------------
-      logitUpdate<- glm(ObsData[,Y] ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='binomial')
+      logitUpdate<- glm(ObsData[,Y] ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='quasibinomial')
       epsilon <- logitUpdate$coef
   
       QbarAW.star<- plogis(qlogis(QbarAW)+ epsilon*H.AW)
