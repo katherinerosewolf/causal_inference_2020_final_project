@@ -404,17 +404,23 @@ ggplot(data = simulated_full_only_complete_cases,
 ```
 
 
-```{r tabling the ancestors}
+```{r KATIE tabling the ancestors}
 
 # load data
-load(file = file.path("causal_inference_preliminary_dataset.rdata"))
+load(file = file.path("dataset_complete_cases.rdata"))
+
+data_for_table_one <- 
+  dataset_complete_cases
+
+colnames(dataset_complete_cases)
 
 # relabel variables
-data_for_table_one <- 
-  causal_inference_preliminary_dataset %>% 
-  mutate("PM25" = factor(pm25_12_plus),
-         "School enrollment (n)" = school_k_12_enrollment,
-         "Female (%)" = round(percent_female*100, 2),
+data_for_little_table_one <- 
+  data_for_table_one %>% 
+  mutate("PM25" = factor(pm25_12_plus), 
+         "School enrollment (n)" = school_k_12_enrollment, 
+         "Air basin group" = air_basin_binned, 
+         "Air basin" = air_basin,
          "African American (%)" = round(afr_am_percent*100, 2),
          "American Indian or Alaska Native (%)" = round(aian_percent*100, 2),
          "Asian (%)" = round(asian_percent*100, 2),
@@ -424,6 +430,13 @@ data_for_table_one <-
          "White (%)" = round(white_percent*100, 2),
          "Two or more races (not Hispanic/Latino) (%)" = round(two_plus_percent*100, 2),
          "Race/ethnicity not reported (%)" = round(not_reported_percent*100, 2),
+  
+  
+  
+  mutate("PM25" = factor(pm25_12_plus),
+         "School enrollment (n)" = school_k_12_enrollment,
+         "Female (%)" = round(percent_female*100, 2),
+         
          "Chronic absenteeism (%)" = as.numeric(chronic_absenteeism_rate),
          "Suspension rate (%)" = as.numeric(suspension_rate), 
          "Free meal eligibility (%)" = free_lunch_percent, 
@@ -461,7 +474,7 @@ data_for_table_one <-
 
 # create a list of variables for the table
 # (not including the stratification variable)
-table_one_variables <- 
+little_table_one_variables <- 
   c(     "School enrollment (n)",
          "Female (%)",
          "African American (%)",
@@ -679,6 +692,8 @@ data_with_probability_of_exposure <-
 data_with_probability_of_exposure %>% 
   ggplot(aes(x = afr_am_percent, y = gHat1W)) +
   geom_point()
+
+# african american proportion by bin
 
 # calculate weights
 wt <- 1/gHatAW
