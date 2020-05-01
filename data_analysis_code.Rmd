@@ -404,6 +404,110 @@ ggplot(data = simulated_full_only_complete_cases,
 ```
 
 
+```{r tabling the ancestors}
+
+# load data
+load(file = file.path("causal_inference_preliminary_dataset.rdata"))
+
+# relabel variables
+data_for_table_one <- 
+  causal_inference_preliminary_dataset %>% 
+  mutate("PM25" = factor(pm25_12_plus),
+         "School enrollment (n)" = school_k_12_enrollment,
+         "Female (%)" = round(percent_female*100, 2),
+         "African American (%)" = round(afr_am_percent*100, 2),
+         "American Indian or Alaska Native (%)" = round(aian_percent*100, 2),
+         "Asian (%)" = round(asian_percent*100, 2),
+         "Filipino (%)" = round(filipino_percent*100, 2),
+         "Hispanic/Latino (any race) (%)" = round(hisp_latinx_percent*100, 2),
+         "Pacific Islander (%)" = round(pacific_islander_percent*100, 2),
+         "White (%)" = round(white_percent*100, 2),
+         "Two or more races (not Hispanic/Latino) (%)" = round(two_plus_percent*100, 2),
+         "Race/ethnicity not reported (%)" = round(not_reported_percent*100, 2),
+         "Chronic absenteeism (%)" = as.numeric(chronic_absenteeism_rate),
+         "Suspension rate (%)" = as.numeric(suspension_rate), 
+         "Free meal eligibility (%)" = free_lunch_percent, 
+         "Free/reduced-price meal eligibility (%)" = frpm_percent, 
+         "English learners (%)" = round(english_learner_percent*100, 2),
+         "English standard met or exceeded (%)" = as.numeric(english_standard_met), 
+         "Math standard met or exceeded (%)" = as.numeric(math_standard_met), 
+         "Science standard met or exceeded (%)" = as.numeric(science_standard_met), 
+         "Overall mean of standards met or exceeded (%)" = round(as.numeric(overall_standard_met), 2)) %>% 
+  select("PM25",
+         "School enrollment (n)",
+         "Female (%)",
+         "African American (%)",
+         "American Indian or Alaska Native (%)",
+         "Asian (%)",
+         "Filipino (%)",
+         "Hispanic/Latino (any race) (%)",
+         "Pacific Islander (%)",
+         "White (%)",
+         "Two or more races (not Hispanic/Latino) (%)",
+         "Race/ethnicity not reported (%)",
+         "Chronic absenteeism (%)",
+         "Suspension rate (%)", 
+         "Free meal eligibility (%)", 
+         "Free/reduced-price meal eligibility (%)", 
+         "English learners (%)",
+         "English standard met or exceeded (%)", 
+         "Math standard met or exceeded (%)", 
+         "Science standard met or exceeded (%)", 
+         "Overall mean of standards met or exceeded (%)") %>% 
+  st_drop_geometry() %>% 
+  as.data.frame()
+
+
+
+# create a list of variables for the table
+# (not including the stratification variable)
+table_one_variables <- 
+  c(     "School enrollment (n)",
+         "Female (%)",
+         "African American (%)",
+         "American Indian or Alaska Native (%)",
+         "Asian (%)",
+         "Filipino (%)",
+         "Hispanic/Latino (any race) (%)",
+         "Pacific Islander (%)",
+         "White (%)",
+         "Two or more races (not Hispanic/Latino) (%)",
+         "Race/ethnicity not reported (%)",
+         "Chronic absenteeism (%)",
+         "Suspension rate (%)", 
+         "Free meal eligibility (%)", 
+         "Free/reduced-price meal eligibility (%)", 
+         "English learners (%)",
+         "English standard met or exceeded (%)", 
+         "Math standard met or exceeded (%)", 
+         "Science standard met or exceeded (%)", 
+         "Overall mean of standards met or exceeded (%)")
+
+table_one <- CreateTableOne(vars = table_one_variables,
+                            # factorVars = factor_variables,
+                            strata = "PM25",
+                            data = data_for_table_one,
+                            test = FALSE,
+                            includeNA = TRUE)
+
+save(table_one, 
+     file = "table_one.rdata")
+
+# Creates a formatted table, using kable from the knitr package
+# Would want to clean this up for publication purposes:
+hi <- kable(print(table_one,
+                  showAllLevels = TRUE,
+                  printToggle = FALSE,
+                  noSpaces = TRUE,
+                  catDigits = 1,
+                  contDigits = 1),
+            col.names = c("", "Mean PM2.5 <= 12 ug/m3", "Mean PM2.5 > 12 ug/m3"),
+            caption=paste(".  Descriptive statistics for California public schools in 2018-19, stratified by 2018 mean PM2.5 concentration.")) %>% 
+  kable_styling("striped")
+
+```
+
+
 
 ```{r KATIE attempt at simple substitution}
 
@@ -541,10 +645,9 @@ summary(ltmle_result) # Stephen: OMG!!!!! good to see TMLE does the weird "basic
 
 ltmle_result$fit
 
-```
-
-
-```{r KATIE evaluating positivity}
+#################
+# EVALUATING POSITIVITY
+#######################
 
 # call Super Learner for the exposure mechanism
 gHatSL <- SuperLearner(Y=ObsData$A, 
@@ -566,6 +669,16 @@ gHatAW[ObsData$A==0] <- gHat0W[ObsData$A==0]
 
 # this gives a little summary of the distribution
 summary(gHatAW)
+
+# combine gHat1W with original data
+data_with_probability_of_exposure <- 
+  dataset_complete_cases_working %>% 
+  bind_cols(tibble(gHat1W))
+
+# probability of exposure by African American
+data_with_probability_of_exposure %>% 
+  ggplot(aes(x = air_basin_binned, y = gHat1W)) +
+  geom_boxplot()
 
 # calculate weights
 wt <- 1/gHatAW
