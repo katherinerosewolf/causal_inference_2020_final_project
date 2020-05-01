@@ -1919,7 +1919,7 @@ northern_ca <- c("Lake County",
 southern_ca <- c("Great Basin Valleys", 
                  "Mojave Desert", 
                  "Salton Sea", 
-                 "San Diego")
+                 "San Diego County")
 
 central_ca <- c("North Central Coast", 
                 "South Central Coast", 
@@ -2433,6 +2433,8 @@ save(dataset_complete_cases_forget_funding,
 nrow(dataset_complete_cases_forget_funding)
 
 nrow(schools_with_math)
+
+nrow(dataset_complete_cases)
 
 ```
 

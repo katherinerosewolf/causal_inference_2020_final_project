@@ -140,7 +140,7 @@ simulated_full_only_complete_cases <-
   filter(!is.na(math_standard_met)) %>% 
   filter(!is.na(english_learner_percent)) %>% 
   filter(!is.na(student_teacher_ratio)) %>% 
-  filter(!is.na(air_district))
+  filter(!is.na(air_basin))
 
 # count observations by air basin
 dataset_complete_cases_working %>% 
@@ -407,67 +407,65 @@ ggplot(data = simulated_full_only_complete_cases,
 ```{r KATIE tabling the ancestors}
 
 # load data
-load(file = file.path("dataset_complete_cases.rdata"))
+load(file = file.path("dataset_full.rdata"))
+
+simulated_full_only_complete_cases <- 
+  dataset_full %>% 
+  filter(!is.na(math_standard_met)) %>% 
+  filter(!is.na(english_learner_percent)) %>% 
+  filter(!is.na(student_teacher_ratio)) %>% 
+  filter(!is.na(air_basin))
 
 data_for_table_one <- 
-  dataset_complete_cases
+  simulated_full_only_complete_cases
 
-colnames(dataset_complete_cases)
+colnames(data_for_table_one)
 
 # relabel variables
 data_for_little_table_one <- 
   data_for_table_one %>% 
   mutate("PM25" = factor(pm25_12_plus), 
          "School enrollment (n)" = school_k_12_enrollment, 
+         "English learners (%)" = round(english_learner_percent*100, 2),
+         "Free/reduced-price meal eligibility (%)" = frpm_percent, 
+         "Student-teacher ratio" = student_teacher_ratio,
+         "Fully credentialed teachers" = cred_percent,
+         "Cost per pupil" = district_cost_per_pupil,
          "Air basin group" = air_basin_binned, 
          "Air basin" = air_basin,
-         "African American (%)" = round(afr_am_percent*100, 2),
-         "American Indian or Alaska Native (%)" = round(aian_percent*100, 2),
+         "asian_filipino_percent" = round(asian_filipino_percent*100, 2),
          "Asian (%)" = round(asian_percent*100, 2),
          "Filipino (%)" = round(filipino_percent*100, 2),
          "Hispanic/Latino (any race) (%)" = round(hisp_latinx_percent*100, 2),
-         "Pacific Islander (%)" = round(pacific_islander_percent*100, 2),
          "White (%)" = round(white_percent*100, 2),
+         "two_none_aian_pi_af_am_percent" = round(two_none_aian_pi_af_am_percent*100, 2),
+         "African American (%)" = round(afr_am_percent*100, 2),
+         "American Indian or Alaska Native (%)" = round(aian_percent*100, 2),
+         "Pacific Islander (%)" = round(pacific_islander_percent*100, 2),
          "Two or more races (not Hispanic/Latino) (%)" = round(two_plus_percent*100, 2),
          "Race/ethnicity not reported (%)" = round(not_reported_percent*100, 2),
-  
-  
-  
-  mutate("PM25" = factor(pm25_12_plus),
-         "School enrollment (n)" = school_k_12_enrollment,
-         "Female (%)" = round(percent_female*100, 2),
-         
-         "Chronic absenteeism (%)" = as.numeric(chronic_absenteeism_rate),
-         "Suspension rate (%)" = as.numeric(suspension_rate), 
-         "Free meal eligibility (%)" = free_lunch_percent, 
-         "Free/reduced-price meal eligibility (%)" = frpm_percent, 
-         "English learners (%)" = round(english_learner_percent*100, 2),
-         "English standard met or exceeded (%)" = as.numeric(english_standard_met), 
-         "Math standard met or exceeded (%)" = as.numeric(math_standard_met), 
-         "Science standard met or exceeded (%)" = as.numeric(science_standard_met), 
-         "Overall mean of standards met or exceeded (%)" = round(as.numeric(overall_standard_met), 2)) %>% 
-  select("PM25",
-         "School enrollment (n)",
-         "Female (%)",
-         "African American (%)",
-         "American Indian or Alaska Native (%)",
-         "Asian (%)",
-         "Filipino (%)",
-         "Hispanic/Latino (any race) (%)",
-         "Pacific Islander (%)",
-         "White (%)",
-         "Two or more races (not Hispanic/Latino) (%)",
-         "Race/ethnicity not reported (%)",
-         "Chronic absenteeism (%)",
-         "Suspension rate (%)", 
-         "Free meal eligibility (%)", 
-         "Free/reduced-price meal eligibility (%)", 
-         "English learners (%)",
-         "English standard met or exceeded (%)", 
-         "Math standard met or exceeded (%)", 
-         "Science standard met or exceeded (%)", 
-         "Overall mean of standards met or exceeded (%)") %>% 
-  st_drop_geometry() %>% 
+         "Math standard met or exceeded (%)" = math_standard_met) %>% 
+  dplyr::select(`PM25`, 
+         `School enrollment (n)`, 
+         `English learners (%)`,
+         `Free/reduced-price meal eligibility (%)`, 
+         `Student-teacher ratio`,
+         `Fully credentialed teachers`,
+         `Cost per pupil`,
+         `Air basin group`, 
+         `Air basin`,
+         `asian_filipino_percent`,
+         `Asian (%)`,
+         `Filipino (%)`,
+         `Hispanic/Latino (any race) (%)`,
+         `White (%)`,
+         `two_none_aian_pi_af_am_percent`,
+         `African American (%)`,
+         `American Indian or Alaska Native (%)`,
+         `Pacific Islander (%)`,
+         `Two or more races (not Hispanic/Latino) (%)`,
+         `Race/ethnicity not reported (%)`,
+         `Math standard met or exceeded (%)`) %>% 
   as.data.frame()
 
 
@@ -475,36 +473,39 @@ data_for_little_table_one <-
 # create a list of variables for the table
 # (not including the stratification variable)
 little_table_one_variables <- 
-  c(     "School enrollment (n)",
-         "Female (%)",
-         "African American (%)",
-         "American Indian or Alaska Native (%)",
+  c(     "PM25", 
+         "School enrollment (n)", 
+         "English learners (%)",
+         "Free/reduced-price meal eligibility (%)", 
+         "Student-teacher ratio",
+         "Fully credentialed teachers",
+         "Cost per pupil",
+         "Air basin group", 
+         "Air basin",
+         "asian_filipino_percent",
          "Asian (%)",
          "Filipino (%)",
          "Hispanic/Latino (any race) (%)",
-         "Pacific Islander (%)",
          "White (%)",
+         "two_none_aian_pi_af_am_percent",
+         "African American (%)",
+         "American Indian or Alaska Native (%)",
+         "Pacific Islander (%)",
          "Two or more races (not Hispanic/Latino) (%)",
          "Race/ethnicity not reported (%)",
-         "Chronic absenteeism (%)",
-         "Suspension rate (%)", 
-         "Free meal eligibility (%)", 
-         "Free/reduced-price meal eligibility (%)", 
-         "English learners (%)",
-         "English standard met or exceeded (%)", 
-         "Math standard met or exceeded (%)", 
-         "Science standard met or exceeded (%)", 
-         "Overall mean of standards met or exceeded (%)")
+         "Math standard met or exceeded (%)")
 
-table_one <- CreateTableOne(vars = table_one_variables,
+table_one <- CreateTableOne(vars = little_table_one_variables,
                             # factorVars = factor_variables,
                             strata = "PM25",
-                            data = data_for_table_one,
+                            data = data_for_little_table_one,
                             test = FALSE,
                             includeNA = TRUE)
 
 save(table_one, 
      file = "table_one.rdata")
+
+View(hi)
 
 # Creates a formatted table, using kable from the knitr package
 # Would want to clean this up for publication purposes:
@@ -517,6 +518,9 @@ hi <- kable(print(table_one,
             col.names = c("", "Mean PM2.5 <= 12 ug/m3", "Mean PM2.5 > 12 ug/m3"),
             caption=paste(".  Descriptive statistics for California public schools in 2018-19, stratified by 2018 mean PM2.5 concentration.")) %>% 
   kable_styling("striped")
+
+
+write_csv(hi, path = file.path("output_for_writups", "table_one_raw.csv"))
 
 ```
 
