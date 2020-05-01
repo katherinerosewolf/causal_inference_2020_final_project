@@ -1053,7 +1053,7 @@ set.seed(252)
         Qbar0W<- predict(QbarSL, newdata=X0)$pred
     
        # simple substitution estimator:
-        PsiHat.SS<-mean(Qbar1W - Qbar0W)
+        PsiHat.SS<-mean(Qbar1W - Qbar0W) 
     
     #------------------------------------------
     # Estimate the exposure mechanism g(A|W)
