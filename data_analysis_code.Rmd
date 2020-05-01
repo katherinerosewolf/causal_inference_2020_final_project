@@ -736,6 +736,7 @@ set.seed(252)
     table(dataset_complete_cases$air_district) # 70 schools in Feather River. why STR so high??
     
   round(prop.table(table(dataset_complete_cases$air_district)),3)
+  round(prop.table(table(dataset_complete_cases$air_basin)),3)
   round(prop.table(table(dataset_complete_cases$air_basin_binned)),3) # much better
 # make A variable into numeric & Y variable proportion
   dataset_complete_cases$pm25_12_plus <- ifelse(dataset_complete_cases$pm25_12_plus=="yes",1,0)
