@@ -2117,20 +2117,31 @@ full_data <-
                                         pacific_islander_nh_F +
                                         pacific_islander_nh_M)/
                                        school_k_12_enrollment)*100,
+         two_none_aian_pi_af_am_percent = ((two_plus_nh_F +
+                                        two_plus_nh_M +
+                                        not_reported_F +
+                                        not_reported_M +
+                                        american_indian_alaska_native_nh_F +
+                                        american_indian_alaska_native_nh_M +
+                                        pacific_islander_nh_F +
+                                        pacific_islander_nh_M + 
+                                        african_american_nh_F +
+                                        african_american_nh_M)/
+                                       school_k_12_enrollment)*100,
          not_white_latinx_percent = ((two_plus_nh_F +
-                                          two_plus_nh_M +
-                                          not_reported_F +
-                                          not_reported_M +
-                                          american_indian_alaska_native_nh_F +
-                                          american_indian_alaska_native_nh_M +
-                                          pacific_islander_nh_F +
-                                          pacific_islander_nh_M +
-                                          african_american_nh_F +
-                                          african_american_nh_M + 
-                                          asian_nh_F +
-                                          asian_nh_M +
-                                          filipino_nh_F +
-                                          filipino_nh_M)/
+                                        two_plus_nh_M +
+                                        not_reported_F +
+                                        not_reported_M +
+                                        american_indian_alaska_native_nh_F +
+                                        american_indian_alaska_native_nh_M +
+                                        pacific_islander_nh_F +
+                                        pacific_islander_nh_M + 
+                                        african_american_nh_F +
+                                        african_american_nh_M + 
+                                        asian_nh_F +
+                                        asian_nh_M +
+                                        filipino_nh_F +
+                                        filipino_nh_M)/
                                        school_k_12_enrollment)*100,
          pm25_12_plus = factor(pm25_12_plus), 
          chronic_absenteeism_rate = as.numeric(chronic_absenteeism_rate), 
@@ -2149,13 +2160,13 @@ full_data <-
          overall_standard_met = (english_standard_met +
                                    math_standard_met +
                                    science_standard_met)/3) %>%
-  select(-c(district_from_expense_per_pupil, 
+  dplyr::select(-c(district_from_expense_per_pupil, 
             cds_county_code_from_expense_per_pupil))
 
 
 full_data_analysis_variables <- 
   full_data %>% 
-  select(cds_code, 
+  dplyr::select(cds_code, 
          county, 
          district, 
          school, 
@@ -2181,6 +2192,7 @@ full_data_analysis_variables <-
          aian_pi_percent, 
          two_none_percent,
          two_none_aian_pi_percent,
+         two_none_aian_pi_af_am_percent,
          not_white_latinx_percent,
          english_learners,
          english_learner_percent,
@@ -2356,7 +2368,7 @@ colnames(dataset_complete_cases_all_data)
 
 dataset_complete_cases <- 
   dataset_complete_cases_all_data %>% 
-  select(cds_code, 
+  dplyr::select(cds_code, 
          math_standard_met,
          modeled_air_at_school,
          pm25_12_plus, 
@@ -2367,6 +2379,8 @@ dataset_complete_cases <-
          asian_filipino_percent, 
          two_none_aian_pi_percent, 
          hisp_latinx_percent, 
+         two_none_aian_pi_af_am_percent,
+         not_white_latinx_percent,
          white_percent, 
          english_learner_percent, 
          frpm_percent, 
@@ -2380,7 +2394,7 @@ dataset_complete_cases_forget_funding <-
   filter(!is.na(english_learner_percent)) %>% 
   filter(!is.na(student_teacher_ratio)) %>% 
   filter(!is.na(air_district)) %>% 
-  select(cds_code, 
+  dplyr::select(cds_code, 
          math_standard_met,
          pm25_12_plus, 
          modeled_air_at_school,
@@ -2391,6 +2405,8 @@ dataset_complete_cases_forget_funding <-
          asian_filipino_percent, 
          two_none_aian_pi_percent, 
          hisp_latinx_percent, 
+         two_none_aian_pi_af_am_percent,
+         not_white_latinx_percent,
          white_percent, 
          english_learner_percent, 
          frpm_percent, 
