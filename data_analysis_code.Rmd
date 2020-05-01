@@ -756,8 +756,8 @@ set.seed(252)
 set.seed(252)
 # specify SL library
   listWrappers()
-  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm")
-  other_options <- c("SL.glm.interaction","SL.randomForest","SL.polymars","SL.rpartPrune")
+  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm","SL.xgboost","SL.randomForest")
+  #other_options <- c("SL.glm.interaction","SL.randomForest","SL.polymars","SL.rpartPrune")
 # SS, IPTW, & TMLE function
   run.tmle <- function(Y,A,ObsData, SL.library, id=NULL) {
    
@@ -926,6 +926,8 @@ nonparam_boot <- function(ObsData,A,Y,id,SL.library,num_boots) {
           PsiHat.TMLE <- mean(Qbar1W.star- Qbar0W.star)
       # save results
         estimates[i,] <- c(simple_sub,iptw,iptw_ht,PsiHat.TMLE)
+      # periodically print i
+        if (i%%5==0) (print(i))
     }
     return(estimates)
 }  
@@ -955,7 +957,7 @@ apply(estimates,2,function(x) quantile(x,probs=c(.025,.975),na.rm=T))
 ```{r, KATIE PARALLEL Inference Curve!!!! DOES NOT RUN YET, eval=FALSE, include=FALSE}
 
 # set up parallelization (my computer has 8 cores and this uses 7 of them)
-(cluster = parallel::makeCluster(7))
+(cluster = parallel::makeCluster(3))
 parallel::clusterEvalQ(cluster, library(SuperLearner))
 
 # load dataset
