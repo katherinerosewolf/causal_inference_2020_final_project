@@ -414,7 +414,8 @@ simulated_full_only_complete_cases <-
   filter(!is.na(math_standard_met)) %>% 
   filter(!is.na(english_learner_percent)) %>% 
   filter(!is.na(student_teacher_ratio)) %>% 
-  filter(!is.na(air_basin))
+  filter(!is.na(air_basin)) %>% 
+  filter(!is.na(district_cost_per_pupil))
 
 data_for_table_one <- 
   simulated_full_only_complete_cases
@@ -426,24 +427,24 @@ data_for_little_table_one <-
   data_for_table_one %>% 
   mutate("PM25" = factor(pm25_12_plus), 
          "School enrollment (n)" = school_k_12_enrollment, 
-         "English learners (%)" = round(english_learner_percent*100, 2),
+         "English learners (%)" = round(english_learner_percent, 1),
          "Free/reduced-price meal eligibility (%)" = frpm_percent, 
          "Student-teacher ratio" = student_teacher_ratio,
          "Fully credentialed teachers" = cred_percent,
          "Cost per pupil" = district_cost_per_pupil,
          "Air basin group" = air_basin_binned, 
          "Air basin" = air_basin,
-         "asian_filipino_percent" = round(asian_filipino_percent*100, 2),
-         "Asian (%)" = round(asian_percent*100, 2),
-         "Filipino (%)" = round(filipino_percent*100, 2),
-         "Hispanic/Latino (any race) (%)" = round(hisp_latinx_percent*100, 2),
-         "White (%)" = round(white_percent*100, 2),
-         "two_none_aian_pi_af_am_percent" = round(two_none_aian_pi_af_am_percent*100, 2),
-         "African American (%)" = round(afr_am_percent*100, 2),
-         "American Indian or Alaska Native (%)" = round(aian_percent*100, 2),
-         "Pacific Islander (%)" = round(pacific_islander_percent*100, 2),
-         "Two or more races (not Hispanic/Latino) (%)" = round(two_plus_percent*100, 2),
-         "Race/ethnicity not reported (%)" = round(not_reported_percent*100, 2),
+         "asian_filipino_percent" = round(asian_filipino_percent, 1),
+         "Asian (%)" = round(asian_percent, 1),
+         "Filipino (%)" = round(filipino_percent, 1),
+         "Hispanic/Latino (any race) (%)" = round(hisp_latinx_percent, 1),
+         "White (%)" = round(white_percent, 1),
+         "two_none_aian_pi_af_am_percent" = round(two_none_aian_pi_af_am_percent, 1),
+         "African American (%)" = round(afr_am_percent, 1),
+         "American Indian or Alaska Native (%)" = round(aian_percent, 1),
+         "Pacific Islander (%)" = round(pacific_islander_percent, 1),
+         "Two or more races (not Hispanic/Latino) (%)" = round(two_plus_percent, 1),
+         "Race/ethnicity not reported (%)" = round(not_reported_percent, 1),
          "Math standard met or exceeded (%)" = math_standard_met) %>% 
   dplyr::select(`PM25`, 
          `School enrollment (n)`, 
@@ -505,8 +506,6 @@ table_one <- CreateTableOne(vars = little_table_one_variables,
 save(table_one, 
      file = "table_one.rdata")
 
-View(hi)
-
 # Creates a formatted table, using kable from the knitr package
 # Would want to clean this up for publication purposes:
 hi <- kable(print(table_one,
@@ -514,13 +513,33 @@ hi <- kable(print(table_one,
                   printToggle = FALSE,
                   noSpaces = TRUE,
                   catDigits = 1,
-                  contDigits = 1),
+                  contDigits = 3),
             col.names = c("", "Mean PM2.5 <= 12 ug/m3", "Mean PM2.5 > 12 ug/m3"),
             caption=paste(".  Descriptive statistics for California public schools in 2018-19, stratified by 2018 mean PM2.5 concentration.")) %>% 
   kable_styling("striped")
 
+hi
 
-write_csv(hi, path = file.path("output_for_writups", "table_one_raw.csv"))
+table_total <- CreateTableOne(vars = little_table_one_variables,
+                            # factorVars = factor_variables,
+                            data = data_for_little_table_one,
+                            test = FALSE,
+                            includeNA = TRUE)
+
+save(table_total, 
+     file = "table_one.rdata")
+
+hi2 <- kable(print(table_total,
+                  showAllLevels = TRUE,
+                  printToggle = FALSE,
+                  noSpaces = TRUE,
+                  catDigits = 1,
+                  contDigits = 3),
+            col.names = c("", "Total"),
+            caption=paste(".  Descriptive statistics for California public schools in 2018-19, stratified by 2018 mean PM2.5 concentration.")) %>% 
+  kable_styling("striped")
+
+hi2
 
 ```
 
