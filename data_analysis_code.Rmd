@@ -53,7 +53,7 @@ dataset_complete_cases_working <-
   dataset_complete_cases %>% 
   mutate(math_proportion = math_standard_met/100,
          pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0), 
-         air_basin = factor(air_basin))
+         air_basin_4_bins = factor(air_basin_4_bins))
 
 # histogram of math percentage (weird, lots of zeroes)
 hist(dataset_complete_cases_working$math_standard_met, 
@@ -74,10 +74,9 @@ summary(plain_glm_one_variable)
 # full linear glm no interactions
 plain_glm <- glm(math_standard_met ~ 
                    pm25_12_plus + 
-                   air_basin + 
-                   afr_am_percent + 
+                   air_basin_4_bins + 
                    asian_filipino_percent + 
-                   two_none_aian_pi_percent + 
+                   two_none_aian_pi_af_am_percent + 
                    hisp_latinx_percent + 
                    english_learner_percent + 
                    frpm_percent + 
@@ -570,44 +569,46 @@ hi2
 dataset_complete_cases_working <- 
   dataset_complete_cases %>% 
   mutate(math_proportion = math_standard_met/100,
-         pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0), 
-         air_district = factor(air_district), 
-         air_basin_binned = factor(air_basin_binned))
+         pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0),
+         air_basin_4_bins = factor(air_basin_4_bins))
+
+adjustment_set_variables <- 
+  c("air_basin_4_bins", 
+    "asian_filipino_percent", 
+    "two_none_aian_pi_af_am_percent",
+    "hisp_latinx_percent", 
+    "english_learner_percent", 
+    "frpm_percent",
+    "district_cost_per_pupil", 
+    "student_teacher_ratio", 
+    "cred_percent",
+    "school_k_12_enrollment")
 
 ObsData <- 
   dataset_complete_cases_working %>% 
   mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
   dplyr::select(Y = math_proportion,
                 A = pm25_12_plus, 
-                air_basin_binned, 
-                afr_am_percent, 
-                asian_filipino_percent, 
-                two_none_aian_pi_percent, 
-                hisp_latinx_percent, 
-                english_learner_percent, 
-                frpm_percent, 
-                district_cost_per_pupil, 
-                student_teacher_ratio, 
-                cred_percent,
-                school_k_12_enrollment)
+                all_of(adjustment_set_variables))
 
 ObsData <- as.data.frame(ObsData)
 
 set.seed(252)
 
-# reduce runs of biglasso from 100 to 5 to save time
-new.algorithm.1 = create.Learner("SL.biglasso", 
-                                 params = list(nlambda = 5))
-
-new.algorithm.2 = create.Learner("SL.randomForest", 
-                                params = list(ntrees = 10))
+# # reduce runs of biglasso from 100 to 5 to save time
+# new.algorithm.1 = create.Learner("SL.biglasso", 
+#                                  params = list(nlambda = 5))
+# 
+# new.algorithm.2 = create.Learner("SL.randomForest", 
+#                                 params = list(ntrees = 10))
 
 # specify SL library
 listWrappers()
 katie.SL.library <- c("SL.mean", 
                       "SL.glm", 
                       "SL.glm.interaction", 
-                      "SL.bayesglm" 
+                      "SL.bayesglm", 
+                      "SL.polymars"
                       # "SL.biglasso"
                       # "SL.extraTrees"
                       # "SL.glmnet"
@@ -619,19 +620,18 @@ katie.SL.library <- c("SL.mean",
 # 2. Estimate Qbar_0(A,W) with Super Learner
 #------------------------------------------
 # dataframe X with baseline covariates and exposure
-X<-subset(ObsData, 
-          select=c(A, 
-                   air_basin_binned, 
-                   afr_am_percent, 
-                   asian_filipino_percent, 
-                   two_none_aian_pi_percent, 
-                   hisp_latinx_percent, 
-                   english_learner_percent, 
-                   frpm_percent, 
-                   district_cost_per_pupil, 
-                   student_teacher_ratio, 
-                   cred_percent,
-                   school_k_12_enrollment))
+X <- subset(ObsData, 
+            select=c(A, 
+                     air_basin_4_bins, 
+                     asian_filipino_percent, 
+                     two_none_aian_pi_af_am_percent, 
+                     hisp_latinx_percent, 
+                     english_learner_percent, 
+                     frpm_percent, 
+                     district_cost_per_pupil, 
+                     student_teacher_ratio, 
+                     cred_percent,
+                     school_k_12_enrollment))
 
 # set the exposure=1 in X1 and the exposure=0 in X0
 X1 <- X0 <- X
@@ -671,10 +671,9 @@ PsiHat.SS
 ltmle_data <- 
   dataset_complete_cases_working %>% 
   mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
-  dplyr::select(air_basin_binned, 
-                afr_am_percent, 
+  dplyr::select(air_basin_4_bins, 
                 asian_filipino_percent, 
-                two_none_aian_pi_percent, 
+                two_none_aian_pi_af_am_percent, 
                 hisp_latinx_percent, 
                 english_learner_percent, 
                 frpm_percent, 
@@ -697,7 +696,7 @@ summary(ltmle_result) # Stephen: OMG!!!!! good to see TMLE does the weird "basic
 
 ltmle_result$fit
 
-#################
+#######################
 # EVALUATING POSITIVITY
 #######################
 
@@ -706,7 +705,7 @@ gHatSL <- SuperLearner(Y=ObsData$A,
                        X=subset(ObsData, 
                                 select= -c(Y, A)),
                        SL.library = katie.SL.library, 
-                       family="quasibinomial")
+                       family="binomial")
 
 # generate predicted prob being exposed, given baseline covariates
 gHat1W <- gHatSL$SL.predict
@@ -722,6 +721,23 @@ gHatAW[ObsData$A==0] <- gHat0W[ObsData$A==0]
 # this gives a little summary of the distribution
 summary(gHatAW)
 
+# calculate weights
+wt <- 1/gHatAW
+
+summary(wt)
+
+# variables in adjustment set
+                air_basin_4_bins, 
+                asian_filipino_percent, 
+                two_none_aian_pi_af_am_percent, 
+                hisp_latinx_percent, 
+                english_learner_percent, 
+                frpm_percent, 
+                district_cost_per_pupil, 
+                student_teacher_ratio, 
+                cred_percent,
+                school_k_12_enrollment
+
 # combine gHat1W with original data
 data_with_probability_of_exposure <- 
   dataset_complete_cases_working %>% 
@@ -732,17 +748,28 @@ data_with_probability_of_exposure %>%
   ggplot(aes(x = afr_am_percent, y = gHat1W)) +
   geom_point()
 
+# probability of exposure by African American
+data_with_probability_of_exposure %>% 
+  ggplot(aes(x = afr_am_percent, y = gHat1W)) +
+  geom_point()
+
+# probability of exposure by African American
+data_with_probability_of_exposure %>% 
+  ggplot(aes(x = afr_am_percent, y = gHat1W)) +
+  geom_point()
+
+# probability of exposure by African American
+data_with_probability_of_exposure %>% 
+  ggplot(aes(x = afr_am_percent, y = gHat1W)) +
+  geom_point()
+
 # probabilty of exposure by region
 data_with_probability_of_exposure %>% 
-  ggplot(aes(x = air_basin_binned, y = gHat1W)) +
+  ggplot(aes(x = air_basin_4_bins, y = gHat1W)) +
   geom_boxplot()
 
 # african american proportion by bin
 
-# calculate weights
-wt <- 1/gHatAW
-
-summary(wt)
 
 #######################################
 ## plotting g in propensity score chart
@@ -758,7 +785,14 @@ colnames(p0) <- "ps1"
 p0$type <- 0 
 
 plot_df <- data.frame(rbind(p1,p0))
-ggplot(data=plot_df) + geom_histogram(aes(ps1), bins=30, stat = "bin") + facet_wrap(~type) + coord_flip() + theme_bw()
+ggplot(data=plot_df) + geom_histogram(aes(ps1), 
+                                      bins=30, 
+                                      stat = "bin") + 
+  facet_wrap(~type) + 
+  coord_flip() + 
+  theme_bw() +
+  xlab = "Probability of exposure (g(A|W))" +
+  ylab = "Count"
 
 
 
