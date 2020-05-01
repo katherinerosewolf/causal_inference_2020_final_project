@@ -1124,7 +1124,7 @@ set.seed(252)
     table(sub_data$pm25_12_plus)
   # run function
     names(sub_data)
-    include_vars_analysis <- c("math_standard_met","pm25_12_plus","air_basin_binned","asian_filipino_percent","two_none_aian_pi_af_am_percent","hisp_latinx_percent",
+    include_vars_analysis <- c("math_standard_met","pm25_12_plus","air_basin_4_bins","asian_filipino_percent","two_none_aian_pi_af_am_percent","hisp_latinx_percent",
                                "english_learner_percent","frpm_percent","district_cost_per_pupil","student_teacher_ratio","cred_percent","school_k_12_enrollment")
     out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=sub_data[,include_vars_analysis], SL.library=SL.library) 
       # generating a ton of errors. removing algorithms from SuperLearner
@@ -1140,6 +1140,7 @@ set.seed(252)
     summary(ltmle.SL)    
     
 # the real thing
+  set.seed(252)
   out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=dataset_complete_cases[,include_vars_analysis], SL.library=SL.library) 
   est <- out$estimates
   est*100
@@ -1149,9 +1150,13 @@ set.seed(252)
   dataset_complete_cases_ltmle <- dataset_complete_cases_ltmle[,c(3:12,1:2)]
   ltmle.SL<- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library)  
   summary(ltmle.SL)  
-   
-
-
+  ltmle.SL$beta.iptw
+# get gcomp with ltmle  
+   ltmle.SL.gcomp <- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library, gcomp=TRUE)  
+  summary(ltmle.SL.gcomp)  
+# get iptw with ltmle
+  ltmle.SL.iptw <- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library, gcomp=FALSE, iptw.only=TRUE, variance.method='iptw')  
+  summary(ltmle.SL.iptw)  
 ```
 
 ```{r, Non-Parametric Bootstrap!!!! Runs just really slowly, eval=FALSE, include=FALSE}
@@ -1229,23 +1234,23 @@ apply(npb_estimates,2,function(x) quantile(x,probs=c(.025,.975),na.rm=T))
   IC <- out$H.AW*(dataset_complete_cases$math_standard_met - out$Qbar.star$QbarAW.star) + out$Qbar.star$Qbar1W.star - out$Qbar.star$Qbar0W.star - out$estimates$PsiHat.TMLE
   var(IC)
   (IC_se <- sqrt(var(IC)/n))
-  (Psy.LL <- out$estimates$PsiHat.TMLE-1.96*IC_se)
-  (Psy.UL <- out$estimates$PsiHat.TMLE+1.96*IC_se)
+  (Psy.LL <- out$estimates$PsiHat.TMLE-1.96*IC_se)*100
+  (Psy.UL <- out$estimates$PsiHat.TMLE+1.96*IC_se)*100
   2*pnorm(abs(out$estimates$PsiHat.TMLE/IC_se),lower.tail=F)
 # IPTW inference -> p-value + CI assuming normal distribution
   IC <- out$H.AW*(dataset_complete_cases$math_standard_met - out$Qbar.star$QbarAW.star) + out$Qbar.star$Qbar1W.star - out$Qbar.star$Qbar0W.star - out$estimates$PsiHat.IPTW
   var(IC)
   (IC_se <- sqrt(var(IC)/n))
-  (Psy.LL <- out$estimates$PsiHat.TMLE-1.96*IC_se)
-  (Psy.UL <- out$estimates$PsiHat.TMLE+1.96*IC_se)
-  2*pnorm(abs(out$estimates$PsiHat.TMLE/IC_se),lower.tail=F)  
+  (Psy.LL <- out$estimates$PsiHat.IPTW-1.96*IC_se)*100
+  (Psy.UL <- out$estimates$PsiHat.IPTW+1.96*IC_se)*100
+  2*pnorm(abs(out$estimates$PsiHat.IPTW/IC_se),lower.tail=F)  
 # IPTW_HT inference -> p-value + CI assuming normal distribution
   IC <- out$H.AW*(dataset_complete_cases$math_standard_met - out$Qbar.star$QbarAW.star) + out$Qbar.star$Qbar1W.star - out$Qbar.star$Qbar0W.star - out$estimates$PsiHat.IPTW_HT
   var(IC)
   (IC_se <- sqrt(var(IC)/n))
-  (Psy.LL <- out$estimates$PsiHat.TMLE-1.96*IC_se)
-  (Psy.UL <- out$estimates$PsiHat.TMLE+1.96*IC_se)
-  2*pnorm(abs(out$estimates$PsiHat.TMLE/IC_se),lower.tail=F)  
+  (Psy.LL <- out$estimates$PsiHat.IPTW_HT-1.96*IC_se)*100
+  (Psy.UL <- out$estimates$PsiHat.IPTW_HT+1.96*IC_se)*100
+  2*pnorm(abs(out$estimates$PsiHat.IPTW_HT/IC_se),lower.tail=F)  
   
   
   
