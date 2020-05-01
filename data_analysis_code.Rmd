@@ -7,6 +7,11 @@ output: html_document
 
 ```{r setup load libraries}
 
+library(extrafont)
+
+# # loads fonts 
+font_import(pattern = "Raleway")
+
 library(praise)
 library(tidyverse)
 library(tableone)
@@ -17,6 +22,9 @@ library(psych)
 library(SuperLearner)
 library(ltmle)
 library(arm)
+
+# # loads fonts 
+# font_import()
 
 # stop r from abbreviating doubles in school ids
 options("scipen" = 40)
@@ -45,7 +53,6 @@ dataset_complete_cases_working <-
   dataset_complete_cases %>% 
   mutate(math_proportion = math_standard_met/100,
          pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0), 
-         air_district = factor(air_district), 
          air_basin = factor(air_basin))
 
 # histogram of math percentage (weird, lots of zeroes)
@@ -140,17 +147,21 @@ simulated_full_only_complete_cases <-
   filter(!is.na(math_standard_met)) %>% 
   filter(!is.na(english_learner_percent)) %>% 
   filter(!is.na(student_teacher_ratio)) %>% 
-  filter(!is.na(air_basin))
+  filter(!is.na(air_basin)) %>% 
+  filter(!is.na(district_cost_per_pupil))
 
-# count observations by air basin
-dataset_complete_cases_working %>% 
-  group_by(air_basin) %>% 
-  summarize(count = n()) %>% 
-  View()
+# # count observations by air basin
+# dataset_complete_cases_working %>% 
+#   group_by(air_basin) %>% 
+#   summarize(count = n()) %>% 
+#   View()
 
 #------------------------------------------
 # Exposure-Outcome
 #------------------------------------------
+
+# only if actually plotting
+windowsFonts(Times=windowsFont("Raleway"))
 
 # make basic scatterplot with loess line through it
 ggplot(data = simulated_full_only_complete_cases,
@@ -162,7 +173,7 @@ ggplot(data = simulated_full_only_complete_cases,
               color="darkred") +
   xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
   ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") +
-  ggtitle("Complete Cases Only")
+  theme(text=element_text(family="Raleway"))
 
 # make basic scatterplot with plain line through it
 ggplot(data = simulated_full_only_complete_cases, 
@@ -399,7 +410,12 @@ ggplot(data = simulated_full_only_complete_cases,
 # Percent other
 #------------------------------------------
 
-
+# save plot as pdf
+ggsave(device = "bmp", 
+       filename = file.path("output_for_writeups", 
+                            "scatterplot.bmp"), 
+       height = 5, 
+       width = 5)
 
 ```
 
