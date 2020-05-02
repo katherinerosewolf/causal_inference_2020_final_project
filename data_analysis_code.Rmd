@@ -1311,15 +1311,25 @@ set.seed(252)
     
 # the real thing
   set.seed(252)
+  start_time <- Sys.time()
   out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=dataset_complete_cases[,include_vars_analysis], SL.library=SL.library) 
   est <- out$estimates
   est*100
+  end_time <- Sys.time()
+  end_time - start_time
 # real thing with ltmle for comparison  
   dataset_complete_cases_ltmle <- dataset_complete_cases[,include_vars_analysis]
   names(dataset_complete_cases_ltmle)
   dataset_complete_cases_ltmle <- dataset_complete_cases_ltmle[,c(3:12,1:2)]
+  
+  set.seed(252)
+  start_time <- Sys.time()
   ltmle.SL<- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library)  
   summary(ltmle.SL)  
+  end_time <- Sys.time()
+  end_time - start_time
+  
+  
   ltmle.SL$beta.iptw
 # get gcomp with ltmle  
    ltmle.SL.gcomp <- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library, gcomp=TRUE)  
@@ -1382,7 +1392,7 @@ nonparam_boot <- function(ObsData,A,Y,id,SL.library,num_boots) {
 set.seed(252)
 start_time <- Sys.time()
 npb_estimates <- nonparam_boot(ObsData=dataset_complete_cases[,c("cds_code",include_vars_analysis)],
-                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=2) 
+                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=500) 
 end_time <- Sys.time()
 (((end_time - start_time)/2)*500)/60 # should take about 5 hours to run
 summary(npb_estimates)  
