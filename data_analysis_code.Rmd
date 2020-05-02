@@ -572,7 +572,7 @@ hi2
 
 
 
-```{r KATIE attempt at simple substitution}
+```{r KATIE attempt at all 4 separately}
 
 # set up parallelization (my computer has 8 cores and this uses 7 of them)
 # (cluster = parallel::makeCluster(7))
@@ -627,48 +627,48 @@ katie.SL.library <- c("SL.mean",
                       # "SL.glmnet"
                       # new.algorithm.2$names
 
-################################
-# SIMPLE SUBSTITUTION HARD CODED (sample data)
-################################
-
-#------------------------------------------
-# Estimate Qbar_0(A,W) with Super Learner
-#------------------------------------------
-# dataframe X with baseline covariates and exposure
-X <- subset(little_data, 
-            select = c(A, 
-                       get(adjustment_set_variables)))
-
-# set the exposure=1 in X1 and the exposure=0 in X0
-X1 <- X0 <- X
-X1$A <- 1 # under exposure
-X0$A <- 0 # under control
-
-# call Super Learner
-QbarSL <- SuperLearner(Y = little_data$Y, 
-                           X = X, 
-                           SL.library = katie.SL.library,
-                           # cluster = cluster, 
-                           family = "binomial")
-QbarSL
-
-summary(QbarSL$SL.predict)
-length(QbarSL$SL.predict)
-
-# get the expected PM2.5, given the observed exposure and covariates
-QbarAW <- predict(QbarSL, newdata = little_data)$pred
-# expected injury severity, given A=1 and covariates
-Qbar1W <- predict(QbarSL, newdata = X1)$pred
-# expected injury severity, given A=0 and covariates
-Qbar0W <- predict(QbarSL, newdata = X0)$pred
-# the fitted value at the observed exposure should equal the fitted value
-# under when A = a
-tail(data.frame(A = little_data$A, QbarAW, Qbar1W, Qbar0W))
-
-# note the simple substitution estimator would be
-PsiHat.SS <- mean(Qbar1W - Qbar0W)
-
-PsiHat.SS
+# ################################
+# # SIMPLE SUBSTITUTION HARD CODED (sample data)
+# ################################
+# 
+# #------------------------------------------
+# # Estimate Qbar_0(A,W) with Super Learner
+# #------------------------------------------
+# # dataframe X with baseline covariates and exposure
+# X <- subset(little_data, 
+#             select = c(A, 
+#                        get(adjustment_set_variables)))
+# 
+# # set the exposure=1 in X1 and the exposure=0 in X0
+# X1 <- X0 <- X
+# X1$A <- 1 # under exposure
+# X0$A <- 0 # under control
+# 
+# # call Super Learner
+# QbarSL <- SuperLearner(Y = little_data$Y, 
+#                            X = X, 
+#                            SL.library = katie.SL.library,
+#                            # cluster = cluster, 
+#                            family = "binomial")
+# QbarSL
+# 
+# summary(QbarSL$SL.predict)
+# length(QbarSL$SL.predict)
+# 
+# # get the expected PM2.5, given the observed exposure and covariates
+# QbarAW <- predict(QbarSL, newdata = little_data)$pred
+# # expected injury severity, given A=1 and covariates
+# Qbar1W <- predict(QbarSL, newdata = X1)$pred
+# # expected injury severity, given A=0 and covariates
+# Qbar0W <- predict(QbarSL, newdata = X0)$pred
+# # the fitted value at the observed exposure should equal the fitted value
+# # under when A = a
+# tail(data.frame(A = little_data$A, QbarAW, Qbar1W, Qbar0W))
+# 
+# # note the simple substitution estimator would be
+# PsiHat.SS <- mean(Qbar1W - Qbar0W)
+# 
+# PsiHat.SS
 
 
 
@@ -716,42 +716,63 @@ PsiHat.SS <- mean(Qbar1W - Qbar0W)
 PsiHat.SS
 
 
-################################
-# RAW IPTW HARD CODED (sample data)
-################################
+# ################################
+# # RAW IPTW HARD CODED (sample data)
+# ################################
+# 
+# # Estimate the exposure mechanism g(A|W)
+# #------------------------------------------
+# 
+# # call Super Learner for the exposure mechanism
+# gHatSL <- SuperLearner(Y = little_data$A, 
+#                        X = subset(little_data, 
+#                                   select = -c(A, Y, id)),
+#                        SL.library = katie.SL.library, 
+#                        family = "binomial")
+# 
+# # generate predicted prob being exposed, given baseline covariates
+# gHat1W <- gHatSL$SL.predict
+# 
+# # predicted prob of not being exposed, given baseline covariates
+# gHat0W <- 1- gHat1W
+# 
+# # predicted prob of observed exposure, given baseline cov
+# gHatAW <- rep(NA, nrow(little_data))
+# gHatAW[little_data$A==1] <- gHat1W[little_data$A==1]
+# gHatAW[little_data$A==0] <- gHat0W[little_data$A==0]
+# 
+# #-------------------------------------------------
+# # Clever covariate H(A,W) for each subject
+# #-------------------------------------------------
+# H.AW <- as.numeric(little_data$A==1)/gHat1W - as.numeric(little_data$A==0)/gHat0W
+# 
+# # also want to evaluate the clever covariates at A=1 and A=0 for all subjects
+# H.1W <- 1/gHat1W
+# H.0W <- -1/gHat0W
+# 
+# # IPTW estimator of the G-computation formula:
+# PsiHat.IPTW <- mean(H.AW*little_data$Y)
+# 
+# ####
+# # HERE LIES THE HW ESTIMATOR
+# ####
+# 
+# # weight for HT estimator
+# wt <- 1/gHatAW
+# 
+# # calculate HT stabilized estimator
+# PsiHat.HW.IPTW <- mean(wt*as.numeric(little_data$A==1)*little_data$Y)/
+#   mean(wt*as.numeric(little_data$A==1)) -
+#   mean(wt*as.numeric(little_data$A==0)*little_data$Y)/
+#   mean(wt*as.numeric(litte_data$A==0))
+# 
+# # report it
+# PsiHat.HW.IPTW
 
-# Estimate the exposure mechanism g(A|W)
-#------------------------------------------
 
-# call Super Learner for the exposure mechanism
-gHatSL <- SuperLearner(Y = little_data$A, 
-                       X = subset(little_data, 
-                                  select = -c(A, Y, id)),
-                       SL.library = katie.SL.library, 
-                       family = "binomial")
 
-# generate predicted prob being exposed, given baseline covariates
-gHat1W <- gHatSL$SL.predict
 
-# predicted prob of not being exposed, given baseline covariates
-gHat0W <- 1- gHat1W
 
-# predicted prob of observed exposure, given baseline cov
-gHatAW <- rep(NA, nrow(little_data))
-gHatAW[little_data$A==1] <- gHat1W[little_data$A==1]
-gHatAW[little_data$A==0] <- gHat0W[little_data$A==0]
-
-#-------------------------------------------------
-# Clever covariate H(A,W) for each subject
-#-------------------------------------------------
-H.AW <- as.numeric(little_data$A==1)/gHat1W - as.numeric(little_data$A==0)/gHat0W
-
-# also want to evaluate the clever covariates at A=1 and A=0 for all subjects
-H.1W <- 1/gHat1W
-H.0W <- -1/gHat0W
-
-# IPTW estimator of the G-computation formula:
-PsiHat.IPTW <- mean(H.AW*little_data$Y)
 
 #################################
 # RAW IPTW HARD CODED (full data)
@@ -763,25 +784,25 @@ PsiHat.IPTW <- mean(H.AW*little_data$Y)
 # call Super Learner for the exposure mechanism
 gHatSL <- SuperLearner(Y = ObsData$A, 
                        X = subset(ObsData, 
-                                  select = -c(A,Y,id)),
+                                  select = -c(A, Y, id)),
                        SL.library = katie.SL.library, 
                        family = "binomial")
 
 # generate predicted prob being exposed, given baseline covariates
-gHat1W<- gHatSL$SL.predict
+gHat1W <- gHatSL$SL.predict
 
 # predicted prob of not being exposed, given baseline covariates
-gHat0W<- 1- gHat1W
+gHat0W <- 1- gHat1W
 
 # predicted prob of observed exposure, given baseline cov
-gHatAW<- rep(NA, nrow(ObsData))
-gHatAW[ObsData$A==1]<- gHat1W[ObsData$A==1]
-gHatAW[ObsData$A==0]<- gHat0W[ObsData$A==0]
+gHatAW <- rep(NA, nrow(ObsData))
+gHatAW[ObsData$A==1] <- gHat1W[ObsData$A==1]
+gHatAW[ObsData$A==0] <- gHat0W[ObsData$A==0]
 
 #-------------------------------------------------
 # Clever covariate H(A,W) for each subject
 #-------------------------------------------------
-H.AW<- as.numeric(ObsData$A==1)/gHat1W - as.numeric(ObsData$A==0)/gHat0W
+H.AW <- as.numeric(ObsData$A==1)/gHat1W - as.numeric(ObsData$A==0)/gHat0W
 
 # also want to evaluate the clever covariates at A=1 and A=0 for all subjects
 H.1W<- 1/gHat1W
@@ -789,40 +810,377 @@ H.0W<- -1/gHat0W
 
 # IPTW estimator of the G-computation formula:
 PsiHat.IPTW <- mean(H.AW*ObsData$Y)
+PsiHat.IPTW
+
+####
+# HERE LIES THE HW ESTIMATOR
+####
+
+# weight for HT estimator
+wt <- 1/gHatAW
+
+# calculate HT stabilized estimator
+PsiHat.HW.IPTW <- mean(wt*as.numeric(ObsData$A==1)*ObsData$Y)/
+  mean(wt*as.numeric(ObsData$A==1)) -
+  mean(wt*as.numeric(ObsData$A==0)*ObsData$Y)/
+  mean(wt*as.numeric(ObsData$A==0))
+
+# report it
+PsiHat.HW.IPTW
+
+# ###################################
+# # RAW TMLE HARD CODED (sample data)
+# ###################################
+# # MUST RUN IPTW CODE FIRST
+# 
+# #------------------------------------------
+# # Update the initial estimator of Qbar_0(A,W)
+# #------------------------------------------
+# logitUpdate <- glm(little_data$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW,
+#                    family='binomial')
+# epsilon <- logitUpdate$coef
+# 
+# QbarAW.star <- plogis(qlogis(QbarAW)+ epsilon*H.AW)
+# Qbar1W.star <- plogis(qlogis(Qbar1W)+ epsilon*H.1W)
+# Qbar0W.star <- plogis(qlogis(Qbar0W)+ epsilon*H.0W)
+# 
+# #------------------------------------------
+# # Estimate Psi(P_0)
+# #------------------------------------------
+# 
+# PsiHat.TMLE <- mean(Qbar1W.star - Qbar0W.star)
+# 
+# #------------------------------------------
+# # Return point estimates, targeted estimates of Qbar_0(A,W),
+# # and thevector of clever covariates
+# #------------------------------------------
+# 
+# estimates <- data.frame(cbind(PsiHat.SS=PsiHat.SS, 
+#                               PsiHat.IPTW, 
+#                               PsiHat.TMLE))
+# Qbar.star <- data.frame(cbind(QbarAW.star, 
+#                               Qbar1W.star, 
+#                               Qbar0W.star))
+# names(Qbar.star)<- c('QbarAW.star', 
+#                      'Qbar1W.star', 
+#                      'Qbar0W.star')
+# 
+# PsiHat.TMLE <- mean(Qbar1W.star - Qbar0W.star)
+# 
+# #------------------------------------------
+# # Return point estimates, targeted estimates of Qbar_0(A,W),
+# # and thevector of clever covariates
+# #------------------------------------------
+# 
+# estimates <- data.frame(cbind(PsiHat.SS,
+#                               PsiHat.IPTW, 
+#                               PsiHat.TMLE))
+# 
+# Qbar.star <- data.frame(cbind(QbarAW.star, 
+#                               Qbar1W.star, 
+#                               Qbar0W.star))
+# names(Qbar.star) <- c('QbarAW.star', 
+#                       'Qbar1W.star', 
+#                       'Qbar0W.star')
+# 
+# list(estimates = estimates, 
+#      Qbar.star = Qbar.star, 
+#      H.AW = H.AW)
+
+
+###################################
+# RAW TMLE HARD CODED (full data)
+###################################
+# MUST RUN IPTW CODE FIRST
+
+#------------------------------------------
+# Update the initial estimator of Qbar_0(A,W)
+#------------------------------------------
+logitUpdate <- glm(ObsData$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW,
+                   family='binomial')
+epsilon <- logitUpdate$coef
+
+QbarAW.star <- plogis(qlogis(QbarAW)+ epsilon*H.AW)
+Qbar1W.star <- plogis(qlogis(Qbar1W)+ epsilon*H.1W)
+Qbar0W.star <- plogis(qlogis(Qbar0W)+ epsilon*H.0W)
+
+#------------------------------------------
+# Estimate Psi(P_0)
+#------------------------------------------
+
+PsiHat.TMLE <- mean(Qbar1W.star - Qbar0W.star)
+PsiHat.TMLE
+
+#------------------------------------------
+# Return point estimates, targeted estimates of Qbar_0(A,W),
+# and thevector of clever covariates
+#------------------------------------------
+
+estimates <- data.frame(cbind(PsiHat.SS=PsiHat.SS, 
+                              PsiHat.IPTW, 
+                              PsiHat.TMLE))
+Qbar.star <- data.frame(cbind(QbarAW.star, 
+                              Qbar1W.star, 
+                              Qbar0W.star))
+names(Qbar.star)<- c('QbarAW.star', 
+                     'Qbar1W.star', 
+                     'Qbar0W.star')
+
+PsiHat.TMLE <- mean(Qbar1W.star - Qbar0W.star)
+PsiHat.TMLE
+
+#------------------------------------------
+# Return point estimates, targeted estimates of Qbar_0(A,W),
+# and thevector of clever covariates
+#------------------------------------------
+
+estimates <- data.frame(cbind(PsiHat.SS,
+                              PsiHat.IPTW, 
+                              PsiHat.HW.IPTW,
+                              PsiHat.TMLE))
+
+Qbar.star <- data.frame(cbind(QbarAW.star, 
+                              Qbar1W.star, 
+                              Qbar0W.star))
+
+names(Qbar.star) <- c('QbarAW.star', 
+                      'Qbar1W.star', 
+                      'Qbar0W.star')
+
+estimates
 
 
 
 
+``` 
+
+
+```{r KATIE make function to run them all}
+
+###################
+# FUNCTION OF ALL 3
+###################
+
+load(file = file.path("dataset_complete_cases.rdata"))
+
+dataset_complete_cases_working <- 
+  dataset_complete_cases %>% 
+  mutate(math_proportion = math_standard_met/100,
+         pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0),
+         air_basin_4_bins = factor(air_basin_4_bins))
+
+adjustment_set_variables <- 
+  c("air_basin_4_bins", 
+    "asian_filipino_percent", 
+    "two_none_aian_pi_af_am_percent",
+    "hisp_latinx_percent", 
+    "english_learner_percent", 
+    "frpm_percent",
+    "district_cost_per_pupil", 
+    "student_teacher_ratio", 
+    "cred_percent",
+    "school_k_12_enrollment")
+
+ObsData <- 
+  dataset_complete_cases_working %>% 
+  mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
+  dplyr::select(id = id_cds, 
+                Y = math_proportion,
+                A = pm25_12_plus, 
+                all_of(adjustment_set_variables))
+
+ObsData <- as.data.frame(ObsData)
+
+# subset of rows
+little_data <- ObsData[sample(x = 1:nrow(ObsData),
+                              size = 1000,
+                              replace = F),]
+nrow(little_data)
+duplicated(little_data$cds_code)
+table(little_data$A)
+
+# specify SL library
+listWrappers()
+katie.SL.library <- c("SL.mean", 
+                      "SL.glm", 
+                      "SL.glm.interaction", 
+                      "SL.bayesglm", 
+                      # "SL.polymars", 
+                      "SL.rpartPrune")
+                      # "SL.biglasso"
+                      # "SL.extraTrees"
+                      # "SL.glmnet"
+                      # new.algorithm.2$names
 
 
 
 
+run.tmle.katie <- function(ObsData, SL.library, adjustment_set, id = NULL){
+
+################################
+# SIMPLE SUBSTITUTION HARD CODED (full data)
+################################
+
+#------------------------------------------
+# Estimate Qbar_0(A,W) with Super Learner
+#------------------------------------------
+# dataframe X with baseline covariates and exposure
+X <- subset(ObsData, 
+            select = c(A, 
+                       get(adjustment_set_variables)))
+
+# set the exposure=1 in X1 and the exposure=0 in X0
+X1 <- X0 <- X
+X1$A <- 1 # under exposure
+X0$A <- 0 # under control
+
+# call Super Learner
+QbarSL <- SuperLearner(Y = ObsData$Y, 
+                           X = X, 
+                           SL.library = katie.SL.library,
+                           # cluster = cluster, 
+                           family = "binomial")
+QbarSL
+
+summary(QbarSL$SL.predict)
+length(QbarSL$SL.predict)
+
+# get the expected PM2.5, given the observed exposure and covariates
+QbarAW <- predict(QbarSL, newdata = ObsData)$pred
+# expected injury severity, given A=1 and covariates
+Qbar1W <- predict(QbarSL, newdata = X1)$pred
+# expected injury severity, given A=0 and covariates
+Qbar0W <- predict(QbarSL, newdata = X0)$pred
+# the fitted value at the observed exposure should equal the fitted value
+# under when A = a
+tail(data.frame(A = ObsData$A, QbarAW, Qbar1W, Qbar0W))
+
+# note the simple substitution estimator would be
+PsiHat.SS <- mean(Qbar1W - Qbar0W)
+
+PsiHat.SS
+
+
+#################################
+# RAW IPTW HARD CODED (full data)
+#################################
+
+# Estimate the exposure mechanism g(A|W)
+#------------------------------------------
+
+# call Super Learner for the exposure mechanism
+gHatSL <- SuperLearner(Y = ObsData$A, 
+                       X = subset(ObsData, 
+                                  select = -c(A, Y, id)),
+                       SL.library = katie.SL.library, 
+                       family = "binomial")
+
+# generate predicted prob being exposed, given baseline covariates
+gHat1W <- gHatSL$SL.predict
+
+# predicted prob of not being exposed, given baseline covariates
+gHat0W <- 1- gHat1W
+
+# predicted prob of observed exposure, given baseline cov
+gHatAW <- rep(NA, nrow(ObsData))
+gHatAW[ObsData$A==1] <- gHat1W[ObsData$A==1]
+gHatAW[ObsData$A==0] <- gHat0W[ObsData$A==0]
+
+#-------------------------------------------------
+# Clever covariate H(A,W) for each subject
+#-------------------------------------------------
+H.AW <- as.numeric(ObsData$A==1)/gHat1W - as.numeric(ObsData$A==0)/gHat0W
+
+# also want to evaluate the clever covariates at A=1 and A=0 for all subjects
+H.1W<- 1/gHat1W
+H.0W<- -1/gHat0W
+
+# IPTW estimator of the G-computation formula:
+PsiHat.IPTW <- mean(H.AW*ObsData$Y)
+PsiHat.IPTW
+
+####
+# HERE LIES THE HW ESTIMATOR
+####
+
+# weight for HT estimator
+wt <- 1/gHatAW
+
+# calculate HT stabilized estimator
+PsiHat.HW.IPTW <- mean(wt*as.numeric(ObsData$A==1)*ObsData$Y)/
+  mean(wt*as.numeric(ObsData$A==1)) -
+  mean(wt*as.numeric(ObsData$A==0)*ObsData$Y)/
+  mean(wt*as.numeric(ObsData$A==0))
+
+# report it
+PsiHat.HW.IPTW
 
 
 
+###################################
+# RAW TMLE HARD CODED (full data)
+###################################
+# MUST RUN IPTW CODE FIRST
+
+#------------------------------------------
+# Update the initial estimator of Qbar_0(A,W)
+#------------------------------------------
+logitUpdate <- glm(ObsData$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW,
+                   family='binomial')
+epsilon <- logitUpdate$coef
+
+QbarAW.star <- plogis(qlogis(QbarAW)+ epsilon*H.AW)
+Qbar1W.star <- plogis(qlogis(Qbar1W)+ epsilon*H.1W)
+Qbar0W.star <- plogis(qlogis(Qbar0W)+ epsilon*H.0W)
+
+#------------------------------------------
+# Estimate Psi(P_0)
+#------------------------------------------
+
+PsiHat.TMLE <- mean(Qbar1W.star - Qbar0W.star)
+PsiHat.TMLE
+
+#------------------------------------------
+# Return point estimates, targeted estimates of Qbar_0(A,W),
+# and thevector of clever covariates
+#------------------------------------------
+
+estimates <- data.frame(cbind(PsiHat.SS=PsiHat.SS, 
+                              PsiHat.HW.IPTW,
+                              PsiHat.IPTW, 
+                              PsiHat.TMLE))
+
+Qbar.star <- data.frame(cbind(QbarAW.star, 
+                              Qbar1W.star, 
+                              Qbar0W.star))
+
+names(Qbar.star) <- c('QbarAW.star', 
+                      'Qbar1W.star', 
+                      'Qbar0W.star')
+
+list(estimates = estimates, Qbar.star = Qbar.star, H.AW = H.AW)
+}
+
+out <- run.tmle.katie(ObsData = ObsData, 
+                      adjustment_set = adjustment_set_variables, 
+                      SL.library = SL.library)
+
+est <- out$estimates
+
+est*100
+
+```
+
+
+```{r bootstrap}
 
 
 
+```
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```{r KATIE positivity}
 
 #------------------------------------------
 # Playing with LTMLE
@@ -832,30 +1190,51 @@ PsiHat.IPTW <- mean(H.AW*ObsData$Y)
 ltmle_data <- 
   dataset_complete_cases_working %>% 
   mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
-  dplyr::select(air_basin_4_bins, 
-                asian_filipino_percent, 
-                two_none_aian_pi_af_am_percent, 
-                hisp_latinx_percent, 
-                english_learner_percent, 
-                frpm_percent, 
-                district_cost_per_pupil, 
-                student_teacher_ratio, 
-                cred_percent,
-                school_k_12_enrollment, 
+  dplyr::select(all_of(adjustment_set_variables), 
                 Y = math_proportion,
                 A = pm25_12_plus)
 
 ltmle_data <- as.data.frame(ltmle_data)
 
-ltmle_result <- ltmle(data = ltmle_data, 
+ltmle_tmle <- ltmle(data = ltmle_data, 
                 Anodes = 'A', 
                 Ynodes = 'Y', 
                 abar = list(1, 0),
-                SL.library = katie.SL.library)
+                SL.library = list(Q = katie.SL.library, g = katie.SL.library), 
+                gform = "A ~ air_basin_4_bins + asian_filipino_percent + two_none_aian_pi_af_am_percent + hisp_latinx_percent + english_learner_percent + frpm_percent + district_cost_per_pupil + student_teacher_ratio + cred_percent + school_k_12_enrollment")
 
-summary(ltmle_result) # Stephen: OMG!!!!! good to see TMLE does the weird "basically equal means but stat sig diff" thing for both of us 
+summary(ltmle_tmle) # Stephen: OMG!!!!! good to see TMLE does the weird "basically equal means but stat sig diff" thing for both of us 
 
-ltmle_result$fit
+ltmle_tmle$beta.iptw
+
+# run with gcomp
+ltmle_data <- 
+  dataset_complete_cases_working %>% 
+  mutate(id_cds = as.numeric(as.factor(cds_code))) %>% 
+  dplyr::select(all_of(adjustment_set_variables), 
+                Y = math_proportion,
+                A = pm25_12_plus)
+
+ltmle_data <- as.data.frame(ltmle_data)
+
+ltmle_gcomp <- ltmle(data = ltmle_data, 
+                Anodes = 'A', 
+                Ynodes = 'Y', 
+                abar = list(1, 0),
+                SL.library = katie.SL.library, 
+                gcomp = TRUE)
+
+summary(ltmle_gcomp)
+
+summary(ltmle_tmle) 
+
+
+
+
+
+
+
+
 
 #######################
 # EVALUATING POSITIVITY
