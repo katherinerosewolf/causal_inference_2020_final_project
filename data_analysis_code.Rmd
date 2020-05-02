@@ -1178,12 +1178,12 @@ run.tmle.katie <- function(ObsData,
   X0$A <- 0 # under control
   
   # call Super Learner
-  QbarSL <- SuperLearner(Y = ObsData$Y, 
-                         X = X, 
-                         SL.library = Q.SL.library,
-                         # cluster = cluster, 
-                         family = "quasibinomial", 
-                         id = id)
+  QbarSL <- snowSuperLearner(Y = ObsData$Y, 
+                             X = X, 
+                             SL.library = Q.SL.library,
+                             cluster = cluster, 
+                             family = "quasibinomial", 
+                             id = id)
   
   # get the expected PM2.5, given the observed exposure and covariates
   QbarAW <- predict(QbarSL, newdata = ObsData)$pred
@@ -1233,8 +1233,8 @@ run.tmle.katie <- function(ObsData,
   H.AW <- as.numeric(ObsData$A==1)/gHat1W - as.numeric(ObsData$A==0)/gHat0W
   
   # also want to evaluate the clever covariates at A=1 and A=0 for all subjects
-  H.1W<- 1/gHat1W
-  H.0W<- -1/gHat0W
+  H.1W <- 1/gHat1W
+  H.0W <- -1/gHat0W
   
   # IPTW estimator of the G-computation formula:
   PsiHat.IPTW <- mean(H.AW*ObsData$Y)
@@ -1264,13 +1264,15 @@ run.tmle.katie <- function(ObsData,
   #------------------------------------------
   # Update the initial estimator of Qbar_0(A,W)
   #------------------------------------------
-  logitUpdate <- glm(ObsData$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW,
+  logitUpdate <- glm(ObsData$Y ~ -1 + 
+                       offset(qlogis(QbarAW)) + 
+                       H.AW,
                      family='quasibinomial')
   epsilon <- logitUpdate$coef
   
-  QbarAW.star <- plogis(qlogis(QbarAW)+ epsilon*H.AW)
-  Qbar1W.star <- plogis(qlogis(Qbar1W)+ epsilon*H.1W)
-  Qbar0W.star <- plogis(qlogis(Qbar0W)+ epsilon*H.0W)
+  QbarAW.star <- plogis(qlogis(QbarAW) + epsilon*H.AW)
+  Qbar1W.star <- plogis(qlogis(Qbar1W) + epsilon*H.1W)
+  Qbar0W.star <- plogis(qlogis(Qbar0W) + epsilon*H.0W)
   
   #------------------------------------------
   # Estimate Psi(P_0)
@@ -1354,63 +1356,69 @@ run.tmle.katie <- function(ObsData,
   # weighted clever covariates
   
   # 0.025
-  H.AW_025_975 <- as.numeric(ObsData$A==1)/gHat1W_025_975 - 
+  H.AW.025.975 <- as.numeric(ObsData$A==1)/gHat1W_025_975 - 
     as.numeric(ObsData$A==0)/gHat0W_025_975
   
   # also want to evaluate the clever covariates at A=1 and A=0 for all subjects
-  H.1W_025_975<- 1/gHat1W_025_975
-  H.0W_025_975<- -1/gHat0W_025_975
+  H.1W.025.975 <- 1/gHat1W_025_975
+  H.0W.025.975 <- -1/gHat0W_025_975
   
   # 0.05
-  H.AW_05_95 <- as.numeric(ObsData$A==1)/gHat1W_05_95 - 
+  H.AW.05.95 <- as.numeric(ObsData$A==1)/gHat1W_05_95 - 
   as.numeric(ObsData$A==0)/gHat0W_05_95
   
-  H.1W_05_95 <- 1/gHat1W_05_95
-  H.0W_05_95 <- -1/gHat0W_05_95
+  H.1W.05.95 <- 1/gHat1W_05_95
+  H.0W.05.95 <- -1/gHat0W_05_95
   
   # 0.10
-  H.AW_10_90 <- as.numeric(ObsData$A==1)/gHat1W_10_90 - 
+  H.AW.10.90 <- as.numeric(ObsData$A==1)/gHat1W_10_90 - 
   as.numeric(ObsData$A==0)/gHat0W_10_90
     
-  H.1W_10_90 <- 1/gHat1W_10_90
-  H.0W_10_90 <- -1/gHat0W_10_90
+  H.1W.10.90 <- 1/gHat1W_10_90
+  H.0W.10.90 <- -1/gHat0W_10_90
   
   # Update the initial estimator of Qbar_0(A,W)
 
   # 0.025!
-  logitUpdate_025_975 <- glm(ObsData$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW_025_975,
+  logitUpdate_025_975 <- glm(ObsData$Y ~ -1 + 
+                               offset(qlogis(QbarAW)) + 
+                               H.AW.025.975,
                      family='quasibinomial')
   epsilon_025_975 <- logitUpdate_025_975$coef
   
-  QbarAW_025_975.star <- plogis(qlogis(QbarAW)+ epsilon_025_975*H.AW_025_975)
-  Qbar1W_025_975.star <- plogis(qlogis(Qbar1W)+ epsilon_025_975*H.1W_025_975)
-  Qbar0W_025_975.star <- plogis(qlogis(Qbar0W)+ epsilon_025_975*H.0W_025_975)
+  QbarAW.025.975.star <- plogis(qlogis(QbarAW) + epsilon_025_975*H.AW.025.975)
+  Qbar1W.025.975.star <- plogis(qlogis(Qbar1W) + epsilon_025_975*H.1W.025.975)
+  Qbar0W.025.975.star <- plogis(qlogis(Qbar0W) + epsilon_025_975*H.0W.025.975)
   
   # 0.05!
-  logitUpdate_05_95 <- glm(ObsData$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW_05_95,
+  logitUpdate_05_95 <- glm(ObsData$Y ~ -1 + 
+                             offset(qlogis(QbarAW)) + 
+                             H.AW.05.95,
                      family='quasibinomial')
   epsilon_05_95 <- logitUpdate_05_95$coef
   
-  QbarAW_05_95.star <- plogis(qlogis(QbarAW)+ epsilon_05_95*H.AW_05_95)
-  Qbar1W_05_95.star <- plogis(qlogis(Qbar1W)+ epsilon_05_95*H.1W_05_95)
-  Qbar0W_05_95.star <- plogis(qlogis(Qbar0W)+ epsilon_05_95*H.0W_05_95)
+  QbarAW.05.95.star <- plogis(qlogis(QbarAW) + epsilon_05_95*H.AW.05.95)
+  Qbar1W.05.95.star <- plogis(qlogis(Qbar1W) + epsilon_05_95*H.1W.05.95)
+  Qbar0W.05.95.star <- plogis(qlogis(Qbar0W) + epsilon_05_95*H.0W.05.95)
   
   # 0.10!
-  logitUpdate_10_90 <- glm(ObsData$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW_10_90,
+  logitUpdate_10_90 <- glm(ObsData$Y ~ -1 + 
+                             offset(qlogis(QbarAW)) + 
+                             H.AW.10.90,
                      family='quasibinomial')
   epsilon_10_90 <- logitUpdate_10_90$coef
   
-  QbarAW_10_90.star <- plogis(qlogis(QbarAW)+ epsilon*H.AW_10_90)
-  Qbar1W_10_90.star <- plogis(qlogis(Qbar1W)+ epsilon*H.1W_10_90)
-  Qbar0W_10_90.star <- plogis(qlogis(Qbar0W)+ epsilon*H.0W_10_90)
+  QbarAW.10.90.star <- plogis(qlogis(QbarAW) + epsilon*H.AW.10.90)
+  Qbar1W.10.90.star <- plogis(qlogis(Qbar1W) + epsilon*H.1W.10.90)
+  Qbar0W.10.90.star <- plogis(qlogis(Qbar0W) + epsilon*H.0W.10.90)
   
   #------------------------------------------
   # Estimate Psi(P_0)
   #------------------------------------------
   
-  PsiHat.TMLE_trunc_025_975 <- mean(Qbar1W_025_975.star - Qbar0W_025_975.star)
-  PsiHat.TMLE_trunc_05_95 <- mean(Qbar1W_05_95.star - Qbar0W_05_95.star)
-  PsiHat.TMLE_trunc_10_90 <- mean(Qbar1W_10_90.star - Qbar0W_10_90.star)
+  PsiHat.TMLE.trunc.025.975 <- mean(Qbar1W.025.975.star - Qbar0W.025.975.star)
+  PsiHat.TMLE.trunc.05.95 <- mean(Qbar1W.05.95.star - Qbar0W.05.95.star)
+  PsiHat.TMLE.trunc.10.90 <- mean(Qbar1W.10.90.star - Qbar0W.10.90.star)
   
   #------------------------------------------
   # Return point estimates, targeted estimates of Qbar_0(A,W),
@@ -1424,46 +1432,45 @@ run.tmle.katie <- function(ObsData,
                                 PsiHat.IPTW.025.975, 
                                 PsiHat.IPTW.05.95, 
                                 PsiHat.IPTW.10.90, 
-                                PsiHat.TMLE_trunc_025_975, 
-                                PsiHat.TMLE_trunc_05_95, 
-                                PsiHat.TMLE_trunc_10_90
-                                ))
+                                PsiHat.TMLE.trunc.025.975, 
+                                PsiHat.TMLE.trunc.05.95, 
+                                PsiHat.TMLE.trunc.10.90))
   
   Qbar.star <- data.frame(cbind(QbarAW.star, 
                                 Qbar1W.star, 
                                 Qbar0W.star, 
-                                QbarAW_025_975.star, 
-                                Qbar1W_025_975.star, 
-                                Qbar0W_025_975.star,
-                                QbarAW_05_95.star, 
-                                Qbar1W_05_95.star, 
-                                Qbar0W_05_95.star, 
-                                QbarAW_10_90.star, 
-                                Qbar1W_10_90.star, 
-                                Qbar0W_10_90.star))
+                                QbarAW.025.975.star, 
+                                Qbar1W.025.975.star, 
+                                Qbar0W.025.975.star,
+                                QbarAW.05.95.star, 
+                                Qbar1W.05.95.star, 
+                                Qbar0W.05.95.star, 
+                                QbarAW.10.90.star, 
+                                Qbar1W.10.90.star, 
+                                Qbar0W.10.90.star))
   
   names(Qbar.star) <- c('QbarAW.star', 
                         'Qbar1W.star', 
                         'Qbar0W.star',
-                        'QbarAW_025_975.star', 
-                        'Qbar1W_025_975.star', 
-                        'Qbar0W_025_975.star',
-                        'QbarAW_05_95.star', 
-                        'Qbar1W_05_95.star', 
-                        'Qbar0W_05_95.star', 
-                        'QbarAW_10_90.star', 
-                        'Qbar1W_10_90.star', 
-                        'Qbar0W_10_90.star')
+                        'QbarAW.025.975.star', 
+                        'Qbar1W.025.975.star', 
+                        'Qbar0W.025.975.star',
+                        'QbarAW.05.95.star', 
+                        'Qbar1W.05.95.star', 
+                        'Qbar0W.05.95.star', 
+                        'QbarAW.10.90.star', 
+                        'Qbar1W.10.90.star', 
+                        'Qbar0W.10.90.star')
   
   H.AWs <- c(H.AW, 
-             H.AW_025_975, 
-             H.AW_05_95, 
-             H.AW_10_90)
+             H.AW.025.975, 
+             H.AW.05.95, 
+             H.AW.10.90)
   
   names(H.AWs) <- c("H.AW", 
-             "H.AW_025_975", 
-             "H.AW_05_95", 
-             "H.AW_10_90")
+                    "H.AW.025.975", 
+                    "H.AW.05.95", 
+                    "H.AW.10.90")
   
   list(estimates = estimates, 
        Qbar.star = Qbar.star, 
@@ -1473,7 +1480,8 @@ run.tmle.katie <- function(ObsData,
   
 }
 
-save(run.tmle.katie, file = file.path("run.tmle.katie.rdata"))
+save(run.tmle.katie, 
+     file = file.path("run.tmle.katie.rdata"))
 
 ########
 # TEST
@@ -1716,63 +1724,69 @@ run.tmle.katie.para <- function(ObsData,
   # weighted clever covariates
   
   # 0.025
-  H.AW_025_975 <- as.numeric(ObsData$A==1)/gHat1W_025_975 - 
+  H.AW.025.975 <- as.numeric(ObsData$A==1)/gHat1W_025_975 - 
     as.numeric(ObsData$A==0)/gHat0W_025_975
   
   # also want to evaluate the clever covariates at A=1 and A=0 for all subjects
-  H.1W_025_975<- 1/gHat1W_025_975
-  H.0W_025_975<- -1/gHat0W_025_975
+  H.1W.025.975<- 1/gHat1W_025_975
+  H.0W.025.975<- -1/gHat0W_025_975
   
   # 0.05
-  H.AW_05_95 <- as.numeric(ObsData$A==1)/gHat1W_05_95 - 
+  H.AW.05.95 <- as.numeric(ObsData$A==1)/gHat1W_05_95 - 
   as.numeric(ObsData$A==0)/gHat0W_05_95
   
-  H.1W_05_95 <- 1/gHat1W_05_95
-  H.0W_05_95 <- -1/gHat0W_05_95
+  H.1W.05.95 <- 1/gHat1W_05_95
+  H.0W.05.95 <- -1/gHat0W_05_95
   
   # 0.10
-  H.AW_10_90 <- as.numeric(ObsData$A==1)/gHat1W_10_90 - 
+  H.AW.10.90 <- as.numeric(ObsData$A==1)/gHat1W_10_90 - 
   as.numeric(ObsData$A==0)/gHat0W_10_90
     
-  H.1W_10_90 <- 1/gHat1W_10_90
-  H.0W_10_90 <- -1/gHat0W_10_90
+  H.1W.10.90 <- 1/gHat1W_10_90
+  H.0W.10.90 <- -1/gHat0W_10_90
   
   # Update the initial estimator of Qbar_0(A,W)
 
   # 0.025!
-  logitUpdate_025_975 <- glm(ObsData$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW_025_975,
+  logitUpdate_025_975 <- glm(ObsData$Y ~ -1 + 
+                               offset(qlogis(QbarAW)) + 
+                               H.AW.025.975,
                      family='quasibinomial')
   epsilon_025_975 <- logitUpdate_025_975$coef
   
-  QbarAW_025_975.star <- plogis(qlogis(QbarAW)+ epsilon_025_975*H.AW_025_975)
-  Qbar1W_025_975.star <- plogis(qlogis(Qbar1W)+ epsilon_025_975*H.1W_025_975)
-  Qbar0W_025_975.star <- plogis(qlogis(Qbar0W)+ epsilon_025_975*H.0W_025_975)
+  QbarAW.025.975.star <- plogis(qlogis(QbarAW) + epsilon_025_975*H.AW.025.975)
+  Qbar1W.025.975.star <- plogis(qlogis(Qbar1W) + epsilon_025_975*H.1W.025.975)
+  Qbar0W.025.975.star <- plogis(qlogis(Qbar0W) + epsilon_025_975*H.0W.025.975)
   
   # 0.05!
-  logitUpdate_05_95 <- glm(ObsData$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW_05_95,
+  logitUpdate_05_95 <- glm(ObsData$Y ~ -1 + 
+                             offset(qlogis(QbarAW)) + 
+                             H.AW.05.95,
                      family='quasibinomial')
   epsilon_05_95 <- logitUpdate_05_95$coef
   
-  QbarAW_05_95.star <- plogis(qlogis(QbarAW)+ epsilon_05_95*H.AW_05_95)
-  Qbar1W_05_95.star <- plogis(qlogis(Qbar1W)+ epsilon_05_95*H.1W_05_95)
-  Qbar0W_05_95.star <- plogis(qlogis(Qbar0W)+ epsilon_05_95*H.0W_05_95)
+  QbarAW.05.95.star <- plogis(qlogis(QbarAW) + epsilon_05_95*H.AW.05.95)
+  Qbar1W.05.95.star <- plogis(qlogis(Qbar1W) + epsilon_05_95*H.1W.05.95)
+  Qbar0W.05.95.star <- plogis(qlogis(Qbar0W) + epsilon_05_95*H.0W.05.95)
   
   # 0.10!
-  logitUpdate_10_90 <- glm(ObsData$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW_10_90,
+  logitUpdate_10_90 <- glm(ObsData$Y ~ -1 + 
+                             offset(qlogis(QbarAW)) + 
+                             H.AW.10.90,
                      family='quasibinomial')
   epsilon_10_90 <- logitUpdate_10_90$coef
   
-  QbarAW_10_90.star <- plogis(qlogis(QbarAW)+ epsilon*H.AW_10_90)
-  Qbar1W_10_90.star <- plogis(qlogis(Qbar1W)+ epsilon*H.1W_10_90)
-  Qbar0W_10_90.star <- plogis(qlogis(Qbar0W)+ epsilon*H.0W_10_90)
+  QbarAW.10.90.star <- plogis(qlogis(QbarAW) + epsilon*H.AW.10.90)
+  Qbar1W.10.90.star <- plogis(qlogis(Qbar1W) + epsilon*H.1W.10.90)
+  Qbar0W.10.90.star <- plogis(qlogis(Qbar0W) + epsilon*H.0W.10.90)
   
   #------------------------------------------
   # Estimate Psi(P_0)
   #------------------------------------------
   
-  PsiHat.TMLE_trunc_025_975 <- mean(Qbar1W_025_975.star - Qbar0W_025_975.star)
-  PsiHat.TMLE_trunc_05_95 <- mean(Qbar1W_05_95.star - Qbar0W_05_95.star)
-  PsiHat.TMLE_trunc_10_90 <- mean(Qbar1W_10_90.star - Qbar0W_10_90.star)
+  PsiHat.TMLE.trunc.025.975 <- mean(Qbar1W.025.975.star - Qbar0W.025.975.star)
+  PsiHat.TMLE.trunc.05.95 <- mean(Qbar1W.05.95.star - Qbar0W.05.95.star)
+  PsiHat.TMLE.trunc.10.90 <- mean(Qbar1W.10.90.star - Qbar0W.10.90.star)
   
   #------------------------------------------
   # Return point estimates, targeted estimates of Qbar_0(A,W),
@@ -1786,60 +1800,22 @@ run.tmle.katie.para <- function(ObsData,
                                 PsiHat.IPTW.025.975, 
                                 PsiHat.IPTW.05.95, 
                                 PsiHat.IPTW.10.90, 
-                                PsiHat.TMLE_trunc_025_975, 
-                                PsiHat.TMLE_trunc_05_95, 
-                                PsiHat.TMLE_trunc_10_90
-                                ))
+                                PsiHat.TMLE.trunc.025.975, 
+                                PsiHat.TMLE.trunc.05.95, 
+                                PsiHat.TMLE.trunc.10.90))
   
-  Qbar.star <- data.frame(cbind(QbarAW.star, 
-                                Qbar1W.star, 
-                                Qbar0W.star, 
-                                QbarAW_025_975.star, 
-                                Qbar1W_025_975.star, 
-                                Qbar0W_025_975.star,
-                                QbarAW_05_95.star, 
-                                Qbar1W_05_95.star, 
-                                Qbar0W_05_95.star, 
-                                QbarAW_10_90.star, 
-                                Qbar1W_10_90.star, 
-                                Qbar0W_10_90.star))
+  list(estimates=estimates)
   
-  names(Qbar.star) <- c('QbarAW.star', 
-                        'Qbar1W.star', 
-                        'Qbar0W.star',
-                        'QbarAW_025_975.star', 
-                        'Qbar1W_025_975.star', 
-                        'Qbar0W_025_975.star',
-                        'QbarAW_05_95.star', 
-                        'Qbar1W_05_95.star', 
-                        'Qbar0W_05_95.star', 
-                        'QbarAW_10_90.star', 
-                        'Qbar1W_10_90.star', 
-                        'Qbar0W_10_90.star')
-  
-  H.AWs <- c(H.AW, 
-             H.AW_025_975, 
-             H.AW_05_95, 
-             H.AW_10_90)
-  
-  names(H.AWs) <- c("H.AW", 
-             "H.AW_025_975", 
-             "H.AW_05_95", 
-             "H.AW_10_90")
-  
-  list(estimates = estimates, 
-       Qbar.star = Qbar.star, 
-       H.AWs = H.AWs, 
-       QbarSL = QbarSL, 
-       gHatSL = gHatSL)
+  # output_list <- 
+  #           list(estimates = estimates, 
+  #                QbarSL_risk = cbind(QbarSL$cvRisk, QbarSL$coef), 
+  #                gHatSL_risk = cbind(gHatSL$cvRisk, gHatSL$coef))
   
 }
 
 save(run.tmle.katie.para, 
      file = file.path("run.tmle.katie.para.rdata"))
-
-
-
+  
 ```
 
 
@@ -1850,10 +1826,10 @@ save(run.tmle.katie.para,
 # NP-Boot for B=500 bootstrapped samples
 ########################################
 
-set.seed(1)
-
 load(file = file.path("dataset_complete_cases.rdata"))
-load(file = file.path("run.tmle.katie.rdata"))
+load(file = file.path("run.tmle.katie.para.rdata"))
+
+set.seed(1)
 
 dataset_complete_cases_working <- 
   dataset_complete_cases %>% 
@@ -1886,7 +1862,6 @@ ObsData <- as.data.frame(ObsData)
 ###################
 
 SL.glm.complex <- function(Y, X, newX, family, ...) {
-  
   fit.glm <- glm(Y ~ 
                    A + 
                    air_basin_4_bins +  
@@ -1899,13 +1874,9 @@ SL.glm.complex <- function(Y, X, newX, family, ...) {
                    two_none_aian_pi_af_am_percent*frpm_percent*cred_percent*hisp_latinx_percent, 
                  data = X, 
                  family = family)
-  
   pred <- predict.glm(fit.glm, newdata = newX, type = 'response')
-    
   fit <- list(object = fit.glm)
-  
   out <- list(pred = pred, fit = fit)
-  
   class(out$fit) <- c('SL.glm')
   
   return(out)
@@ -1950,6 +1921,19 @@ little_data <- ObsData[sample(x = 1:nrow(ObsData),
                               size = 1000,
                               replace = F),]
 
+# set up parallelization (my computer has 8 cores and this uses all of them)
+(cluster = parallel::makeCluster(8))
+parallel::clusterEvalQ(cluster, 
+                       library(SuperLearner))
+parallel::clusterExport(cluster, 
+                        "SL.glm.complex")
+
+# # test one run
+# thing <- run.tmle.katie.para(ObsData = little_data,
+#                               g.SL.library = g.SL.library,
+#                               Q.SL.library = Q.SL.library,
+#                               cluster = cluster)
+
 # number of rows
 n = nrow(little_data)
 
@@ -1957,7 +1941,7 @@ n = nrow(little_data)
 B = 2
 
 # data frame for estimates based on the boot strap sample
-estimates <- data.frame(matrix(NA, nrow = B, ncol = 10))
+output_list <- vector(mode = "list", length = B)
 
 # make an id variable
 little_data$id <- 1:n
@@ -1970,41 +1954,31 @@ for(b in 1:B){
   bootData<- little_data[bootIndices,]
   
   # calling the above function
-  estimates[b,]<- run.tmle.katie(ObsData = bootData,
-                                 g.SL.library = g.SL.library,
-                                 Q.SL.library = Q.SL.library,
-                                 id = bootData$id)$estimates
+  output_list[[b]] <- run.tmle.katie.para(ObsData = bootData,
+                                          g.SL.library = g.SL.library,
+                                          Q.SL.library = Q.SL.library,
+                                          cluster = cluster,
+                                          id = bootData$id)
 
   # keep track of the iterations completed
   print(b)
 }
 
-colnames(estimates)<-c("SimpSubs", 
-                       "IPTW", 
-                       "IPTW.HT", 
-                       "TMLE", 
-                       "PsiHat.IPTW.025.975", 
-                       "PsiHat.IPTW.05.95", 
-                       "PsiHat.IPTW.10.90", 
-                       "PsiHat.TMLE_trunc_025_975", 
-                       "PsiHat.TMLE_trunc_05_95", 
-                       "PsiHat.TMLE_trunc_10_90")
+# colnames(estimates)<-c("SimpSubs", 
+#                        "IPTW", 
+#                        "IPTW.HT", 
+#                        "TMLE", 
+#                        "PsiHat.IPTW.025.975", 
+#                        "PsiHat.IPTW.05.95", 
+#                        "PsiHat.IPTW.10.90", 
+#                        "PsiHat.TMLE.trunc.025.975", 
+#                        "PsiHat.TMLE.trunc.05.95", 
+#                        "PsiHat.TMLE.trunc.10.90")
 
-save(estimates, file='little_run.Rdata')
+save(output_list, file = 'little_run.Rdata')
 
-summary(estimates)
+output_list[[1]]
 
-# #saving the histograms as a pdf
-# pdf(file="RLab6_hist_boot.pdf")
-# par(mfrow=c(4,1))
-# hist(estimates[,1], 
-#      main = "Histogram of point estimates from the Simple Substitution estimator over B bootstrapped samples", 
-#      xlab = "Point Estimates")
-# hist(estimates[,2], 
-#      main = "Histogram of point estimates from IPTW HT estimator over B bootstrapped samples", xlab="Point Estimates")
-# hist(estimates[,3], main="Histogram of point estimates from IPTW over B bootstrapped samples", xlab="Point Estimates")
-# hist(estimates[,4], main="Histogram of point estimates from TMLE over B bootstrapped samples", xlab="Point Estimates")
-# dev.off()
 
 ```
 
@@ -2015,8 +1989,6 @@ summary(estimates)
 ########################################
 # NP-Boot for B=500 bootstrapped samples
 ########################################
-
-set.seed(1)
 
 load(file = file.path("dataset_complete_cases.rdata"))
 load(file = file.path("run.tmle.katie.para.rdata"))
@@ -2079,7 +2051,7 @@ parallel::clusterExport(cluster,
                         "SL.glm.complex")
 
 # this is the parallel equivalent of a seed (CHANGE EVERY TIME SO HELP YOU GAIA)
-parallel::clusterSetRNGStream(cluster, 2)
+parallel::clusterSetRNGStream(cluster, 5)
 
 # specify SL libraries
 # listWrappers()
@@ -2115,7 +2087,7 @@ ObsData <- as.data.frame(ObsData)
 n = nrow(ObsData)
 
 # number of bootstrap samples
-B = 150
+B = 2
 
 # data frame for estimates based on the boot strap sample
 estimates <- data.frame(matrix(NA, nrow = B, ncol = 10))
@@ -2148,14 +2120,75 @@ colnames(estimates)<-c("SimpSubs",
                        "PsiHat.IPTW.025.975", 
                        "PsiHat.IPTW.05.95", 
                        "PsiHat.IPTW.10.90", 
-                       "PsiHat.TMLE_trunc_025_975", 
-                       "PsiHat.TMLE_trunc_05_95", 
-                       "PsiHat.TMLE_trunc_10_90")
+                       "PsiHat.TMLE.trunc.025.975", 
+                       "PsiHat.TMLE.trunc.05.95", 
+                       "PsiHat.TMLE.trunc.10.90")
 
 # save here CHANGE THIS NAME
-save(estimates, file='big_run_one.Rdata')
+save(estimates, file = 'estimates_seed_5.Rdata')
+
+load(file = file.path("estimates_seed_5.rdata"))
 
 summary(estimates)
+
+```
+
+```{r make histograms}
+
+# saving the histograms as a pdf
+
+load(file = file.path("big_run_one.rdata"))
+
+pdf(file="cifp_initial_bootstraps.pdf")
+
+par(mfrow=c(4, 1))
+
+hist(estimates[,1],
+     main = "Histogram of point estimates from the Simple Substitution estimator over B bootstrapped samples",
+     xlab = "Point Estimates")
+
+hist(estimates[,2],
+     main = "Histogram of point estimates from IPTW estimator over B bootstrapped samples", 
+     xlab="Point Estimates")
+
+hist(estimates[,3], 
+     main="Histogram of point estimates from IPTW HT over B bootstrapped samples", 
+     xlab="Point Estimates")
+
+hist(estimates[,4], 
+     main="Histogram of point estimates from TMLE over B bootstrapped samples", 
+     xlab="Point Estimates")
+dev.off()
+
+pdf(file="cifp_truncated_bootstraps.pdf")
+
+par(mfrow=c(3, 2))
+
+hist(estimates[,5], 
+     main="Histogram of point estimates from IPTW truncated to gn 0.025, 0.975 over B bootstrapped samples", 
+     xlab="Point Estimates")
+
+hist(estimates[,6], 
+     main="Histogram of point estimates from IPTW truncated to gn 0.05, 0.95 over B bootstrapped samples", 
+     xlab="Point Estimates")
+
+hist(estimates[,7], 
+     main="Histogram of point estimates from IPTW truncated to gn 0.10, 0.90 over B bootstrapped samples", 
+     xlab="Point Estimates")
+
+hist(estimates[,8], 
+     main="Histogram of point estimates from TMLE truncated to gn 0.025, 0.975 over B bootstrapped samples", 
+     xlab="Point Estimates")
+
+hist(estimates[,9], 
+     main="Histogram of point estimates from TMLE truncated to gn 0.05, 0.95 over B bootstrapped samples", 
+     xlab="Point Estimates")
+
+hist(estimates[,10], 
+     main="Histogram of point estimates from TMLE truncated to gn 0.10, 0.90 over B bootstrapped samples", 
+     xlab="Point Estimates")
+
+dev.off()
 
 ```
 
@@ -2356,135 +2389,6 @@ ggplot(data=plot_df) + geom_histogram(aes(ps1),
 ```
 
 
-
-```{r KATIE attempt at full code set from lab 6}
-
-# run.tmle <- function(ObsData, SL.library, id = NULL){
-# 
-# #------------------------------------------
-# # Estimate the conditional mean outcome Qbar(A,W)
-# #------------------------------------------
-# 
-# # dataframe X with baseline covariates and exposure
-# X <- subset(ObsData, 
-#             select = c(pm25_12_plus, 
-#                        air_basin, 
-#                        afr_am_percent, 
-#                        asian_filipino_percent, 
-#                        two_none_aian_pi_percent, 
-#                        hisp_latinx_percent, 
-#                        english_learner_percent, 
-#                        frpm_percent, 
-#                        district_cost_per_pupil, 
-#                        student_teacher_ratio))
-# 
-# # set the A=1 in X1 and the A=0 in X0
-# X1 <- X0 <- X
-# X1$pm25_12_plus <- 1 # under exposure
-# X0$pm25_12_plus <- 0 # under control
-# 
-# # call Super Learner for estimation of QbarAW
-# QbarSL<- SuperLearner(Y = ObsData$math_standard_met, 
-#                       X = X, 
-#                       SL.library = SL.library, 
-#                       family = "gaussian", 
-#                       id = id)
-# # QbarSL
-# 
-# # initial estimates of the outcome, given the observed exposure & covariates
-# QbarAW <- predict(QbarSL, newdata=ObsData)$pred
-# # estimates of the outcome, given A=1 and covariates
-# Qbar1W<- predict(QbarSL, newdata=X1)$pred
-# # estimates of the outcome, given A=0 and covariates
-# Qbar0W<- predict(QbarSL, newdata=X0)$pred
-# 
-# # simple substitution estimator:
-# PsiHat.SS<-mean(Qbar1W - Qbar0W)
-# 
-# #------------------------------------------
-# # Estimate the exposure mechanism g(pm25_12_plus|W)
-# #------------------------------------------
-# 
-# # call Super Learner for the exposure mechanism
-# gHatSL<- SuperLearner(Y = ObsData$pm25_12_plus, 
-#                       X = subset(ObsData, select= -c(pm25_12_plus,
-#                                                      math_standard_met,
-#                                                      id)),
-# SL.library = SL.library, family="binomial", id=id)
-# # generate predicted prob being exposed, given baseline covariates
-# gHat1W <- gHatSL$SL.predict
-# # predicted prob of not being exposed, given baseline covariates
-# gHat0W <- 1- gHat1W
-# 
-# # # predicted prob of observed exposure, given baseline cov
-# # gHatAW<- rep(NA, n)
-# # gHatAW[ObsData$A==1]<- gHat1W[ObsData$A==1]
-# # gHatAW[ObsData$A==0]<- gHat0W[ObsData$A==0]
-# 
-# #-------------------------------------------------
-# # Clever covariate H(A,W) for each subject
-# #-------------------------------------------------
-# H.AW<- as.numeric(ObsData$pm25_12_plus==1)/gHat1W - as.numeric(ObsData$pm25_12_plus==0)/gHat0W
-# 
-# # also want to evaluate the clever covariates at A=1 and A=0 for all subjects
-# H.1W<- 1/gHat1W
-# H.0W<- -1/gHat0W
-# 
-# 
-# #IPTW estimator of the G-computation formula:
-# PsiHat.IPTW <-mean( H.AW*ObsData$Y)
-# 
-# #------------------------------------------
-# # Update the initial estimator of Qbar_0(A,W)
-# #------------------------------------------
-# logitUpdate<- glm(ObsData$Y ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='binomial')
-# epsilon <- logitUpdate$coef
-# 
-# QbarAW.star<- plogis(qlogis(QbarAW)+ epsilon*H.AW)
-# Qbar1W.star<- plogis(qlogis(Qbar1W)+ epsilon*H.1W)
-# Qbar0W.star<- plogis(qlogis(Qbar0W)+ epsilon*H.0W)
-# 
-# #------------------------------------------
-# # Estimate Psi(P_0)
-# #------------------------------------------
-# 
-# PsiHat.TMLE <- mean(Qbar1W.star - Qbar0W.star)
-# 
-# #------------------------------------------
-# # Return point estimates, targeted estimates of Qbar_0(A,W),
-# # and thevector of clever covariates
-# #------------------------------------------
-# 
-# estimates <- data.frame(cbind(PsiHat.SS=PsiHat.SS, PsiHat.IPTW, PsiHat.TMLE))
-# Qbar.star <- data.frame(cbind(QbarAW.star, Qbar1W.star, Qbar0W.star))
-# names(Qbar.star)<- c('QbarAW.star', 'Qbar1W.star', 'Qbar0W.star')
-# 
-# list(estimates=estimates, Qbar.star=Qbar.star, H.AW=H.AW)
-# }
-# 
-# out <- run.tmle(ObsData = ObsData, 
-#                 SL.library = katie.SL.library)
-# 
-# est <- out$estimates
-# est*100
-
-
-
-```
-
-
-
-```{r g-computation by KATIE, eval=FALSE, include=FALSE}
-
-set.seed(252)
-# specify SL library
-  listWrappers()
-  SL.library <- c("SL.mean","SL.glm")
-  other_options <- c("SL.glm.interaction","SL.randomForest","SL.polymars","SL.rpartPrune","SL.biglasso")
-
-```
-
-
 # BELOW LIES STEPHEN'S CODE
 
 
@@ -2528,6 +2432,8 @@ set.seed(252)
   #openxlsx::write.xlsx(list(predictor_corrs),"~/Desktop/PH252D/cifp/output_for_writeups/predictor_correlations.xlsx",colNames=T,rowNames=T)
   
 ```
+
+
 
 ```{r iptw & tmle BY STEPHEN, eval=FALSE, include=FALSE}
 set.seed(252)
@@ -2795,6 +2701,8 @@ apply(npb_estimates,2,function(x) quantile(x,probs=c(.025,.975),na.rm=T))
 
 
 ```
+
+
 
 ```{r, Influence Curves!!!, eval=FALSE, include=FALSE}
 # TMLE inference -> p-value + CI assuming normal distribution
