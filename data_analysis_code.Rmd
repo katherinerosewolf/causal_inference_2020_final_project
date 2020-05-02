@@ -2078,7 +2078,8 @@ parallel::clusterEvalQ(cluster,
 parallel::clusterExport(cluster, 
                         "SL.glm.complex")
 
-parallel::clusterSetRNGStream(cluster, 1)
+# this is the parallel equivalent of a seed (CHANGE EVERY TIME SO HELP YOU GAIA)
+parallel::clusterSetRNGStream(cluster, 2)
 
 # specify SL libraries
 # listWrappers()
@@ -2114,7 +2115,7 @@ ObsData <- as.data.frame(ObsData)
 n = nrow(ObsData)
 
 # number of bootstrap samples
-B = 2
+B = 150
 
 # data frame for estimates based on the boot strap sample
 estimates <- data.frame(matrix(NA, nrow = B, ncol = 10))
@@ -2155,18 +2156,6 @@ colnames(estimates)<-c("SimpSubs",
 save(estimates, file='big_run_one.Rdata')
 
 summary(estimates)
-
-# #saving the histograms as a pdf
-# pdf(file="RLab6_hist_boot.pdf")
-# par(mfrow=c(4,1))
-# hist(estimates[,1], 
-#      main = "Histogram of point estimates from the Simple Substitution estimator over B bootstrapped samples", 
-#      xlab = "Point Estimates")
-# hist(estimates[,2], 
-#      main = "Histogram of point estimates from IPTW HT estimator over B bootstrapped samples", xlab="Point Estimates")
-# hist(estimates[,3], main="Histogram of point estimates from IPTW over B bootstrapped samples", xlab="Point Estimates")
-# hist(estimates[,4], main="Histogram of point estimates from TMLE over B bootstrapped samples", xlab="Point Estimates")
-# dev.off()
 
 ```
 
