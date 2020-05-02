@@ -1023,7 +1023,7 @@ set.seed(252)
     return(out)
   }
   
-  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm"
+  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm","SL.rpartPrune"
                   #,"SL.interaction.LunchRace","SL.interaction.CostRace","SL.interaction.CredRace"
                   )
   #other_options <- c("SL.glm.interaction","SL.xgboost","SL.randomForest","SL.polymars","SL.rpartPrune")
@@ -1042,7 +1042,7 @@ set.seed(252)
         X0[,A] <- 0 # under control
     
        # call Super Learner for estimation of QbarAW
-        QbarSL<- SuperLearner(Y=ObsData[,Y], X=X, SL.library=SL.library, family="quasibinomial", id=id)
+        QbarSL<- SuperLearner(Y=ObsData[,Y], X=X, SL.library=SL.library, family="binomial", id=id)
         # QbarSL
         
        # initial estimates of the outcome, given the observed exposure & covariates
@@ -1093,7 +1093,7 @@ set.seed(252)
     #------------------------------------------
     # Update the initial estimator of Qbar_0(A,W)
     #------------------------------------------
-      logitUpdate<- glm(ObsData[,Y] ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='quasibinomial')
+      logitUpdate<- glm(ObsData[,Y] ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='binomial')
       epsilon <- logitUpdate$coef
   
       QbarAW.star<- plogis(qlogis(QbarAW)+ epsilon*H.AW)
@@ -1209,8 +1209,12 @@ nonparam_boot <- function(ObsData,A,Y,id,SL.library,num_boots) {
     }
     return(estimates)
 }  
+set.seed(252)
+start_time <- Sys.time()
 npb_estimates <- nonparam_boot(ObsData=dataset_complete_cases[,c("cds_code",include_vars_analysis)],
-                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=1) 
+                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=2) 
+end_time <- Sys.time()
+(((end_time - start_time)/2)*500)/60 # should take about 5 hours to run
 summary(npb_estimates)  
 apply(npb_estimates,2,hist)
 
