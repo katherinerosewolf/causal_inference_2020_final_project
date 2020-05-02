@@ -1208,7 +1208,7 @@ percent_fte_credentialed_by_school <-
               values_from = school_fte, 
               names_prefix = "cred_", 
               values_fill = list(school_fte = 0)) %>% 
-  mutate(cred_percent = cred_1/(cred_0 + cred_1)) %>% 
+  mutate(cred_percent = cred_1/(cred_0 + cred_1)*100) %>% 
   dplyr::select(cds_code, cred_percent)
   
 mean(percent_fte_credentialed_by_school$cred_percent)
