@@ -2087,7 +2087,7 @@ ObsData <- as.data.frame(ObsData)
 n = nrow(ObsData)
 
 # number of bootstrap samples
-B = 2
+B = 200
 
 # data frame for estimates based on the boot strap sample
 estimates <- data.frame(matrix(NA, nrow = B, ncol = 10))
@@ -2125,7 +2125,7 @@ colnames(estimates)<-c("SimpSubs",
                        "PsiHat.TMLE.trunc.10.90")
 
 # save here CHANGE THIS NAME
-save(estimates, file = 'estimates_seed_5.Rdata')
+save(estimates, file = "estimates_seed_5.Rdata")
 
 load(file = file.path("estimates_seed_5.rdata"))
 
