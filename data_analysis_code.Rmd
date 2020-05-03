@@ -2133,7 +2133,12 @@ summary(estimates)
 
 ```
 
+
+
+
 ```{r make histograms}
+
+# load all the estimates 
 
 # saving the histograms as a pdf
 
