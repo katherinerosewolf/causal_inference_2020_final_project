@@ -3504,6 +3504,74 @@ apply(estimates,2,function(x) quantile(x,probs=c(.025,.975),na.rm=T))
 ```
 
 
+```{r, histograms from bootstraps}
+load(file = "estimates_all.rdata")
+load(file = "g_CV_SL_out.rdata")
+load(file = "Q_CV_SL_out.rdata")
+
+######################
+## bootstraps first ##
+######################
+names(estimates_all)
+summary(estimates_all)
+
+estimates_all_x100 <- estimates_all*100
+summary(estimates_all_x100)
+
+apply(estimates_all_x100,2,function(x) hist(x,breaks=20))
+for (i in 1:ncol(estimates_all_x100)) {
+  p <- ggplot(estimates_all_x100, aes(x=estimates_all_x100[,i])) + 
+    geom_density(color="darkblue", y=..scaled.., fill="lightblue") + 
+    geom_vline(aes(xintercept=mean(estimates_all_x100[,i])),color="blue", linetype="dashed", size=1) +
+    labs(title=paste0(names(estimates_all_x100[i])," density curve"),x=names(estimates_all_x100[i]), y="Density") +
+  theme_classic(base_size=20)
+  print(p)
+}
+
+make_density_curve <- function(data,variable,xlab,ylab,title,line.at) {
+  p <- ggplot(data, aes(x=data[,variable])) + 
+    geom_histogram(aes(y=..density..), colour="darkblue", fill="white") +
+    geom_density(alpha=.6,color="darkblue",fill="lightblue") + 
+    geom_vline(aes(xintercept=line.at),color="blue", linetype="dashed", size=1) +
+    labs(title=title,x=xlab, y=ylab) +
+  theme_classic(base_size=20)
+  print(p)
+}
+
+names(estimates_all_x100)
+make_density_curve(estimates_all_x100,"SimpSubs","Estimates","Density","",line.at=0.40)
+make_density_curve(estimates_all_x100,"IPTW","Estimates","Density","",line.at=13.32)
+make_density_curve(estimates_all_x100,"IPTW.HT","Estimates","Density","",line.at=4.58)
+make_density_curve(estimates_all_x100,"TMLE","Estimates","Density","",line.at=0.64)
+
+gridExtra::grid.arrange(
+make_density_curve(estimates_all_x100,"IPTW","Estimates","Density","Regular IPTW",line.at=13.32),
+make_density_curve(estimates_all_x100,"PsiHat.IPTW.025.975","Estimates","Density","Truncated at {.025,.975}",line.at=13.32),
+make_density_curve(estimates_all_x100,"PsiHat.IPTW.05.95","Estimates","Density","Truncated at {.05,.95}",line.at=13.33),
+make_density_curve(estimates_all_x100,"PsiHat.IPTW.10.90","Estimates","Density","Truncated at {.10,.90}",line.at=13.41),
+nrow=2,ncol=2
+)
+
+gridExtra::grid.arrange(
+make_density_curve(estimates_all_x100,"TMLE","Estimates","Density","Regular TMLE",line.at=0.64),
+make_density_curve(estimates_all_x100,"PsiHat.TMLE.trunc.025.975","Estimates","Density","Truncated at {.025,.975}",line.at=0.64),
+make_density_curve(estimates_all_x100,"PsiHat.TMLE.trunc.05.95","Estimates","Density","Truncated at {.05,.95}",line.at=0.64),
+make_density_curve(estimates_all_x100,"PsiHat.TMLE.trunc.10.90","Estimates","Density","Truncated at {.10,.90}",line.at=0.63),
+nrow=2,ncol=2
+)
+
+##########
+## g CV ##
+##########
+names(g.CV.SL.out)
+summary(g.CV.SL.out)
+
+##########
+## q CV ##
+##########
+names(Q.CV.SL.out)
+summary(Q.CV.SL.out)
+```
 
 
 
