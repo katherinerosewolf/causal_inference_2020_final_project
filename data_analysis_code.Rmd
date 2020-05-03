@@ -2051,7 +2051,7 @@ parallel::clusterExport(cluster,
                         "SL.glm.complex")
 
 # this is the parallel equivalent of a seed (CHANGE EVERY TIME SO HELP YOU GAIA)
-parallel::clusterSetRNGStream(cluster, 6)
+parallel::clusterSetRNGStream(cluster, 7)
 
 # specify SL libraries
 # listWrappers()
@@ -2125,9 +2125,9 @@ colnames(estimates)<-c("SimpSubs",
                        "PsiHat.TMLE.trunc.10.90")
 
 # save here CHANGE THIS NAME
-save(estimates, file = "estimates_seed_6.Rdata")
+save(estimates, file = "estimates_seed_7.Rdata")
 
-load(file = file.path("estimates_seed_6.rdata"))
+load(file = file.path("estimates_seed_7.rdata"))
 
 summary(estimates)
 
