@@ -42,7 +42,7 @@ load(file = "dataset_complete_cases_forget_funding.rdata") # no per cap variable
 
 # BELOW LIES KATIE'S PLAYGROUND
 
-```{r KATIE code pre-SuperLearner, simple GLMs + descriptive work}
+```{r KATIE code pre-SuperLearner}
 
 dataset_complete_cases_working <- 
   dataset_complete_cases %>% 
@@ -127,7 +127,7 @@ summary(glm_forget_funding)
 ```
 
 
-```{r plots for slides, scatter & box plots bw PM2.5 & other variables}
+```{r plots for slides}
 
 dataset_complete_cases_working <- 
   dataset_complete_cases %>% 
@@ -414,7 +414,7 @@ ggsave(device = "bmp",
 ```
 
 
-```{r KATIE tabling the ancestors, Table 1}
+```{r KATIE tabling the ancestors}
 
 # load data
 load(file = file.path("dataset_full.rdata"))
@@ -554,7 +554,7 @@ hi2
 ```
 
 
-```{r old code not to run, simplifying complex algorithms}
+```{r old code not to run}
 
 # # reduce runs of biglasso from 100 to 5 to save time
 # new.algorithm.1 = create.Learner("SL.biglasso", 
@@ -956,7 +956,7 @@ estimates
 ``` 
 
 
-```{r KATIE sad wrapper failures, feel this section so hard; those contXcont itx so hard}
+```{r KATIE sad wrapper failures}
 
 ###################
 # CUSTOM WRAPPERS OF AWESOME
@@ -1819,6 +1819,116 @@ save(run.tmle.katie.para,
 ```
 
 
+```{r real function run, seed = 100}
+
+
+load(file = file.path("dataset_complete_cases.rdata"))
+load(file = file.path("run.tmle.katie.para.rdata"))
+
+dataset_complete_cases_working <- 
+  dataset_complete_cases %>% 
+  mutate(math_proportion = math_standard_met/100,
+         pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0),
+         air_basin_4_bins = factor(air_basin_4_bins))
+
+adjustment_set_variables <- 
+  c("air_basin_4_bins", 
+    "asian_filipino_percent", 
+    "two_none_aian_pi_af_am_percent",
+    "hisp_latinx_percent", 
+    "english_learner_percent", 
+    "frpm_percent",
+    "district_cost_per_pupil", 
+    "student_teacher_ratio", 
+    "cred_percent",
+    "school_k_12_enrollment")
+
+ObsData <- 
+  dataset_complete_cases_working %>% 
+  dplyr::select(Y = math_proportion,
+                A = pm25_12_plus, 
+                all_of(adjustment_set_variables))
+
+ObsData <- as.data.frame(ObsData)
+
+###################
+# CUSTOM WRAPPERS OF AWESOME
+###################
+
+SL.glm.complex <- function(Y, X, newX, family, ...) {
+  fit.glm <- glm(Y ~ 
+                   A + 
+                   air_basin_4_bins +  
+                   asian_filipino_percent + 
+                   two_none_aian_pi_af_am_percent + 
+                   hisp_latinx_percent +
+                   english_learner_percent*frpm_percent + 
+                   district_cost_per_pupil*frpm_percent + 
+                   cred_percent*student_teacher_ratio + 
+                   two_none_aian_pi_af_am_percent*frpm_percent*cred_percent*hisp_latinx_percent, 
+                 data = X, 
+                 family = family)
+  pred <- predict.glm(fit.glm, newdata = newX, type = 'response')
+  fit <- list(object = fit.glm)
+  out <- list(pred = pred, fit = fit)
+  class(out$fit) <- c('SL.glm')
+  return(out)
+}
+
+# set up parallelization (my computer has 8 cores and this uses all of them)
+(cluster = parallel::makeCluster(8))
+parallel::clusterEvalQ(cluster, 
+                       library(SuperLearner))
+parallel::clusterExport(cluster, 
+                        "SL.glm.complex")
+
+# this is the parallel equivalent of a seed (CHANGE EVERY TIME SO HELP YOU GAIA)
+parallel::clusterSetRNGStream(cluster, 100)
+
+# specify SL libraries
+# listWrappers()
+Q.SL.library <- c("SL.mean", 
+                  "SL.glm", 
+                  "SL.glm.interaction", 
+                  "SL.bayesglm", 
+                  "SL.ranger", 
+                  "SL.glm.complex")
+                      # "SL.rpartPrune") 
+                      # "SL.polymars", 
+                      # "SL.rpartPrune")
+                      # "SL.biglasso"
+                      # "SL.extraTrees"
+                      # "SL.glmnet"
+                      # new.algorithm.2$names
+                      # SL.glm.complex
+
+g.SL.library <- c("SL.mean", 
+                  "SL.glm", 
+                  "SL.glm.interaction", 
+                  "SL.bayesglm")
+
+ObsData <- 
+  dataset_complete_cases_working %>% 
+  dplyr::select(Y = math_proportion,
+                A = pm25_12_plus, 
+                all_of(adjustment_set_variables))
+
+ObsData <- as.data.frame(ObsData)
+
+definitive_katie_results <- run.tmle.katie.para(ObsData = ObsData,
+                                               g.SL.library = g.SL.library,
+                                               Q.SL.library = Q.SL.library,
+                                               cluster = cluster)
+
+# save here CHANGE THIS NAME
+save(definitive_katie_results, 
+     file = "definitive_katie_results_seed_100_parallel.Rdata")
+
+definitive_katie_results
+
+```
+
+
 
 ```{r KATIE bootstrap test}
 
@@ -2227,7 +2337,7 @@ ObsData <- as.data.frame(ObsData)
 n = nrow(ObsData)
 
 # number of bootstrap samples
-B = 250
+B = 100
 
 # data frame for estimates based on the boot strap sample
 estimates <- data.frame(matrix(NA, nrow = B, ncol = 10))
@@ -2847,7 +2957,7 @@ set.seed(252)
     return(out)
   }
   
-  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm","SL.rpartPrune"
+  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm"
                   #,"SL.interaction.LunchRace","SL.interaction.CostRace","SL.interaction.CredRace"
                   )
   #other_options <- c("SL.glm.interaction","SL.xgboost","SL.randomForest","SL.polymars","SL.rpartPrune")
@@ -2866,7 +2976,7 @@ set.seed(252)
         X0[,A] <- 0 # under control
     
        # call Super Learner for estimation of QbarAW
-        QbarSL<- SuperLearner(Y=ObsData[,Y], X=X, SL.library=SL.library, family="binomial", id=id)
+        QbarSL<- SuperLearner(Y=ObsData[,Y], X=X, SL.library=SL.library, family="quasibinomial", id=id)
         # QbarSL
         
        # initial estimates of the outcome, given the observed exposure & covariates
@@ -2917,7 +3027,7 @@ set.seed(252)
     #------------------------------------------
     # Update the initial estimator of Qbar_0(A,W)
     #------------------------------------------
-      logitUpdate<- glm(ObsData[,Y] ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='binomial')
+      logitUpdate<- glm(ObsData[,Y] ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='quasibinomial')
       epsilon <- logitUpdate$coef
   
       QbarAW.star<- plogis(qlogis(QbarAW)+ epsilon*H.AW)
@@ -2965,25 +3075,15 @@ set.seed(252)
     
 # the real thing
   set.seed(252)
-  start_time <- Sys.time()
   out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=dataset_complete_cases[,include_vars_analysis], SL.library=SL.library) 
   est <- out$estimates
   est*100
-  end_time <- Sys.time()
-  end_time - start_time
 # real thing with ltmle for comparison  
   dataset_complete_cases_ltmle <- dataset_complete_cases[,include_vars_analysis]
   names(dataset_complete_cases_ltmle)
   dataset_complete_cases_ltmle <- dataset_complete_cases_ltmle[,c(3:12,1:2)]
-  
-  set.seed(252)
-  start_time <- Sys.time()
   ltmle.SL<- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library)  
   summary(ltmle.SL)  
-  end_time <- Sys.time()
-  end_time - start_time
-  
-  
   ltmle.SL$beta.iptw
 # get gcomp with ltmle  
    ltmle.SL.gcomp <- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library, gcomp=TRUE)  
@@ -3045,12 +3145,8 @@ nonparam_boot <- function(ObsData,A,Y,id,SL.library,num_boots) {
     }
     return(estimates)
 }  
-set.seed(252)
-start_time <- Sys.time()
 npb_estimates <- nonparam_boot(ObsData=dataset_complete_cases[,c("cds_code",include_vars_analysis)],
-                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=500) 
-end_time <- Sys.time()
-(((end_time - start_time)/2)*500)/60 # should take about 5 hours to run
+                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=1) 
 summary(npb_estimates)  
 apply(npb_estimates,2,hist)
 
