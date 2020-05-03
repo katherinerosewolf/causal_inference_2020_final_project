@@ -1,0 +1,27 @@
+---
+title: "Homework: Probabilistic Bias Analysis"
+author: "Katherine Wolf"
+fontsize: 11pt
+header-includes: \usepackage{fancyhdr}
+output:
+  pdf_document:
+    latex_engine: pdflatex
+    md_extensions: +inline_notes
+    number_sections: no
+  word_document: default
+mathfont: Palatino
+monofont: Source Sans Pro
+mainfont: Palatino
+sansfont: Helvetica
+subtitle: \textbf{Due 21 April 2020}
+fontfamily: mathpazo
+---
+\pagestyle{fancyplain}
+\rhead{PB HLTH 250C, Spring 2020}
+\lhead{}
+
+\begin{align}
+\begin{split}
+\mathbb{E}_{U,X}(Y_{A=1})-\mathbb{E}_{U,X}(Y_{A=0})=\sum_{w}[\mathbb{E}_0(Y|A=1,W=w)-\mathbb{E}_0(Y|A=0,W=w)]\mathbb{P}_0(W=w)
+\end{split}
+\end{align}

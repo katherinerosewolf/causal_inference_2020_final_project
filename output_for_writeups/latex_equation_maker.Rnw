@@ -1,0 +1,65 @@
+\documentclass{article}
+\title{\textbf{R Homework Two}}
+\author{\textbf{Katherine Wolf}\\ Introduction to Causal Inference (PH252D)\\ \today}
+\date{}
+
+% list of latex packages you'll need
+\usepackage{float}  % for tables
+\usepackage{mathtools}  % for mathematical symbols
+\usepackage{bm}  % to bold mathematical symbols like betas
+\usepackage{scrextend}  % to indent subsections
+\usepackage{xltxtra}
+\usepackage{fontspec}
+\usepackage{xunicode}
+\usepackage[skip=0.5\baselineskip]{caption}  % control caption printing space
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{bm}
+\usepackage{caption}
+\usepackage[shortlabels]{enumitem}
+\usepackage{txfonts}
+\usepackage{dejavu}
+\usepackage{mathpazo}
+
+% set fonts
+\setmainfont{Palatino Linotype}
+\setsansfont{Corbel}
+\setmonofont{Consolas}
+
+% make special code formatting
+\NewDocumentCommand{\codeword}{v}{%
+  \texttt{{#1}}%
+}
+
+% set the margins of the document
+\usepackage[top=1in, bottom=1in, left=.5in, right=.5in]{geometry}
+
+% remove automatic indenting
+\setlength{\parindent}{0pt}
+
+<<echo=FALSE>>=
+library(knitr)
+knit_hooks$set(document = function(x) {
+  sub('\\usepackage[]{color}', '\\usepackage[]{xcolor}', x, fixed = TRUE)
+})
+@
+
+% end the preamble and begin the document
+
+\begin{document}
+
+\maketitle
+
+\section{Time to prevent child malnutrition in Sahel}
+
+
+\begin{align}
+\begin{split}
+\Psi(\mathbb{P}_0) &= \mathbb{E}_0[\mathbb{E}_0(Y|A=1,W)-\mathbb{E}_0(Y|A=0,W)] \\
+&= \sum_{w}[\mathbb{E}_0(Y|A=1,W=w)-\mathbb{E}_0(Y|A=0,W=w)]\mathbb{P}_0(W=w)
+\end{split}
+\end{align}
+
+      
+\end{document}

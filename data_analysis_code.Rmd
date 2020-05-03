@@ -2136,32 +2136,93 @@ summary(estimates)
 
 
 
-```{r make histograms}
+```{r KATIE make histograms}
 
 # load all the estimates 
+load(file = file.path("big_run_one.rdata"))
+estimates1 <- estimates
+
+load(file = file.path("estimates_seed_5.rdata"))
+estimates2 <- estimates
+
+load(file = file.path("estimates_seed_6.rdata"))
+estimates3 <- estimates
+
+load(file = file.path("estimates_seed_7.rdata"))
+estimates4 <- estimates
+
+names(estimates1) <- c("SimpSubs", 
+                       "IPTW",
+                       "IPTW.HT", 
+                       "TMLE", 
+                       "PsiHat.IPTW.025.975", 
+                       "PsiHat.IPTW.05.95", 
+                       "PsiHat.IPTW.10.90", 
+                       "PsiHat.TMLE.trunc.025.975", 
+                       "PsiHat.TMLE.trunc.05.95", 
+                       "PsiHat.TMLE.trunc.10.90")
+
+names(estimates2) <- c("SimpSubs", 
+                       "IPTW",
+                       "IPTW.HT", 
+                       "TMLE", 
+                       "PsiHat.IPTW.025.975", 
+                       "PsiHat.IPTW.05.95", 
+                       "PsiHat.IPTW.10.90", 
+                       "PsiHat.TMLE.trunc.025.975", 
+                       "PsiHat.TMLE.trunc.05.95", 
+                       "PsiHat.TMLE.trunc.10.90")
+
+names(estimates3) <- c("SimpSubs", 
+                       "IPTW",
+                       "IPTW.HT", 
+                       "TMLE", 
+                       "PsiHat.IPTW.025.975", 
+                       "PsiHat.IPTW.05.95", 
+                       "PsiHat.IPTW.10.90", 
+                       "PsiHat.TMLE.trunc.025.975", 
+                       "PsiHat.TMLE.trunc.05.95", 
+                       "PsiHat.TMLE.trunc.10.90")
+
+names(estimates4) <- c("SimpSubs", 
+                       "IPTW",
+                       "IPTW.HT", 
+                       "TMLE", 
+                       "PsiHat.IPTW.025.975", 
+                       "PsiHat.IPTW.05.95", 
+                       "PsiHat.IPTW.10.90", 
+                       "PsiHat.TMLE.trunc.025.975", 
+                       "PsiHat.TMLE.trunc.05.95", 
+                       "PsiHat.TMLE.trunc.10.90")
+
+estimates_all <- bind_rows(estimates1,
+                           estimates2,
+                           estimates3,
+                           estimates4)
+
+save(estimates_all, 
+     file = file.path("estimates_all.rdata"))
+
 
 # saving the histograms as a pdf
-
-load(file = file.path("big_run_one.rdata"))
-
-pdf(file="cifp_initial_bootstraps.pdf")
+pdf(file="cifp_bootstraps.pdf")
 
 par(mfrow=c(4, 1))
 
-hist(estimates[,1],
-     main = "Histogram of point estimates from the Simple Substitution estimator over B bootstrapped samples",
+hist(estimates_all[,1],
+     main = "Histogram of point estimates from the Simple Substitution estimator over 500 bootstrapped samples",
      xlab = "Point Estimates")
 
-hist(estimates[,2],
-     main = "Histogram of point estimates from IPTW estimator over B bootstrapped samples", 
+hist(estimates_all[,2],
+     main = "Histogram of point estimates from IPTW estimator over 500 bootstrapped samples", 
      xlab="Point Estimates")
 
-hist(estimates[,3], 
-     main="Histogram of point estimates from IPTW HT over B bootstrapped samples", 
+hist(estimates_all[,3], 
+     main="Histogram of point estimates from IPTW HT over 500 bootstrapped samples", 
      xlab="Point Estimates")
 
-hist(estimates[,4], 
-     main="Histogram of point estimates from TMLE over B bootstrapped samples", 
+hist(estimates_all[,4], 
+     main="Histogram of point estimates from TMLE over 500 bootstrapped samples", 
      xlab="Point Estimates")
 dev.off()
 
@@ -2169,27 +2230,27 @@ pdf(file="cifp_truncated_bootstraps.pdf")
 
 par(mfrow=c(3, 2))
 
-hist(estimates[,5], 
-     main="Histogram of point estimates from IPTW truncated to gn 0.025, 0.975 over B bootstrapped samples", 
+hist(estimates_all[,5], 
+     main="Histogram of point estimates from IPTW truncated to gn 0.025, 0.975 over 500 bootstrapped samples", 
      xlab="Point Estimates")
 
-hist(estimates[,6], 
-     main="Histogram of point estimates from IPTW truncated to gn 0.05, 0.95 over B bootstrapped samples", 
+hist(estimates_all[,6], 
+     main="Histogram of point estimates from IPTW truncated to gn 0.05, 0.95 over 500 bootstrapped samples", 
      xlab="Point Estimates")
 
-hist(estimates[,7], 
-     main="Histogram of point estimates from IPTW truncated to gn 0.10, 0.90 over B bootstrapped samples", 
+hist(estimates_all[,7], 
+     main="Histogram of point estimates from IPTW truncated to gn 0.10, 0.90 over 500 bootstrapped samples", 
      xlab="Point Estimates")
 
-hist(estimates[,8], 
-     main="Histogram of point estimates from TMLE truncated to gn 0.025, 0.975 over B bootstrapped samples", 
+hist(estimates_all[,8], 
+     main="Histogram of point estimates from TMLE truncated to gn 0.025, 0.975 over 500 bootstrapped samples", 
      xlab="Point Estimates")
 
-hist(estimates[,9], 
+hist(estimates_all[,9], 
      main="Histogram of point estimates from TMLE truncated to gn 0.05, 0.95 over B bootstrapped samples", 
      xlab="Point Estimates")
 
-hist(estimates[,10], 
+hist(estimates_all[,10], 
      main="Histogram of point estimates from TMLE truncated to gn 0.10, 0.90 over B bootstrapped samples", 
      xlab="Point Estimates")
 
@@ -2198,12 +2259,162 @@ dev.off()
 ```
 
 
+```{r KATIE cross-validating SuperLearner for g and Q}
 
-```{r playing with wrappers}
+load(file = file.path("dataset_complete_cases.rdata"))
 
-arm::bayesglm(Y ~ ., data = ObsData, family = "binomial")
+dataset_complete_cases_working <- 
+  dataset_complete_cases %>% 
+  mutate(math_proportion = math_standard_met/100,
+         pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0),
+         air_basin_4_bins = factor(air_basin_4_bins))
+
+adjustment_set_variables <- 
+  c("air_basin_4_bins", 
+    "asian_filipino_percent", 
+    "two_none_aian_pi_af_am_percent",
+    "hisp_latinx_percent", 
+    "english_learner_percent", 
+    "frpm_percent",
+    "district_cost_per_pupil", 
+    "student_teacher_ratio", 
+    "cred_percent",
+    "school_k_12_enrollment")
+
+###################
+# CUSTOM WRAPPERS OF AWESOME
+###################
+
+SL.glm.complex <- function(Y, X, newX, family, ...) {
+  fit.glm <- glm(Y ~ 
+                   A + 
+                   air_basin_4_bins +  
+                   asian_filipino_percent + 
+                   two_none_aian_pi_af_am_percent + 
+                   hisp_latinx_percent +
+                   english_learner_percent*frpm_percent + 
+                   district_cost_per_pupil*frpm_percent + 
+                   cred_percent*student_teacher_ratio + 
+                   two_none_aian_pi_af_am_percent*frpm_percent*cred_percent*hisp_latinx_percent, 
+                 data = X, 
+                 family = family)
+  pred <- predict.glm(fit.glm, newdata = newX, type = 'response')
+  fit <- list(object = fit.glm)
+  out <- list(pred = pred, fit = fit)
+  class(out$fit) <- c('SL.glm')
+  return(out)
+}
+
+# set up parallelization (my computer has 8 cores and this uses all of them)
+(cluster = parallel::makeCluster(8))
+parallel::clusterEvalQ(cluster,
+                       library(SuperLearner))
+parallel::clusterExport(cluster,
+                        "SL.glm.complex")
+
+# this is the parallel equivalent of a seed (CHANGE EVERY TIME SO HELP YOU GAIA)
+parallel::clusterSetRNGStream(cluster, 8)
+
+# specify SL libraries
+# listWrappers()
+Q.SL.library <- c("SL.mean", 
+                  "SL.glm", 
+                  "SL.glm.interaction", 
+                  "SL.bayesglm", 
+                  "SL.ranger", 
+                  "SL.glm.complex")
+                      # "SL.rpartPrune") 
+                      # "SL.polymars", 
+                      # "SL.rpartPrune")
+                      # "SL.biglasso"
+                      # "SL.extraTrees"
+                      # "SL.glmnet"
+                      # new.algorithm.2$names
+                      # SL.glm.complex
+
+g.SL.library <- c("SL.mean", 
+                  "SL.glm", 
+                  "SL.glm.interaction", 
+                  "SL.bayesglm")
+
+ObsData <- 
+  dataset_complete_cases_working %>% 
+  dplyr::select(Y = math_proportion,
+                A = pm25_12_plus, 
+                all_of(adjustment_set_variables))
+
+ObsData <- as.data.frame(ObsData)
+
+little_data <- ObsData[sample(1:nrow(ObsData), 
+                              1000, 
+                              replace=F),]
+
+# #########################
+# # RUN CV SuperLearner for Q on little data!
+# #########################
+# 
+# # CV.superlearner for Q
+# X <- little_data[,names(little_data) %in% c(adjustment_set_variables, "A")]
+#   
+# # set the exposure = 1 in X1 and the exposure = 0 in X0
+# X1 <- X0 <- X
+# X1$A <- 1 # under exposure
+# X0$A <- 0 # under control
+#   
+# CV.SL.out <- CV.SuperLearner(Y = little_data$Y, 
+#                              X = X, 
+#                              SL.library = Q.SL.library,
+#                              family = "quasibinomial",
+#                              parallel = cluster,
+#                              cvControl = list(V = 5), 
+#                              innerCvControl = list(list(V = 20)))
+
+#########################
+# RUN CV SuperLearner for Q on big data!
+#########################
+  
+# CV.superlearner for Q
+X <- ObsData[,names(ObsData) %in% c(adjustment_set_variables, "A")]
+  
+# set the exposure = 1 in X1 and the exposure = 0 in X0
+X1 <- X0 <- X
+X1$A <- 1 # under exposure
+X0$A <- 0 # under control
+  
+Q.CV.SL.out <- CV.SuperLearner(Y = ObsData$Y, 
+                               X = X, 
+                               SL.library = Q.SL.library,
+                               family = "quasibinomial",
+                               parallel = cluster,
+                               cvControl = list(V = 5), 
+                               innerCvControl = list(list(V = 20)))
+
+#########################
+# RUN CV SuperLearner for g
+#########################
+
+g.CV.SL.out <- CV.SuperLearner(Y = ObsData$A, 
+                               X = subset(ObsData, 
+                                          select = -c(A, Y)),
+                               SL.library = g.SL.library, 
+                               family = "binomial", 
+                               parallel = cluster, 
+                               cvControl = list(V = 5), 
+                               innerCvControl = list(list(V = 20)))
+
+save(Q.CV.SL.out, file = "Q_CV_SL_out.rdata")
+
+save(g.CV.SL.out, file = "g_CV_SL_out.rdata")
+
+Q.CV.SL.out$coef
+
+g.CV.SL.out$coef
+  
+
+
 
 ```
+
 
 
 
