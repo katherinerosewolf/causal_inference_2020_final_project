@@ -1819,7 +1819,7 @@ save(run.tmle.katie.para,
 ```
 
 
-```{r real function run, seed = 100}
+```{r real function run, seed = 200}
 
 
 load(file = file.path("dataset_complete_cases.rdata"))
@@ -1883,7 +1883,7 @@ parallel::clusterExport(cluster,
                         "SL.glm.complex")
 
 # this is the parallel equivalent of a seed (CHANGE EVERY TIME SO HELP YOU GAIA)
-parallel::clusterSetRNGStream(cluster, 100)
+parallel::clusterSetRNGStream(cluster, 200)
 
 # specify SL libraries
 # listWrappers()
@@ -1922,7 +1922,7 @@ definitive_katie_results <- run.tmle.katie.para(ObsData = ObsData,
 
 # save here CHANGE THIS NAME
 save(definitive_katie_results, 
-     file = "definitive_katie_results_seed_100_parallel.Rdata")
+     file = "definitive_katie_results_seed_200_parallel.Rdata")
 
 definitive_katie_results
 
@@ -2186,7 +2186,7 @@ ObsData <- as.data.frame(ObsData)
 n = nrow(ObsData)
 
 # number of bootstrap samples
-B = 75
+B = 25
 
 # data frame for estimates based on the boot strap sample
 estimates <- data.frame(matrix(NA, nrow = B, ncol = 10))
@@ -2224,9 +2224,9 @@ colnames(estimates)<-c("SimpSubs",
                        "PsiHat.TMLE.trunc.10.90")
 
 # save here CHANGE THIS NAME
-save(estimates, file = "estimates_seed_7.Rdata")
+save(estimates, file = "estimates_seed_100.Rdata")
 
-load(file = file.path("estimates_seed_7.rdata"))
+load(file = file.path("estimates_seed_100.rdata"))
 
 summary(estimates)
 
@@ -2378,6 +2378,77 @@ colnames(estimates)<-c("SimpSubs",
 save(estimates, file = "g_revised_estimates_seed_12.Rdata")
 
 summary(estimates)
+
+```
+
+
+```{r calculating bootstrap CIs}
+
+load(file = "definitive_katie_results_seed_100_parallel.rdata")
+load(file = "estimates_all.rdata")
+
+create.CI <- function(pt, boot, alpha=0.05){
+  Zquant <- qnorm(alpha/2, lower.tail=F)
+  CI.normal <- c(pt - Zquant*sd(boot), pt + Zquant*sd(boot) )
+  CI.quant <- quantile(boot, prob=c(0.025,0.975) )
+  out<- data.frame(rbind(CI.normal, CI.quant))*100
+  colnames(out)<- c('CI.lo', 'CI.hi')
+  out
+}
+
+# alpha = 0.05
+# 
+# Zquant <- qnorm(alpha/2, lower.tail=F)
+# 
+# CI.normal = c(definitive_katie_results$estimates$PsiHat.SS -
+#                 Zquant*sd(estimates_all[,"SimpSubs"]),
+#               definitive_katie_results$estimates$PsiHat.SS +
+#                 Zquant*sd(estimates_all[,"SimpSubs"]))
+
+# CI for SS assuming a normal dist & then using quantiles
+create.CI(pt=definitive_katie_results$estimates$PsiHat.SS,
+          boot=estimates_all[,"SimpSubs"])
+
+# CI for IPTW assuming a normal dist & then using quantiles
+create.CI(pt=definitive_katie_results$estimates$PsiHat.IPTW,
+          boot=estimates_all[,"IPTW"])
+
+# CI for IPTW.HT assuming a normal dist & then using quantiles
+create.CI(pt=definitive_katie_results$estimates$PsiHat.HW.IPTW,
+          boot=estimates_all[,"IPTW.HT"])
+
+# CI for TMLE assuming a normal dist & then using quantiles
+create.CI(pt=definitive_katie_results$estimates$PsiHat.TMLE,
+          boot=estimates_all[,"TMLE"])
+
+# CI for IPTW 0.025 truncation assuming a normal dist & then using quantiles
+create.CI(pt=definitive_katie_results$estimates$PsiHat.IPTW.025.975,
+          boot=estimates_all[,"PsiHat.IPTW.025.975"])
+
+# CI for IPTW 0.05 truncation assuming a normal dist & then using quantiles
+create.CI(pt=definitive_katie_results$estimates$PsiHat.IPTW.05.95,
+          boot=estimates_all[,"PsiHat.IPTW.05.95"])
+
+# CI for IPTW 0.10 truncation assuming a normal dist & then using quantiles
+create.CI(pt=definitive_katie_results$estimates$PsiHat.IPTW.10.90,
+          boot=estimates_all[,"PsiHat.IPTW.10.90"])
+
+# CI for TMLE 0.025 truncation assuming a normal dist & then using quantiles
+create.CI(pt=definitive_katie_results$estimates$PsiHat.TMLE.trunc.025.975,
+          boot=estimates_all[,"PsiHat.TMLE.trunc.025.975"])
+
+# CI for TMLE 0.05 truncation assuming a normal dist & then using quantiles
+create.CI(pt=definitive_katie_results$estimates$PsiHat.TMLE.trunc.05.95,
+          boot=estimates_all[,"PsiHat.TMLE.trunc.05.95"])
+
+# CI for TMLE 0.10 truncation assuming a normal dist & then using quantiles
+create.CI(pt=definitive_katie_results$estimates$PsiHat.TMLE.trunc.10.90,
+          boot=estimates_all[,"PsiHat.TMLE.trunc.10.90"])
+
+
+
+head(estimates_all)
+
 
 ```
 
