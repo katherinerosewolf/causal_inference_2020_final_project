@@ -2384,7 +2384,7 @@ summary(estimates)
 
 ```{r calculating bootstrap CIs}
 
-load(file = "definitive_katie_results_seed_100_parallel.rdata")
+load(file = "definitive_katie_results_seed_200_parallel.rdata")
 load(file = "estimates_all.rdata")
 
 create.CI <- function(pt, boot, alpha=0.05){
@@ -2446,9 +2446,80 @@ create.CI(pt=definitive_katie_results$estimates$PsiHat.TMLE.trunc.10.90,
           boot=estimates_all[,"PsiHat.TMLE.trunc.10.90"])
 
 
+# simple mean: areas with pm above 12 lose 2.03 percentage points of passage
+mean_function <- function(ObsData){
+  mean(ObsData$Y[ObsData$A == 1] - ObsData$Y[ObsData$A == 0])
+}
+
+set.seed(1)
+
+# bootstrap the mean!
+ObsData <- 
+  dataset_complete_cases_working %>% 
+  dplyr::select(Y = math_proportion,
+                A = pm25_12_plus, 
+                all_of(adjustment_set_variables))
+
+ObsData <- as.data.frame(ObsData)
+
+mean_function(ObsData)
+
+# number of rows
+n = nrow(ObsData)
+
+# number of bootstrap samples
+B = 500
+
+# data frame for estimates based on the boot strap sample
+meanies <- data.frame(matrix(NA, nrow = B, ncol = 1))
+
+# make an id variable
+ObsData$id <- 1:n
+
+# for loop from b=1 to total number of bootstrap samples
+for(b in 1:B){
+
+  # sample the indices 1 to n with replacement
+  bootIndices<- sample(1:n, replace = T)
+  bootData<- ObsData[bootIndices,]
+  
+  # calling the above function
+  meanies[b,] <- mean_function(ObsData = bootData)
+
+  # keep track of the iterations completed
+  print(b)
+}
+
+unadjusted_mean <- mean_function(ObsData)
+
+save(meanies, 
+     file = "meanies.rdata")
+
+create.mean.CI <- function(pt, boot, alpha=0.05){
+  Zquant <- qnorm(alpha/2, lower.tail=F)
+  CI.normal <- c(pt - Zquant*sd(boot), pt + Zquant*sd(boot))
+  CI.quant <- quantile(boot, prob=c(0.025,0.975) )
+  out<- data.frame(rbind(CI.normal, CI.quant))*100
+  colnames(out)<- c('CI.lo', 'CI.hi')
+  out
+}
+
+alpha = 0.05
+Zquant = qnorm(alpha/2, lower.tail=F)
+CI.normal <- c(unadjusted_mean - Zquant*sd(meanies[[1]]), unadjusted_mean + Zquant*sd(meanies[[1]]))
+CI.quant <- quantile(meanies[[1]], prob=c(0.025,0.975))
+
+str(unadjusted_mean)
+str(meanies[[1]])
+
+# CIs for mean
+create.CI(pt=unadjusted_mean,
+          boot=meanies[[1]])
+
+
+
 
 head(estimates_all)
-
 
 ```
 
