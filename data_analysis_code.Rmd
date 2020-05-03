@@ -2051,7 +2051,7 @@ parallel::clusterExport(cluster,
                         "SL.glm.complex")
 
 # this is the parallel equivalent of a seed (CHANGE EVERY TIME SO HELP YOU GAIA)
-parallel::clusterSetRNGStream(cluster, 5)
+parallel::clusterSetRNGStream(cluster, 6)
 
 # specify SL libraries
 # listWrappers()
@@ -2087,7 +2087,7 @@ ObsData <- as.data.frame(ObsData)
 n = nrow(ObsData)
 
 # number of bootstrap samples
-B = 200
+B = 75
 
 # data frame for estimates based on the boot strap sample
 estimates <- data.frame(matrix(NA, nrow = B, ncol = 10))
@@ -2125,9 +2125,9 @@ colnames(estimates)<-c("SimpSubs",
                        "PsiHat.TMLE.trunc.10.90")
 
 # save here CHANGE THIS NAME
-save(estimates, file = "estimates_seed_5.Rdata")
+save(estimates, file = "estimates_seed_6.Rdata")
 
-load(file = file.path("estimates_seed_5.rdata"))
+load(file = file.path("estimates_seed_6.rdata"))
 
 summary(estimates)
 
