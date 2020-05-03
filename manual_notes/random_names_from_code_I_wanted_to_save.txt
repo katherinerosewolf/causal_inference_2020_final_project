@@ -1,0 +1,35 @@
+  # Qbar.star <- data.frame(cbind(QbarAW.star, 
+  #                               Qbar1W.star, 
+  #                               Qbar0W.star, 
+  #                               QbarAW.025.975.star, 
+  #                               Qbar1W.025.975.star, 
+  #                               Qbar0W.025.975.star,
+  #                               QbarAW.05.95.star, 
+  #                               Qbar1W.05.95.star, 
+  #                               Qbar0W.05.95.star, 
+  #                               QbarAW.10.90.star, 
+  #                               Qbar1W.10.90.star, 
+  #                               Qbar0W.10.90.star))
+  # 
+  # names(Qbar.star) <- c('QbarAW.star', 
+  #                       'Qbar1W.star', 
+  #                       'Qbar0W.star',
+  #                       'QbarAW.025.975.star', 
+  #                       'Qbar1W.025.975.star', 
+  #                       'Qbar0W.025.975.star',
+  #                       'QbarAW.05.95.star', 
+  #                       'Qbar1W.05.95.star', 
+  #                       'Qbar0W.05.95.star', 
+  #                       'QbarAW.10.90.star', 
+  #                       'Qbar1W.10.90.star', 
+  #                       'Qbar0W.10.90.star')
+  # 
+  # H.AWs <- c(H.AW, 
+  #            H.AW.025.975, 
+  #            H.AW.05.95, 
+  #            H.AW.10.90)
+  # 
+  # names(H.AWs) <- c("H.AW", 
+  #                   "H.AW.025.975", 
+  #                   "H.AW.05.95", 
+  #                   "H.AW.10.90")
