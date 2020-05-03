@@ -42,7 +42,7 @@ load(file = "dataset_complete_cases_forget_funding.rdata") # no per cap variable
 
 # BELOW LIES KATIE'S PLAYGROUND
 
-```{r KATIE code pre-SuperLearner}
+```{r KATIE code pre-SuperLearner, simple GLMs + descriptive work}
 
 dataset_complete_cases_working <- 
   dataset_complete_cases %>% 
@@ -127,7 +127,7 @@ summary(glm_forget_funding)
 ```
 
 
-```{r plots for slides}
+```{r plots for slides, scatter & box plots bw PM2.5 & other variables}
 
 dataset_complete_cases_working <- 
   dataset_complete_cases %>% 
@@ -414,7 +414,7 @@ ggsave(device = "bmp",
 ```
 
 
-```{r KATIE tabling the ancestors}
+```{r KATIE tabling the ancestors, Table 1}
 
 # load data
 load(file = file.path("dataset_full.rdata"))
@@ -554,7 +554,7 @@ hi2
 ```
 
 
-```{r old code not to run}
+```{r old code not to run, simplifying complex algorithms}
 
 # # reduce runs of biglasso from 100 to 5 to save time
 # new.algorithm.1 = create.Learner("SL.biglasso", 
@@ -956,7 +956,7 @@ estimates
 ``` 
 
 
-```{r KATIE sad wrapper failures}
+```{r KATIE sad wrapper failures, feel this section so hard; those contXcont itx so hard}
 
 ###################
 # CUSTOM WRAPPERS OF AWESOME
@@ -2955,7 +2955,7 @@ set.seed(252)
     return(out)
   }
   
-  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm"
+  SL.library <- c("SL.mean","SL.glm","SL.glm.interaction","SL.bayesglm","SL.rpartPrune"
                   #,"SL.interaction.LunchRace","SL.interaction.CostRace","SL.interaction.CredRace"
                   )
   #other_options <- c("SL.glm.interaction","SL.xgboost","SL.randomForest","SL.polymars","SL.rpartPrune")
@@ -2974,7 +2974,7 @@ set.seed(252)
         X0[,A] <- 0 # under control
     
        # call Super Learner for estimation of QbarAW
-        QbarSL<- SuperLearner(Y=ObsData[,Y], X=X, SL.library=SL.library, family="quasibinomial", id=id)
+        QbarSL<- SuperLearner(Y=ObsData[,Y], X=X, SL.library=SL.library, family="binomial", id=id)
         # QbarSL
         
        # initial estimates of the outcome, given the observed exposure & covariates
@@ -3025,7 +3025,7 @@ set.seed(252)
     #------------------------------------------
     # Update the initial estimator of Qbar_0(A,W)
     #------------------------------------------
-      logitUpdate<- glm(ObsData[,Y] ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='quasibinomial')
+      logitUpdate<- glm(ObsData[,Y] ~ -1 +offset(qlogis(QbarAW)) + H.AW, family='binomial')
       epsilon <- logitUpdate$coef
   
       QbarAW.star<- plogis(qlogis(QbarAW)+ epsilon*H.AW)
@@ -3073,15 +3073,25 @@ set.seed(252)
     
 # the real thing
   set.seed(252)
+  start_time <- Sys.time()
   out <- run.tmle(Y="math_standard_met", A="pm25_12_plus", ObsData=dataset_complete_cases[,include_vars_analysis], SL.library=SL.library) 
   est <- out$estimates
   est*100
+  end_time <- Sys.time()
+  end_time - start_time
 # real thing with ltmle for comparison  
   dataset_complete_cases_ltmle <- dataset_complete_cases[,include_vars_analysis]
   names(dataset_complete_cases_ltmle)
   dataset_complete_cases_ltmle <- dataset_complete_cases_ltmle[,c(3:12,1:2)]
+  
+  set.seed(252)
+  start_time <- Sys.time()
   ltmle.SL<- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library)  
   summary(ltmle.SL)  
+  end_time <- Sys.time()
+  end_time - start_time
+  
+  
   ltmle.SL$beta.iptw
 # get gcomp with ltmle  
    ltmle.SL.gcomp <- ltmle(data=dataset_complete_cases_ltmle, Anodes='pm25_12_plus', Ynodes='math_standard_met', abar=list(1,0),SL.library=SL.library, gcomp=TRUE)  
@@ -3143,8 +3153,12 @@ nonparam_boot <- function(ObsData,A,Y,id,SL.library,num_boots) {
     }
     return(estimates)
 }  
+set.seed(252)
+start_time <- Sys.time()
 npb_estimates <- nonparam_boot(ObsData=dataset_complete_cases[,c("cds_code",include_vars_analysis)],
-                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=1) 
+                           A="pm25_12_plus",Y="math_standard_met",id="cds_code",SL.library=SL.library,num_boots=500) 
+end_time <- Sys.time()
+(((end_time - start_time)/2)*500)/60 # should take about 5 hours to run
 summary(npb_estimates)  
 apply(npb_estimates,2,hist)
 
