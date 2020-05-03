@@ -1819,6 +1819,114 @@ save(run.tmle.katie.para,
 ```
 
 
+```{r real function run, seed = 100}
+
+
+load(file = file.path("dataset_complete_cases.rdata"))
+load(file = file.path("run.tmle.katie.para.rdata"))
+
+dataset_complete_cases_working <- 
+  dataset_complete_cases %>% 
+  mutate(math_proportion = math_standard_met/100,
+         pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0),
+         air_basin_4_bins = factor(air_basin_4_bins))
+
+adjustment_set_variables <- 
+  c("air_basin_4_bins", 
+    "asian_filipino_percent", 
+    "two_none_aian_pi_af_am_percent",
+    "hisp_latinx_percent", 
+    "english_learner_percent", 
+    "frpm_percent",
+    "district_cost_per_pupil", 
+    "student_teacher_ratio", 
+    "cred_percent",
+    "school_k_12_enrollment")
+
+ObsData <- 
+  dataset_complete_cases_working %>% 
+  dplyr::select(Y = math_proportion,
+                A = pm25_12_plus, 
+                all_of(adjustment_set_variables))
+
+ObsData <- as.data.frame(ObsData)
+
+###################
+# CUSTOM WRAPPERS OF AWESOME
+###################
+
+SL.glm.complex <- function(Y, X, newX, family, ...) {
+  fit.glm <- glm(Y ~ 
+                   A + 
+                   air_basin_4_bins +  
+                   asian_filipino_percent + 
+                   two_none_aian_pi_af_am_percent + 
+                   hisp_latinx_percent +
+                   english_learner_percent*frpm_percent + 
+                   district_cost_per_pupil*frpm_percent + 
+                   cred_percent*student_teacher_ratio + 
+                   two_none_aian_pi_af_am_percent*frpm_percent*cred_percent*hisp_latinx_percent, 
+                 data = X, 
+                 family = family)
+  pred <- predict.glm(fit.glm, newdata = newX, type = 'response')
+  fit <- list(object = fit.glm)
+  out <- list(pred = pred, fit = fit)
+  class(out$fit) <- c('SL.glm')
+  return(out)
+}
+
+# set up parallelization (my computer has 8 cores and this uses all of them)
+(cluster = parallel::makeCluster(8))
+parallel::clusterEvalQ(cluster, 
+                       library(SuperLearner))
+parallel::clusterExport(cluster, 
+                        "SL.glm.complex")
+
+# this is the parallel equivalent of a seed (CHANGE EVERY TIME SO HELP YOU GAIA)
+parallel::clusterSetRNGStream(cluster, 100)
+
+# specify SL libraries
+# listWrappers()
+Q.SL.library <- c("SL.mean", 
+                  "SL.glm", 
+                  "SL.glm.interaction", 
+                  "SL.bayesglm", 
+                  "SL.ranger", 
+                  "SL.glm.complex")
+                      # "SL.rpartPrune") 
+                      # "SL.polymars", 
+                      # "SL.rpartPrune")
+                      # "SL.biglasso"
+                      # "SL.extraTrees"
+                      # "SL.glmnet"
+                      # new.algorithm.2$names
+                      # SL.glm.complex
+
+g.SL.library <- c("SL.mean", 
+                  "SL.glm", 
+                  "SL.glm.interaction", 
+                  "SL.bayesglm")
+
+ObsData <- 
+  dataset_complete_cases_working %>% 
+  dplyr::select(Y = math_proportion,
+                A = pm25_12_plus, 
+                all_of(adjustment_set_variables))
+
+ObsData <- as.data.frame(ObsData)
+
+definitive_katie_results <- run.tmle.katie.para(ObsData = ObsData,
+                                               g.SL.library = g.SL.library,
+                                               Q.SL.library = Q.SL.library,
+                                               cluster = cluster)
+
+# save here CHANGE THIS NAME
+save(definitive_katie_results, 
+     file = "definitive_katie_results_seed_100_parallel.Rdata")
+
+```
+
+
 
 ```{r KATIE bootstrap test}
 
@@ -2227,7 +2335,7 @@ ObsData <- as.data.frame(ObsData)
 n = nrow(ObsData)
 
 # number of bootstrap samples
-B = 250
+B = 100
 
 # data frame for estimates based on the boot strap sample
 estimates <- data.frame(matrix(NA, nrow = B, ncol = 10))
