@@ -42,7 +42,7 @@ load(file = "dataset_complete_cases_forget_funding.rdata") # no per cap variable
 
 # BELOW LIES KATIE'S PLAYGROUND
 
-```{r KATIE code pre-SuperLearner}
+```{r KATIE code pre-SuperLearner, simple GLMs + descriptive work}
 
 dataset_complete_cases_working <- 
   dataset_complete_cases %>% 
@@ -127,7 +127,7 @@ summary(glm_forget_funding)
 ```
 
 
-```{r plots for slides}
+```{r plots for slides, scatter & box plots bw PM2.5 & other variables}
 
 dataset_complete_cases_working <- 
   dataset_complete_cases %>% 
@@ -414,7 +414,7 @@ ggsave(device = "bmp",
 ```
 
 
-```{r KATIE tabling the ancestors}
+```{r KATIE tabling the ancestors, Table 1}
 
 # load data
 load(file = file.path("dataset_full.rdata"))
@@ -554,7 +554,7 @@ hi2
 ```
 
 
-```{r old code not to run}
+```{r old code not to run, simplifying complex algorithms}
 
 # # reduce runs of biglasso from 100 to 5 to save time
 # new.algorithm.1 = create.Learner("SL.biglasso", 
@@ -956,7 +956,7 @@ estimates
 ``` 
 
 
-```{r KATIE sad wrapper failures}
+```{r KATIE sad wrapper failures, feel this section so hard; those contXcont itx so hard}
 
 ###################
 # CUSTOM WRAPPERS OF AWESOME
