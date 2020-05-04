@@ -1885,6 +1885,14 @@ save(
   file = file.path("intermediate_data",
                    "school_air_sf.rdata"))
 
+load(file = file.path("intermediate_data",
+                   "school_air_sf.rdata"))
+
+colnames(school_air_sf)
+
+plot(causal_inference_preliminary_dataset["overall_standard_met"], pch=16, cex=0.4, 
+     xlab=NULL, ylab=NULL, main=NULL, pal=brewer.pal(10, "RdYlGn"))
+
 # plot(air_cropped)
 # plot(school_air_na, pch=16, cex=0.2, alpha = 0.8, col="black", add=TRUE)
 
@@ -2224,8 +2232,7 @@ full_data_analysis_variables <-
          math_standard_met, 
          science_n_scores, 
          science_standard_met, 
-         overall_standard_met) %>% 
-  st_drop_geometry()
+         overall_standard_met)
 
 save(full_data, 
      file = file.path("intermediate_data", 
@@ -2241,8 +2248,32 @@ dataset_full <-
 save(dataset_full, 
      file = file.path("dataset_full.rdata"))
 
+colnames(schools_all_data)
+
 ```
 
+```{r}
+
+load(file = file.path("intermediate_data", 
+                      ""))
+
+# plot test scores
+complete_cases_mapped <- 
+  full_data_analysis_variables %>% 
+  filter(!is.na(math_standard_met)) %>% 
+  filter(!is.na(english_learner_percent)) %>% 
+  filter(!is.na(district_cost_per_pupil)) %>% 
+  filter(!is.na(student_teacher_ratio)) %>% 
+  filter(!is.na(air_basin_binned))
+
+colnames(complete_cases_mapped)
+
+str(complete_cases_mapped$math_standard_met)
+
+plot(full_data_analysis_variables["math_standard_met"], pch=16, cex=0.4, 
+     xlab=NULL, ylab=NULL, main=NULL, pal=brewer.pal(10, "RdYlGn"))
+
+```
 
 
 ```{r checking missings}
@@ -2443,6 +2474,8 @@ nrow(dataset_complete_cases_forget_funding)
 nrow(schools_with_math)
 
 nrow(dataset_complete_cases)
+
+
 
 ```
 

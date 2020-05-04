@@ -16,12 +16,13 @@ sansfont: Helvetica
 subtitle: \textbf{Due 21 April 2020}
 fontfamily: mathpazo
 ---
-\pagestyle{fancyplain}
-\rhead{PB HLTH 250C, Spring 2020}
-\lhead{}
+
+
+
 
 \begin{align}
 \begin{split}
-\mathbb{E}_{U,X}(Y_{A=1})-\mathbb{E}_{U,X}(Y_{A=0})=\sum_{w}[\mathbb{E}_0(Y|A=1,W=w)-\mathbb{E}_0(Y|A=0,W=w)]\mathbb{P}_0(W=w)
+\Psi(\mathbb{P}_0) &= \mathbb{E}_{0}[\mathbb{E}_{0}(Y|A=1,W)-\mathbb{E}_{0}(Y|A=0,W)] \\
+&= [\bar{Q}_0(1,W)-\bar{Q}_0(0,W)]\mathbb{P}_0(W=w)
 \end{split}
 \end{align}

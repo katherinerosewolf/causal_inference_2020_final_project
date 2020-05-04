@@ -9,8 +9,8 @@ output: html_document
 
 library(extrafont)
 
-# # loads fonts 
-# font_import(pattern = "Raleway")
+# loads fonts
+font_import(pattern = "Raleway")
 
 library(praise)
 library(tidyverse)
@@ -1516,10 +1516,6 @@ Gfit <- out$gHatSL
 
 ```{r KATIE here lies the parallelized function}
 
-  # set up parallelization (my computer has 8 cores and this uses all of them)
-(cluster = parallel::makeCluster(8))
-parallel::clusterEvalQ(cluster, library(SuperLearner))
-
 ################################
 # HERE LIES THE FUNCTION
 ################################
@@ -2495,31 +2491,526 @@ unadjusted_mean <- mean_function(ObsData)
 save(meanies, 
      file = "meanies.rdata")
 
-create.mean.CI <- function(pt, boot, alpha=0.05){
-  Zquant <- qnorm(alpha/2, lower.tail=F)
-  CI.normal <- c(pt - Zquant*sd(boot), pt + Zquant*sd(boot))
-  CI.quant <- quantile(boot, prob=c(0.025,0.975) )
-  out<- data.frame(rbind(CI.normal, CI.quant))*100
-  colnames(out)<- c('CI.lo', 'CI.hi')
-  out
-}
-
-alpha = 0.05
-Zquant = qnorm(alpha/2, lower.tail=F)
-CI.normal <- c(unadjusted_mean - Zquant*sd(meanies[[1]]), unadjusted_mean + Zquant*sd(meanies[[1]]))
-CI.quant <- quantile(meanies[[1]], prob=c(0.025,0.975))
-
-str(unadjusted_mean)
-str(meanies[[1]])
-
 # CIs for mean
 create.CI(pt=unadjusted_mean,
           boot=meanies[[1]])
 
+```
+
+```{r KATIE calculate ICs} 
+
+load(file = file.path("dataset_complete_cases.rdata"))
+load(file = file.path("run.tmle.katie.para.rdata"))
+
+dataset_complete_cases_working <- 
+  dataset_complete_cases %>% 
+  mutate(math_proportion = math_standard_met/100,
+         pm25_12_plus = ifelse(pm25_12_plus == "yes", 1, 0),
+         air_basin_4_bins = factor(air_basin_4_bins))
+
+adjustment_set_variables <- 
+  c("air_basin_4_bins", 
+    "asian_filipino_percent", 
+    "two_none_aian_pi_af_am_percent",
+    "hisp_latinx_percent", 
+    "english_learner_percent", 
+    "frpm_percent",
+    "district_cost_per_pupil", 
+    "student_teacher_ratio", 
+    "cred_percent",
+    "school_k_12_enrollment")
+
+ObsData <- 
+  dataset_complete_cases_working %>% 
+  dplyr::select(Y = math_proportion,
+                A = pm25_12_plus, 
+                all_of(adjustment_set_variables))
+
+ObsData <- as.data.frame(ObsData)
+
+###################
+# CUSTOM WRAPPERS OF AWESOME
+###################
+
+SL.glm.complex <- function(Y, X, newX, family, ...) {
+  fit.glm <- glm(Y ~ 
+                   A + 
+                   air_basin_4_bins +  
+                   asian_filipino_percent + 
+                   two_none_aian_pi_af_am_percent + 
+                   hisp_latinx_percent +
+                   english_learner_percent*frpm_percent + 
+                   district_cost_per_pupil*frpm_percent + 
+                   cred_percent*student_teacher_ratio + 
+                   two_none_aian_pi_af_am_percent*frpm_percent*cred_percent*hisp_latinx_percent, 
+                 data = X, 
+                 family = family)
+  pred <- predict.glm(fit.glm, newdata = newX, type = 'response')
+  fit <- list(object = fit.glm)
+  out <- list(pred = pred, fit = fit)
+  class(out$fit) <- c('SL.glm')
+  return(out)
+}
+
+# set up parallelization (my computer has 8 cores and this uses all of them)
+(cluster = parallel::makeCluster(8))
+parallel::clusterEvalQ(cluster, 
+                       library(SuperLearner))
+parallel::clusterExport(cluster, 
+                        "SL.glm.complex")
+
+# this is the parallel equivalent of a seed (CHANGE EVERY TIME SO HELP YOU GAIA)
+parallel::clusterSetRNGStream(cluster, 200)
+
+# specify SL libraries
+# listWrappers()
+Q.SL.library <- c("SL.mean", 
+                  "SL.glm", 
+                  "SL.glm.interaction", 
+                  "SL.bayesglm", 
+                  "SL.ranger", 
+                  "SL.glm.complex")
+                      # "SL.rpartPrune") 
+                      # "SL.polymars", 
+                      # "SL.rpartPrune")
+                      # "SL.biglasso"
+                      # "SL.extraTrees"
+                      # "SL.glmnet"
+                      # new.algorithm.2$names
+                      # SL.glm.complex
+
+g.SL.library <- c("SL.mean", 
+                  "SL.glm", 
+                  "SL.glm.interaction", 
+                  "SL.bayesglm")
+
+ObsData <- 
+  dataset_complete_cases_working %>% 
+  dplyr::select(Y = math_proportion,
+                A = pm25_12_plus, 
+                all_of(adjustment_set_variables))
+
+ObsData <- as.data.frame(ObsData)
+
+
+##########################
+# CANNIBALIZE THE FUNCTION
+##########################
+
+
+  ################################
+  # SIMPLE SUBSTITUTION HARD CODED (full data)
+  ################################
+  
+  #------------------------------------------
+  # Estimate Qbar_0(A,W) with Super Learner
+  #------------------------------------------
+  # dataframe X with baseline covariates and exposure but not outcome
+  X <- ObsData[,names(ObsData) %in% c(adjustment_set_variables, "A")]
+  
+  # set the exposure=1 in X1 and the exposure=0 in X0
+  X1 <- X0 <- X
+  X1$A <- 1 # under exposure
+  X0$A <- 0 # under control
+  
+  # call Super Learner
+  QbarSL <- snowSuperLearner(Y = ObsData$Y, 
+                         X = X, 
+                         SL.library = Q.SL.library,
+                         cluster = cluster, 
+                         family = "quasibinomial")
+  
+  # get the expected PM2.5, given the observed exposure and covariates
+  QbarAW <- predict(QbarSL, newdata = ObsData)$pred
+  # expected injury severity, given A=1 and covariates
+  Qbar1W <- predict(QbarSL, newdata = X1)$pred
+  # expected injury severity, given A=0 and covariates
+  Qbar0W <- predict(QbarSL, newdata = X0)$pred
+  # # the fitted value at the observed exposure should equal the fitted value
+  # # under when A = a
+  # tail(data.frame(A = ObsData$A, QbarAW, Qbar1W, Qbar0W))
+  
+  # note the simple substitution estimator would be
+  PsiHat.SS <- mean(Qbar1W - Qbar0W)
+  
+  PsiHat.SS
+  
+  
+  #################################
+  # RAW IPTW HARD CODED (full data)
+  #################################
+  
+  # Estimate the exposure mechanism g(A|W)
+  #------------------------------------------
+  
+  # call Super Learner for the exposure mechanism
+  gHatSL <- snowSuperLearner(Y = ObsData$A, 
+                         X = subset(ObsData, 
+                                    select = -c(A, Y)),
+                         SL.library = g.SL.library, 
+                         family = "binomial", 
+                         cluster = cluster)
+  
+  # generate predicted prob being exposed, given baseline covariates
+  gHat1W <- gHatSL$SL.predict
+  
+  # predicted prob of not being exposed, given baseline covariates
+  gHat0W <- 1- gHat1W
+  
+  # predicted prob of observed exposure, given baseline cov
+  gHatAW <- rep(NA, nrow(ObsData))
+  gHatAW[ObsData$A==1] <- gHat1W[ObsData$A==1]
+  gHatAW[ObsData$A==0] <- gHat0W[ObsData$A==0]
+  
+  #-------------------------------------------------
+  # Clever covariate H(A,W) for each subject
+  #-------------------------------------------------
+  H.AW <- as.numeric(ObsData$A==1)/gHat1W - as.numeric(ObsData$A==0)/gHat0W
+  
+  # also want to evaluate the clever covariates at A=1 and A=0 for all subjects
+  H.1W<- 1/gHat1W
+  H.0W<- -1/gHat0W
+  
+  # IPTW estimator of the G-computation formula:
+  PsiHat.IPTW <- mean(H.AW*ObsData$Y)
+  PsiHat.IPTW
+  
+  ############################
+  # HERE LIES THE HW ESTIMATOR
+  ############################
+  
+  # weight for HT estimator
+  wt <- 1/gHatAW
+  
+  # calculate HT stabilized estimator
+  PsiHat.HW.IPTW <- mean(wt*as.numeric(ObsData$A==1)*ObsData$Y)/
+    mean(wt*as.numeric(ObsData$A==1)) -
+    mean(wt*as.numeric(ObsData$A==0)*ObsData$Y)/
+    mean(wt*as.numeric(ObsData$A==0))
+  
+  # report it
+  PsiHat.HW.IPTW
+  
+  ###################################
+  # RAW TMLE HARD CODED (full data)
+  ###################################
+  # MUST RUN IPTW CODE FIRST
+  
+  #------------------------------------------
+  # Update the initial estimator of Qbar_0(A,W)
+  #------------------------------------------
+  logitUpdate <- glm(ObsData$Y ~ -1 + offset(qlogis(QbarAW)) + H.AW,
+                     family='quasibinomial')
+  epsilon <- logitUpdate$coef
+  
+  QbarAW.star <- plogis(qlogis(QbarAW)+ epsilon*H.AW)
+  Qbar1W.star <- plogis(qlogis(Qbar1W)+ epsilon*H.1W)
+  Qbar0W.star <- plogis(qlogis(Qbar0W)+ epsilon*H.0W)
+  
+  #------------------------------------------
+  # Estimate Psi(P_0)
+  #------------------------------------------
+  
+  PsiHat.TMLE <- mean(Qbar1W.star - Qbar0W.star)
+  PsiHat.TMLE
+  
+  ############################
+  # HERE LIE VARIOUS STUPIDLY TRUNCATED ESTIMATORS
+  ############################
+  
+  # counts
+  length(gHatAW[gHatAW > 0.975])
+  length(gHatAW[gHatAW < 0.025])
+  
+  length(gHatAW[gHatAW > 0.95])
+  length(gHatAW[gHatAW < 0.05])
+  
+  length(gHatAW[gHatAW > 0.9])
+  length(gHatAW[gHatAW < 0.1])
+  
+  ######
+  # iptw trun
+  ######
+  
+  # bound gn at 0.025, 0.975
+  gHatAW_025_975 <- gHatAW
+  nrow(gHatAW[gHatAW > 0.975])
+  gHatAW_025_975[gHatAW_025_975 > 0.975] <- 0.975
+  nrow(gHatAW_025_975[gHatAW_025_975 < 0.025])
+  gHatAW_025_975[gHatAW_025_975 < 0.025] <- 0.025
+  
+  # bound gn at 0.05, 0.95
+  gHatAW_05_95 <- gHatAW
+  gHatAW_05_95[gHatAW_05_95 > 0.95] <- 0.95
+  nrow(gHatAW_05_95[gHatAW_05_95 > 0.95])
+  gHatAW_05_95[gHatAW_05_95 < 0.05] <- 0.05
+  nrow(gHatAW_05_95[gHatAW_05_95 < 0.05])
+  
+  # bound gn at 0.10, 0.90
+  gHatAW_10_90 <- gHatAW
+  gHatAW_10_90[gHatAW_10_90 > 0.90] <- 0.90
+  gHatAW_10_90[gHatAW_10_90 < 0.10] <- 0.10
+  
+  # truncate the weights
+  wt_trunc_025_975 <- 1/gHatAW_025_975
+  wt_trunc_05_95 <- 1/gHatAW_05_95
+  wt_trunc_10_90 <- 1/gHatAW_10_90
+  
+  # calculate IPTW!
+  PsiHat.IPTW.025.975 <- 
+    mean(wt_trunc_025_975*as.numeric(ObsData$A==1)*ObsData$Y) -
+    mean(wt_trunc_025_975*as.numeric(ObsData$A==0)*ObsData$Y)
+  
+  PsiHat.IPTW.05.95 <- 
+    mean(wt_trunc_05_95*as.numeric(ObsData$A==1)*ObsData$Y) -
+    mean(wt_trunc_05_95*as.numeric(ObsData$A==0)*ObsData$Y)
+  
+  PsiHat.IPTW.10.90 <- 
+    mean(wt_trunc_10_90*as.numeric(ObsData$A==1)*ObsData$Y) -
+    mean(wt_trunc_10_90*as.numeric(ObsData$A==0)*ObsData$Y)
+  
+  ######
+  # tmle trunc
+  ######
+  
+  # counts
+  length(gHat0W[gHat0W > 0.975])
+  length(gHat0W[gHat0W < 0.025])
+  
+  length(gHat0W[gHat1W > 0.975])
+  length(gHat0W[gHat1W < 0.025])
+  
+  length(gHat0W[gHat0W > 0.95])
+  length(gHat0W[gHat0W < 0.05])
+  
+  length(gHat0W[gHat1W > 0.95])
+  length(gHat0W[gHat1W < 0.05])
+  
+  length(gHat0W[gHat0W > 0.90])
+  length(gHat0W[gHat0W < 0.10])
+  
+  length(gHat0W[gHat1W > 0.90])
+  length(gHat0W[gHat1W < 0.10])
+  
+  
+  
+  # bound gn at 0.025, 0.975
+  gHat0W_025_975 <- gHat0W
+  gHat0W_025_975[gHat0W_025_975 > 0.975] <- 0.975
+  gHat0W_025_975[gHat0W_025_975 < 0.025] <- 0.025
+  
+  gHat1W_025_975 <- gHat1W
+  gHat1W_025_975[gHat1W_025_975 > 0.975] <- 0.975
+  gHat1W_025_975[gHat1W_025_975 < 0.025] <- 0.025
+  
+  # bound gn at 0.05, 0.95
+  gHat0W_05_95 <- gHat0W
+  gHat0W_05_95[gHat0W_05_95 > 0.95] <- 0.95
+  gHat0W_05_95[gHat0W_05_95 < 0.05] <- 0.05
+  
+  gHat1W_05_95 <- gHat1W
+  gHat1W_05_95[gHat1W_05_95 > 0.95] <- 0.95
+  gHat1W_05_95[gHat1W_05_95 < 0.05] <- 0.05
+  
+  # bound gn at 0.10, 0.90
+  gHat0W_10_90 <- gHat0W
+  gHat0W_10_90[gHat0W_10_90 > 0.90] <- 0.90
+  gHat0W_10_90[gHat0W_10_90 < 0.10] <- 0.10
+  
+  gHat1W_10_90 <- gHat1W
+  gHat1W_10_90[gHat1W_10_90 > 0.90] <- 0.90
+  gHat1W_10_90[gHat1W_10_90 < 0.10] <- 0.10
+  
+  # weighted clever covariates
+  
+  # 0.025
+  H.AW.025.975 <- as.numeric(ObsData$A==1)/gHat1W_025_975 - 
+    as.numeric(ObsData$A==0)/gHat0W_025_975
+  
+  # also want to evaluate the clever covariates at A=1 and A=0 for all subjects
+  H.1W.025.975<- 1/gHat1W_025_975
+  H.0W.025.975<- -1/gHat0W_025_975
+  
+  # 0.05
+  H.AW.05.95 <- as.numeric(ObsData$A==1)/gHat1W_05_95 - 
+  as.numeric(ObsData$A==0)/gHat0W_05_95
+  
+  H.1W.05.95 <- 1/gHat1W_05_95
+  H.0W.05.95 <- -1/gHat0W_05_95
+  
+  # 0.10
+  H.AW.10.90 <- as.numeric(ObsData$A==1)/gHat1W_10_90 - 
+  as.numeric(ObsData$A==0)/gHat0W_10_90
+    
+  H.1W.10.90 <- 1/gHat1W_10_90
+  H.0W.10.90 <- -1/gHat0W_10_90
+  
+  # Update the initial estimator of Qbar_0(A,W)
+
+  # 0.025!
+  logitUpdate_025_975 <- glm(ObsData$Y ~ -1 + 
+                               offset(qlogis(QbarAW)) + 
+                               H.AW.025.975,
+                     family='quasibinomial')
+  epsilon_025_975 <- logitUpdate_025_975$coef
+  
+  QbarAW.025.975.star <- plogis(qlogis(QbarAW) + epsilon_025_975*H.AW.025.975)
+  Qbar1W.025.975.star <- plogis(qlogis(Qbar1W) + epsilon_025_975*H.1W.025.975)
+  Qbar0W.025.975.star <- plogis(qlogis(Qbar0W) + epsilon_025_975*H.0W.025.975)
+  
+  # 0.05!
+  logitUpdate_05_95 <- glm(ObsData$Y ~ -1 + 
+                             offset(qlogis(QbarAW)) + 
+                             H.AW.05.95,
+                     family='quasibinomial')
+  epsilon_05_95 <- logitUpdate_05_95$coef
+  
+  QbarAW.05.95.star <- plogis(qlogis(QbarAW) + epsilon_05_95*H.AW.05.95)
+  Qbar1W.05.95.star <- plogis(qlogis(Qbar1W) + epsilon_05_95*H.1W.05.95)
+  Qbar0W.05.95.star <- plogis(qlogis(Qbar0W) + epsilon_05_95*H.0W.05.95)
+  
+  # 0.10!
+  logitUpdate_10_90 <- glm(ObsData$Y ~ -1 + 
+                             offset(qlogis(QbarAW)) + 
+                             H.AW.10.90,
+                     family='quasibinomial')
+  epsilon_10_90 <- logitUpdate_10_90$coef
+  
+  QbarAW.10.90.star <- plogis(qlogis(QbarAW) + epsilon*H.AW.10.90)
+  Qbar1W.10.90.star <- plogis(qlogis(Qbar1W) + epsilon*H.1W.10.90)
+  Qbar0W.10.90.star <- plogis(qlogis(Qbar0W) + epsilon*H.0W.10.90)
+  
+  #------------------------------------------
+  # Estimate Psi(P_0)
+  #------------------------------------------
+  
+  PsiHat.TMLE.trunc.025.975 <- mean(Qbar1W.025.975.star - Qbar0W.025.975.star)
+  PsiHat.TMLE.trunc.05.95 <- mean(Qbar1W.05.95.star - Qbar0W.05.95.star)
+  PsiHat.TMLE.trunc.10.90 <- mean(Qbar1W.10.90.star - Qbar0W.10.90.star)
+  
+  #------------------------------------------
+  # Return point estimates, targeted estimates of Qbar_0(A,W),
+  # and the vector of clever covariates
+  #------------------------------------------
+  
+  estimates <- data.frame(cbind(PsiHat.SS=PsiHat.SS, 
+                                PsiHat.IPTW, 
+                                PsiHat.HW.IPTW,
+                                PsiHat.TMLE, 
+                                PsiHat.IPTW.025.975, 
+                                PsiHat.IPTW.05.95, 
+                                PsiHat.IPTW.10.90, 
+                                PsiHat.TMLE.trunc.025.975, 
+                                PsiHat.TMLE.trunc.05.95, 
+                                PsiHat.TMLE.trunc.10.90))
+  
+  list(estimates=estimates)
+  
+  # output_list <- 
+  #           list(estimates = estimates, 
+  #                QbarSL_risk = cbind(QbarSL$cvRisk, QbarSL$coef), 
+  #                gHatSL_risk = cbind(gHatSL$cvRisk, gHatSL$coef))
+  
+
+
+save(run.tmle.katie.para, 
+     file = file.path("run.tmle.katie.para.rdata"))
 
 
 
-head(estimates_all)
+##################
+# CALCULATING ICS
+##################
+
+n = 8838
+
+# TMLE inference -> p-value + CI assuming normal distribution
+  IC <- H.AW*(dataset_complete_cases$math_standard_met/100 - QbarAW.star) + Qbar1W.star - Qbar0W.star - estimates$PsiHat.TMLE
+  var(IC)
+  (IC_se <- sqrt(var(IC)/n))
+  (Psy.LL <- (estimates$PsiHat.TMLE + qnorm(0.05/2, lower.tail = T)*IC_se)*100)
+  (Psy.UL <- (estimates$PsiHat.TMLE + qnorm(0.05/2, lower.tail = F)*IC_se)*100)
+  2*pnorm(abs(estimates$PsiHat.TMLE/IC_se),lower.tail=F)
+# IPTW inference -> p-value + CI assuming normal distribution
+  IC <- H.AW*(dataset_complete_cases$math_standard_met/100 - QbarAW.star) + Qbar1W.star - Qbar0W.star - estimates$PsiHat.IPTW
+  var(IC)
+  (IC_se <- sqrt(var(IC)/n))
+  (Psy.LL <- (estimates$PsiHat.IPTW + qnorm(0.05/2, lower.tail = T)*IC_se)*100)
+  (Psy.UL <- (estimates$PsiHat.IPTW+qnorm(0.05/2, lower.tail = F)*IC_se)*100)
+  2*pnorm(abs(estimates$PsiHat.IPTW/IC_se),lower.tail=F)
+# IPTW_HT inference -> p-value + CI assuming normal distribution
+  IC <- H.AW*(dataset_complete_cases$math_standard_met/100 - QbarAW.star) + Qbar1W.star - Qbar0W.star - estimates$PsiHat.HW.IPTW
+  var(IC)
+  (IC_se <- sqrt(var(IC)/n))
+  Psy.LL <- (estimates$PsiHat.HW.IPTW + qnorm(0.05/2, lower.tail = T)*IC_se)*100
+  Psy.UL <- (estimates$PsiHat.HW.IPTW + qnorm(0.05/2, lower.tail = F)*IC_se)*100
+  2*pnorm(abs(estimates$PsiHat.HW.IPTW/IC_se),lower.tail=F)
+  
+
+
+## distribution of propensity scores
+p1 <- data.frame(gHat1W[ObsData$A==1])
+colnames(p1) <- "ps1"
+p1$type <- "A = 1 (n = 5610)"
+p0 <- data.frame(gHat1W[ObsData$A==0]) 
+colnames(p0) <- "ps1"
+p0$type <- "A = 0 (n = 3228)"
+
+nrow(p0)
+
+plot_df <- data.frame(rbind(p1,p0))
+
+
+ggplot(data=plot_df) + 
+  geom_histogram(aes(ps1),
+                 bins=30, 
+                 stat = "bin") + 
+  facet_wrap(~type) + 
+  coord_flip() + 
+  theme_bw() +
+  xlab(paste0("Probability of exposure \U011D(A=1|W)")) +
+  ylab("Count") +
+  theme(text=element_text(family="Raleway"))
+
+ggsave(device = "bmp", 
+       filename = file.path("output_for_writeups", 
+                            "propensity_score.bmp"), 
+       height = 5, 
+       width = 5)
+
+
+
+
+# only if actually plotting
+windowsFonts(Times=windowsFont("Raleway"))
+
+# make basic scatterplot with loess line through it
+ggplot(data = simulated_full_only_complete_cases,
+       aes(x = modeled_air_at_school,
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method=loess,
+              se=TRUE,
+              color="darkred") +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") +
+  theme(text=element_text(family="Raleway"))
+
+
+summary(wt)
+  
+# make stabilized weights
+ga <- rep(NA, 8838)
+
+ga[ObsData$A == 1] <- mean(ObsData$A==1)
+ga[ObsData$A == 0] <- mean(ObsData$A==0)
+
+wt.MSM <- ga/gHatAW
+
+summary(wt.MSM)
+  
+  
+  
 
 ```
 
