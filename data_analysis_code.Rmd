@@ -2833,6 +2833,11 @@ ltmle_tmle <- ltmle(data = ltmle_data,
 summary(ltmle_tmle) # Stephen: OMG!!!!! good to see TMLE does the weird "basically equal means but stat sig diff" thing for both of us 
 
 ltmle_tmle$beta.iptw
+var(ltmle_tmle$IC.iptw[,2])
+(IC_se <- sqrt(var(ltmle_tmle$IC.iptw[,2])/nrow(ltmle_data)))
+(Psy.LL <- ltmle_tmle$beta.iptw[2]-1.96*IC_se)
+(Psy.UL <- ltmle_tmle$beta.iptw[2]+1.96*IC_se)
+2*pnorm(abs(ltmle_tmle$beta.iptw[2]/IC_se),lower.tail=F)
 
 # run with gcomp
 ltmle_data <- 
@@ -3598,7 +3603,7 @@ make_density_curve(data=dataset_complete_cases,
 ## plus a violin plot
 p <- ggplot(dataset_complete_cases, aes(x=pm25_12_plus, y=math_standard_met)) + 
   geom_violin(trim=FALSE, colour="darkblue", fill="darkblue", alpha=.2) + 
-  labs(x=expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018")),
+  labs(x=expression(paste("> 12 PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018")),
        y="Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") + 
   geom_dotplot(binaxis='y', stackdir='center', dotsize=.1, binwidth=0) +
   geom_jitter(shape=16, position=position_jitter(0.2), alpha=1, colour="mediumorchid2") + 
