@@ -176,3 +176,63 @@ ggdag(model_u)
 ggdag_adjustment_set(model_u)
 ```
 
+```{r, Version 5 (add global U to Version 4)}
+model5 <- dagify(PM2.5 ~ SchoolEnrollment +
+                         LocalPolicyInfluence + LandUsePolicy + GeoFeatures + AirPolicy,
+                MathScores ~ PM2.5 + Absenteeism + Suspension + FreeReducedLunch + EnglishLearnerPercent + AirBasin + PerCapEduFund + StudentTeacherRatio +
+                             TeacherDiscrimination + TeacherQuality + SchoolEnrollment,
+                Absenteeism ~ PM2.5 + Suspension,
+                Suspension ~ PM2.5 + 
+                             TeacherDiscrimination,
+                FreeReducedLunch ~ LocalHouseIncome,
+                PoCEnrollment ~ LandUsePolicy,
+                EnglishLearnerPercent ~ LocalFamiliesSpeakEnglish,
+                AirBasin ~ GeoFeatures,
+                PerCapEduFund ~ FreeReducedLunch + 
+                                LandUsePolicy + LocalPropertyTax,
+                StudentTeacherRatio ~ SchoolEnrollment + LocalHouseWealth + LocalHouseIncome,
+                SchoolEnrollment ~ LandUsePolicy,
+                TeacherQuality ~ PerCapEduFund + 
+                                 LandUsePolicy + LocalHouseIncome,
+                
+                LocalPolicyInfluence ~ PoCEnrollment + 
+                                      LocalFamiliesSpeakEnglish + LocalHouseIncome,
+                #LandUsePolicy ~ ,
+                #GeoFeatures ~ ,
+                AirPolicy ~ AirBasin,
+                TeacherDiscrimination ~ PoCEnrollment,
+                LocalHouseIncome ~ PoCEnrollment + LandUsePolicy + LocalFamiliesSpeakEnglish,
+                LocalHouseWealth ~ PoCEnrollment + LandUsePolicy + LocalFamiliesSpeakEnglish,
+                LocalFamiliesSpeakEnglish ~ PoCEnrollment,
+                LocalPropertyTax ~ LocalHouseIncome + LocalHouseWealth,
+                exposure="PM2.5",outcome="MathScores",
+                latent=c("LocalPolicyInfluence","LandUsePolicy","GeoFeatures","AirPolicy","TeacherDiscrimination","LocalHouseIncome",
+                         "LocalFamiliesSpeakEnglish","LocalPropertyTax","LocalHouseWealth"),
+                coords=list(x=c(PM2.5=-5,MathScores=4,Absenteeism=-1.5,Suspension=-2,FreeReducedLunch=1.75,PoCEnrollment=-5,EnglishLearnerPercent=2,AirBasin=-2.35,
+                                PerCapEduFund=3.5,StudentTeacherRatio=-3,SchoolEnrollment=-2.75,TeacherQuality=3.75,
+                                LocalPolicyInfluence=-5,LandUsePolicy=-1,GeoFeatures=-3,AirPolicy=-2.75,TeacherDiscrimination=0,LocalHouseIncome=0.75,
+                                LocalFamiliesSpeakEnglish=1,LocalPropertyTax=1.75,LocalHouseWealth=0),
+                            y=c(PM2.5=-0.5,MathScores=-2,Absenteeism=-1.5,Suspension=-2.5,FreeReducedLunch=0.8,PoCEnrollment=5,EnglishLearnerPercent=3.5,AirBasin=0.75,
+                                PerCapEduFund=4,StudentTeacherRatio=1.4,SchoolEnrollment=2.2,TeacherQuality=3,
+                                LocalPolicyInfluence=4,LandUsePolicy=6,GeoFeatures=0,AirPolicy=-0.25,TeacherDiscrimination=0.25,LocalHouseIncome=1.3,
+                                LocalFamiliesSpeakEnglish=4.25,LocalPropertyTax=2.05,LocalHouseWealth=2.5))
+                )
+m5 <- ggdag(model5,node=FALSE,text_col="black") +
+  theme(axis.text.x = element_blank(), axis.ticks = element_blank(), axis.line.x = element_blank()) +
+  theme(axis.text.y = element_blank(), axis.ticks = element_blank(), axis.line.y = element_blank()) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(panel.background = element_blank()) +
+  labs(x="",y="")
+m5
+
+m5_adj <- ggdag_adjustment_set(model5,text_col="black") +
+  theme(axis.text.x = element_blank(), axis.ticks = element_blank(), axis.line.x = element_blank()) +
+  theme(axis.text.y = element_blank(), axis.ticks = element_blank(), axis.line.y = element_blank()) +
+  theme(strip.background = element_blank(), strip.text.x = element_blank()) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(panel.background = element_blank()) +
+  labs(x="",y="")
+m5_adj
+
+```
+

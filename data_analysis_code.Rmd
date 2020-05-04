@@ -3324,6 +3324,11 @@ ltmle_tmle <- ltmle(data = ltmle_data,
 summary(ltmle_tmle) # Stephen: OMG!!!!! good to see TMLE does the weird "basically equal means but stat sig diff" thing for both of us 
 
 ltmle_tmle$beta.iptw
+var(ltmle_tmle$IC.iptw[,2])
+(IC_se <- sqrt(var(ltmle_tmle$IC.iptw[,2])/nrow(ltmle_data)))
+(Psy.LL <- ltmle_tmle$beta.iptw[2]-1.96*IC_se)
+(Psy.UL <- ltmle_tmle$beta.iptw[2]+1.96*IC_se)
+2*pnorm(abs(ltmle_tmle$beta.iptw[2]/IC_se),lower.tail=F)
 
 # run with gcomp
 ltmle_data <- 
@@ -3999,6 +4004,7 @@ apply(estimates,2,function(x) quantile(x,probs=c(.025,.975),na.rm=T))
 load(file = "estimates_all.rdata")
 load(file = "g_CV_SL_out.rdata")
 load(file = "Q_CV_SL_out.rdata")
+load(file = "meanies.rdata")
 
 ######################
 ## bootstraps first ##
@@ -4019,18 +4025,18 @@ for (i in 1:ncol(estimates_all_x100)) {
   print(p)
 }
 
-make_density_curve <- function(data,variable,xlab,ylab,title,line.at) {
+make_density_curve <- function(data,variable,xlab,ylab,title,line,line.at) {
   p <- ggplot(data, aes(x=data[,variable])) + 
     geom_histogram(aes(y=..density..), colour="darkblue", fill="white") +
     geom_density(alpha=.6,color="darkblue",fill="lightblue") + 
-    geom_vline(aes(xintercept=line.at),color="blue", linetype="dashed", size=1) +
     labs(title=title,x=xlab, y=ylab) +
   theme_classic(base_size=20)
+  if (line==TRUE) {p <- p + geom_vline(aes(xintercept=line.at),color="blue", linetype="dashed", size=1)}
   print(p)
 }
 
 names(estimates_all_x100)
-make_density_curve(estimates_all_x100,"SimpSubs","Estimates","Density","",line.at=0.40)
+make_density_curve(estimates_all_x100,"SimpSubs","Estimates","Density","",line==TRUE,line.at=0.40)
 make_density_curve(estimates_all_x100,"IPTW","Estimates","Density","",line.at=13.32)
 make_density_curve(estimates_all_x100,"IPTW.HT","Estimates","Density","",line.at=4.58)
 make_density_curve(estimates_all_x100,"TMLE","Estimates","Density","",line.at=0.64)
@@ -4051,6 +4057,11 @@ make_density_curve(estimates_all_x100,"PsiHat.TMLE.trunc.10.90","Estimates","Den
 nrow=2,ncol=2
 )
 
+names(meanies)
+summary(meanies)
+meanies_x100 <- meanies*100
+make_density_curve(meanies_x100,"matrix.NA..nrow...B..ncol...1.","Estimates","Density","",line.at=-2.33)
+
 ##########
 ## g CV ##
 ##########
@@ -4062,6 +4073,35 @@ summary(g.CV.SL.out)
 ##########
 names(Q.CV.SL.out)
 summary(Q.CV.SL.out)
+
+############################################
+## histogram of pollution and test scores ##
+############################################
+names(dataset_complete_cases)
+make_density_curve(data=dataset_complete_cases,
+                   variable="modeled_air_at_school",
+                   xlab=expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018")),
+                   ylab="Density",
+                   title="",
+                   line=TRUE,
+                   line.at=12)
+make_density_curve(data=dataset_complete_cases,
+                   variable="math_standard_met",
+                   xlab="Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19",
+                   ylab="Density",
+                   title="",
+                   line=FALSE)
+## plus a violin plot
+p <- ggplot(dataset_complete_cases, aes(x=pm25_12_plus, y=math_standard_met)) + 
+  geom_violin(trim=FALSE, colour="darkblue", fill="darkblue", alpha=.2) + 
+  labs(x=expression(paste("> 12 PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018")),
+       y="Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") + 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=.1, binwidth=0) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha=1, colour="mediumorchid2") + 
+  geom_boxplot(width=0.1, colour="darkblue", outlier.shape = NA) + 
+  ylim(0,100) + 
+  theme_classic(base_size=20)
+p
 ```
 
 
