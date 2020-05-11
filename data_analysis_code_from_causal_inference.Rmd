@@ -444,7 +444,6 @@ data_for_little_table_one <-
          "Cost per pupil" = district_cost_per_pupil,
          "Air basin group" = air_basin_binned, 
          "Air basin" = air_basin,
-        "Air basin 4" = air_basin_4_bins,
          "asian_filipino_percent" = round(asian_filipino_percent, 1),
          "Asian (%)" = round(asian_percent, 1),
          "Filipino (%)" = round(filipino_percent, 1),
@@ -492,7 +491,6 @@ little_table_one_variables <-
          "Student-teacher ratio",
          "Fully credentialed teachers",
          "Cost per pupil",
-         "Air basin 4",
          "Air basin group", 
          "Air basin",
          "asian_filipino_percent",
@@ -2986,17 +2984,17 @@ ggsave(device = "bmp",
 # only if actually plotting
 windowsFonts(Times=windowsFont("Raleway"))
 
-# # make basic scatterplot with loess line through it
-# ggplot(data = simulated_full_only_complete_cases,
-#        aes(x = modeled_air_at_school,
-#            y = math_standard_met)) +
-#   geom_point(color = "blue", alpha = 0.5) +
-#   geom_smooth(method=loess,
-#               se=TRUE,
-#               color="darkred") +
-#   xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
-#   ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") +
-#   theme(text=element_text(family="Raleway"))
+# make basic scatterplot with loess line through it
+ggplot(data = simulated_full_only_complete_cases,
+       aes(x = modeled_air_at_school,
+           y = math_standard_met)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method=loess,
+              se=TRUE,
+              color="darkred") +
+  xlab(expression(paste("Mean PM"["2.5"]," concentration (",mu,"g/m"^"3",") in 2018"))) +
+  ylab("Mean Percentage of Students Who Met or Exceeded \nMath Standard in 2018-19") +
+  theme(text=element_text(family="Raleway"))
 
 
 summary(wt)
